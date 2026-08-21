@@ -9,6 +9,28 @@ const list = async (req, res, next) => {
   }
 };
 
+const reviewQueue = async (req, res, next) => {
+  try {
+    const data = await workOrderService.listCoderReviewQueue();
+    res.json({ success: true, message: 'Coder review queue retrieved', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const reviewItem = async (req, res, next) => {
+  try {
+    const data = await workOrderService.reviewItem(req.params.itemId, {
+      ...req.body,
+      user_id: req.user.id,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Item review confirmed', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getById = async (req, res, next) => {
   try {
     const data = await workOrderService.getWorkOrder(req.params.id);
@@ -108,6 +130,8 @@ const finalize = async (req, res, next) => {
 
 module.exports = {
   list,
+  reviewQueue,
+  reviewItem,
   getById,
   create,
   update,

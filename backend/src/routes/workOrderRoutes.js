@@ -19,6 +19,8 @@ router.delete('/items/:itemId', authorize('PM'), workOrderController.deleteItem)
 
 // Work Orders — PM only for create/update; read for all authenticated
 router.get('/', workOrderController.list);
+router.get('/review-queue', authorize('CODER'), workOrderController.reviewQueue);
+router.post('/items/:itemId/review', authorize('CODER'), workOrderController.reviewItem);
 router.post('/', authorize('PM'), validateWorkOrderCreate, workOrderController.create);
 router.get('/:id', workOrderController.getById);
 router.put('/:id', authorize('PM'), validateWorkOrderUpdate, workOrderController.update);

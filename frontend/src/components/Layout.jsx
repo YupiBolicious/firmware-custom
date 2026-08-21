@@ -17,6 +17,7 @@ export default function Layout() {
         <nav>
           <NavLink to="/" end>Dashboard</NavLink>
           <NavLink to="/work-orders">Work Orders</NavLink>
+          {hasRole('CODER') && <NavLink to="/review-queue">Review Queue</NavLink>}
           {hasRole('ADMIN') && <NavLink to="/complexity-levels">Complexity Levels</NavLink>}
         </nav>
         <div className="user-info">

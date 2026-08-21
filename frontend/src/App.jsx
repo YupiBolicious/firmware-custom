@@ -8,6 +8,7 @@ import WorkOrderList from './pages/WorkOrderList';
 import WorkOrderCreate from './pages/WorkOrderCreate';
 import WorkOrderDetail from './pages/WorkOrderDetail';
 import ComplexityLevels from './pages/ComplexityLevels';
+import ReviewQueue from './pages/ReviewQueue';
 
 export default function App() {
   const { user } = useAuth();
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/work-orders/new" element={<WorkOrderCreate />} />
         <Route path="/work-orders/:id" element={<WorkOrderDetail />} />
         <Route path="/complexity-levels" element={<ComplexityLevels />} />
+        <Route path="/review-queue" element={<ReviewQueue />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

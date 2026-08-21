@@ -31,6 +31,20 @@ const findById = async (id) => {
   return result.rows[0] || null;
 };
 
+const findCoderReviewQueue = async () => {
+  const result = await pool.query(
+    `SELECT woi.id AS item_id, woi.work_order_id, woi.item_number, woi.title,
+            woi.description, wo.wo_number, wo.title AS work_order_title,
+            c.classification_reason, c.status, c.created_at
+     FROM work_order_items woi
+     JOIN work_orders wo ON wo.id = woi.work_order_id
+     JOIN classifications c ON c.work_order_item_id = woi.id
+     WHERE c.status = 'CODER_REVIEW'
+     ORDER BY c.created_at ASC, wo.id, woi.item_number`
+  );
+  return result.rows;
+};
+
 const findProductionTasksByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
     `SELECT id, task_code, work_order_id, work_order_item_id, title, description, status,
@@ -123,6 +137,7 @@ const findItemsByWorkOrderId = async (workOrderId) => {
             woi.quantity, woi.created_at, woi.updated_at,
             c.id AS classification_id, c.fw_related, c.complexity_level_id,
             c.classification_method, c.confidence_score, c.classification_reason, c.status AS classification_status,
+            c.reviewed_by,
             cl.code AS complexity_code, cl.name AS complexity_name,
             ie.total_hours AS estimated_hours
      FROM work_order_items woi
@@ -139,6 +154,17 @@ const findItemsByWorkOrderId = async (workOrderId) => {
 const findItemById = async (id) => {
   const result = await pool.query(
     `SELECT * FROM work_order_items WHERE id = $1`,
+    [id]
+  );
+  return result.rows[0] || null;
+};
+
+const findItemWithWorkOrder = async (id) => {
+  const result = await pool.query(
+    `SELECT woi.*, wo.wo_number, wo.status AS work_order_status
+     FROM work_order_items woi
+     JOIN work_orders wo ON wo.id = woi.work_order_id
+     WHERE woi.id = $1`,
     [id]
   );
   return result.rows[0] || null;
@@ -179,12 +205,14 @@ const deleteItem = async (id) => {
 module.exports = {
   findAll,
   findById,
+  findCoderReviewQueue,
   findProductionTasksByWorkOrderId,
   finalizeWithProductionTasks,
   create,
   update,
   findItemsByWorkOrderId,
   findItemById,
+  findItemWithWorkOrder,
   createItem,
   updateItem,
   deleteItem,

@@ -80,10 +80,45 @@ const createMatch = async ({ classification_id, kb_item_id, rule_id, match_type,
   return result.rows[0];
 };
 
+const findByItemId = async (itemId) => {
+  const result = await pool.query(
+    `SELECT * FROM classifications WHERE work_order_item_id = $1`,
+    [itemId]
+  );
+  return result.rows[0] || null;
+};
+
+const reviewClassification = async ({
+  work_order_item_id,
+  fw_related,
+  complexity_level_id,
+  classification_reason,
+  reviewed_by,
+}) => {
+  const result = await pool.query(
+    `UPDATE classifications
+     SET fw_related = $2,
+         complexity_level_id = $3,
+         classification_method = 'MANUAL',
+         confidence_score = 100,
+         classification_reason = $4,
+         status = CASE WHEN $2 THEN 'CLASSIFIED' ELSE 'NON_FIRMWARE' END,
+         reviewed_by = $5,
+         reviewed_at = NOW(),
+         updated_at = NOW()
+     WHERE work_order_item_id = $1 AND status = 'CODER_REVIEW'
+     RETURNING *`,
+    [work_order_item_id, fw_related, complexity_level_id, classification_reason, reviewed_by]
+  );
+  return result.rows[0] || null;
+};
+
 module.exports = {
   findAllKbItems,
   findAllRules,
   findConfidenceThresholds,
   upsertClassification,
   createMatch,
+  findByItemId,
+  reviewClassification,
 };
