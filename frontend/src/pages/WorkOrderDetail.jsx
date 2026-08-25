@@ -1,129 +1,14 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import api from '../api/client';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
+import useWorkOrderDetail from './useWorkOrderDetail';
 
 export default function WorkOrderDetail() {
-  const { id } = useParams();
-  const [wo, setWo] = useState(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [finalizing, setFinalizing] = useState(false);
-  const [analysis, setAnalysis] = useState(null);
-  const [message, setMessage] = useState('');
-
-  // Item form state
-  const [itemForm, setItemForm] = useState({ item_number: '', title: '', description: '', quantity: 1 });
-  const [editingItemId, setEditingItemId] = useState(null);
-
-  const load = async () => {
-    try {
-      const res = await api.get(`/work-orders/${id}`);
-      setWo(res.data.data);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load work order');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  const handleItemChange = (e) => {
-    setItemForm({ ...itemForm, [e.target.name]: e.target.value });
-  };
-
-  const handleAddItem = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await api.post(`/work-orders/${id}/items`, {
-        ...itemForm,
-        quantity: parseInt(itemForm.quantity, 10) || 1,
-      });
-      setItemForm({ item_number: '', title: '', description: '', quantity: 1 });
-      setMessage('Item added');
-      await load();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add item');
-    }
-  };
-
-  const handleEditItem = (item) => {
-    setEditingItemId(item.id);
-    setItemForm({
-      item_number: item.item_number,
-      title: item.title,
-      description: item.description || '',
-      quantity: item.quantity,
-    });
-  };
-
-  const handleUpdateItem = async (e) => {
-    e.preventDefault();
-    setError('');
-    try {
-      await api.put(`/work-orders/items/${editingItemId}`, {
-        title: itemForm.title,
-        description: itemForm.description,
-        quantity: parseInt(itemForm.quantity, 10) || 1,
-      });
-      setEditingItemId(null);
-      setItemForm({ item_number: '', title: '', description: '', quantity: 1 });
-      setMessage('Item updated');
-      await load();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update item');
-    }
-  };
-
-  const handleDeleteItem = async (itemId) => {
-    if (!window.confirm('Delete this item?')) return;
-    setError('');
-    try {
-      await api.delete(`/work-orders/items/${itemId}`);
-      setMessage('Item deleted');
-      await load();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete item');
-    }
-  };
-
-  const handleAnalyze = async () => {
-    setError('');
-    setMessage('');
-    setAnalyzing(true);
-    try {
-      const res = await api.post(`/work-orders/${id}/analyze`);
-      setAnalysis(res.data.data);
-      setMessage('Analysis complete');
-      await load();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Analysis failed');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const handleFinalize = async () => {
-    if (!window.confirm('Finalize this work order?')) return;
-    setError('');
-    setMessage('');
-    setFinalizing(true);
-    try {
-      await api.post(`/work-orders/${id}/finalize`);
-      setMessage('Work order finalized');
-      await load();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to finalize work order');
-    } finally {
-      setFinalizing(false);
-    }
-  };
+  const { hasRole } = useAuth();
+  const isCoder = hasRole('CODER');
+  const { wo, error, loading, analyzing, finalizing, analysis, message, itemForm,
+    editingItemId, handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
+    showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize } = useWorkOrderDetail();
 
   if (loading) return <div>Loading...</div>;
   if (error && !wo) return <div className="alert alert-error">{error}</div>;
@@ -137,8 +22,13 @@ export default function WorkOrderDetail() {
       <div className="flex justify-between align-center mb-16">
         <h1>{wo.wo_number} — {wo.title}</h1>
         <div className="flex gap-8">
-          <Link className="btn btn-secondary" to="/work-orders">Back to List</Link>
-          {wo.status === 'ANALYZED' && (
+          <Link className="btn btn-secondary" to={isCoder ? '/review-queue' : '/work-orders'}>
+            {isCoder ? 'Back to Review Queue' : 'Back to List'}
+          </Link>
+          {!isCoder && wo.status !== 'FINALIZED' && (
+            <Link className="btn btn-secondary" to={`/work-orders/${wo.id}/edit`}>Edit Work Order</Link>
+          )}
+          {!isCoder && wo.status === 'ANALYZED' && (
             <button className="btn" onClick={handleFinalize} disabled={finalizing}>
               {finalizing ? 'Finalizing...' : 'Finalize Work Order'}
             </button>
@@ -163,19 +53,28 @@ export default function WorkOrderDetail() {
       {/* Items */}
       <div className="panel">
         <div className="flex justify-between align-center mb-8">
-          <h3>Custom Items</h3>
-          <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || wo.status === 'FINALIZED'}>
-            {analyzing ? 'Analyzing...' : 'Analyze / Estimate'}
-          </button>
+          <h3>Custom Items Details</h3>
+          {!isCoder && (
+            <div className="item-actions">
+              <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || wo.status === 'FINALIZED'}>
+                {analyzing ? 'Analyzing...' : 'Analyze / Estimate'}
+              </button>
+              {wo.status !== 'FINALIZED' && (
+                <button className="btn btn-secondary" type="button" onClick={openAddItem}>
+                  {items.length === 0 ? '+ Add Custom Item' : '+ Add Another Item'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {items.length === 0 ? (
-          <div className="text-muted">No items yet. Add items below.</div>
+          <div className="text-muted">No custom items yet. Use the add button above to create the first item.</div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>Item #</th>
+                <th>Item</th>
                 <th>Title</th>
                 <th>Description</th>
                 <th>Qty</th>
@@ -184,7 +83,7 @@ export default function WorkOrderDetail() {
                 <th>Confidence</th>
                 <th>Hours</th>
                 <th>Status</th>
-                <th>Actions</th>
+                {!isCoder && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -201,10 +100,10 @@ export default function WorkOrderDetail() {
                   <td>{item.confidence_score != null ? `${item.confidence_score}%` : '-'}</td>
                   <td>{item.estimated_hours != null ? `${item.estimated_hours}h` : 'N/A'}</td>
                   <td><StatusBadge status={item.classification_status} /></td>
-                  <td>
+                  {!isCoder && <td>
                     <button className="btn btn-secondary btn-sm" onClick={() => handleEditItem(item)} disabled={wo.status === 'FINALIZED'}>Edit</button>{' '}
                     <button className="btn btn-danger btn-sm" onClick={() => handleDeleteItem(item.id)} disabled={wo.status === 'FINALIZED'}>Delete</button>
-                  </td>
+                  </td>}
                 </tr>
               ))}
             </tbody>
@@ -212,14 +111,17 @@ export default function WorkOrderDetail() {
         )}
       </div>
 
-      {/* Add / Edit Item */}
-      <div className="panel">
-        <h3>{editingItemId ? 'Edit Item' : 'Add Item'}</h3>
-        <form onSubmit={editingItemId ? handleUpdateItem : handleAddItem}>
+      {/* Edit Item */}
+      {!isCoder && (editingItemId || showAddItemForm) && (
+        <div className="panel">
+          <h3>{editingItemId ? 'Edit Item' : 'Add Custom Item'}</h3>
+          <form onSubmit={editingItemId ? handleUpdateItem : handleAddItem}>
           <div className="form-grid">
             <div className="form-row">
               <label>Item Number</label>
-              <input
+              {/*item number edit is disabled when existing item or if the work order is finalized*/}
+                <input
+                className="item-number-input"
                 name="item_number"
                 value={itemForm.item_number}
                 onChange={handleItemChange}
@@ -231,39 +133,37 @@ export default function WorkOrderDetail() {
             <div className="form-row">
               <label>Quantity</label>
               <input
+                className="custom-item-text"
                 name="quantity"
                 type="number"
                 min="1"
                 value={itemForm.quantity}
                 onChange={handleItemChange}
+                disabled={wo.status === 'FINALIZED'}
               />
             </div>
           </div>
           <div className="form-row">
             <label>Title</label>
-            <input name="title" value={itemForm.title} onChange={handleItemChange} required disabled={wo.status === 'FINALIZED'} />
+            <input className='custom-item-text' name="title" value={itemForm.title} onChange={handleItemChange} required disabled={wo.status === 'FINALIZED'} />
           </div>
           <div className="form-row">
             <label>Description</label>
-            <textarea name="description" value={itemForm.description} onChange={handleItemChange} disabled={wo.status === 'FINALIZED'} />
+            <textarea className="custom-item-text" name="description" value={itemForm.description} onChange={handleItemChange} disabled={wo.status === 'FINALIZED'} />
           </div>
           <div className="flex gap-8">
-            <button className="btn" type="submit" disabled={wo.status === 'FINALIZED'}>{editingItemId ? 'Update Item' : 'Add Item'}</button>
-            {editingItemId && (
+              <button className="btn" type="submit" disabled={wo.status === 'FINALIZED'}>{editingItemId ? 'Update Item' : 'Add Item'}</button>
               <button
                 className="btn btn-secondary"
                 type="button"
-                onClick={() => {
-                  setEditingItemId(null);
-                  setItemForm({ item_number: '', title: '', description: '', quantity: 1 });
-                }}
+                onClick={cancelEdit}
               >
                 Cancel
               </button>
-            )}
-          </div>
-        </form>
-      </div>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Estimation Preview */}
       {analysis && (
@@ -295,7 +195,7 @@ export default function WorkOrderDetail() {
           <table>
             <thead>
               <tr>
-                <th>Item #</th>
+                <th>Item</th>
                 <th>Title</th>
                 <th>Firmware</th>
                 <th>Complexity</th>

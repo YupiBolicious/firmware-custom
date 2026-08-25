@@ -6,6 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const workOrderRoutes = require('./routes/workOrderRoutes');
 const complexityRoutes = require('./routes/complexityRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const kbRoutes = require('./routes/kbRoutes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/work-orders', workOrderRoutes);
 app.use('/api/complexity-levels', complexityRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/kb', kbRoutes);
 
 // 404 + centralized error handling
 app.use(notFound);

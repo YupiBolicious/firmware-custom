@@ -16,9 +16,10 @@ export default function Layout() {
         <div className="brand">Firmware Custom</div>
         <nav>
           <NavLink to="/" end>Dashboard</NavLink>
-          <NavLink to="/work-orders">Work Orders</NavLink>
+          {hasRole('PM', 'CODER') && <NavLink to="/work-orders">Work Orders</NavLink>}
           {hasRole('CODER') && <NavLink to="/review-queue">Review Queue</NavLink>}
           {hasRole('ADMIN') && <NavLink to="/complexity-levels">Complexity Levels</NavLink>}
+          {hasRole('ADMIN') && <NavLink to="/knowledge-base">Knowledge Base</NavLink>}
         </nav>
         <div className="user-info">
           <div>{user?.full_name}</div>

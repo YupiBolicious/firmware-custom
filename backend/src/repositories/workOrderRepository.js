@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-// ---------- Work Orders ----------
+//work orders
 const findAll = async () => {
   const result = await pool.query(
     `SELECT wo.id, wo.wo_number, wo.title, wo.description, wo.customer, wo.status,
@@ -110,7 +110,7 @@ const create = async ({ wo_number, title, description, customer, created_by }) =
     `INSERT INTO work_orders (wo_number, title, description, customer, created_by)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [wo_number, title, description || null, customer || null, created_by]
+    [wo_number, title, description || null, customer, created_by]
   );
   return result.rows[0];
 };
@@ -202,6 +202,14 @@ const deleteItem = async (id) => {
   return result.rows[0] || null;
 };
 
+const countItemsByWorkOrderId = async (workOrderId) => {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM work_order_items WHERE work_order_id = $1`,
+    [workOrderId]
+  );
+  return result.rows[0].count;
+};
+
 module.exports = {
   findAll,
   findById,
@@ -216,4 +224,5 @@ module.exports = {
   createItem,
   updateItem,
   deleteItem,
+  countItemsByWorkOrderId,
 };

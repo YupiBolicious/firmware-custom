@@ -4,6 +4,7 @@ const estimationRepository = require('../repositories/estimationRepository');
 const classificationService = require('./classificationService');
 const estimationService = require('./estimationService');
 const auditService = require('./auditService');
+const kbRepository = require('../repositories/kbRepository');
 const { ApiError } = require('../middleware/errorHandler');
 
 // ---------- Work Orders ----------
@@ -54,6 +55,14 @@ const reviewItem = async (itemId, { complexity_level_id, notes, user_id, ip_addr
     complexity_level_id: isFirmware ? level.id : null,
   });
 
+  const learnedKbItem = await kbRepository.upsertCoderLearning({
+    item_id: item.id,
+    title: item.title,
+    description: item.description,
+    fw_related: isFirmware,
+    complexity_level_id: isFirmware ? level.id : null,
+  });
+
   await auditService.log({
     user_id,
     action: 'ITEM_REVIEWED',
@@ -63,7 +72,13 @@ const reviewItem = async (itemId, { complexity_level_id, notes, user_id, ip_addr
     ip_address,
   });
 
-  return { ...saved, complexity_code: level.code, complexity_name: level.name, estimated_hours: isFirmware ? Number(level.total_hours) : null };
+  return {
+    ...saved,
+    complexity_code: level.code,
+    complexity_name: level.name,
+    estimated_hours: isFirmware ? Number(level.total_hours) : null,
+    learned_kb_code: learnedKbItem.kb_code,
+  };
 };
 
 const getWorkOrder = async (id) => {
@@ -106,13 +121,19 @@ const updateWorkOrder = async (id, { title, description, customer, status, user_
   return wo;
 };
 
-// ---------- Items ----------
+// ITEMS ADD ANS CHECK
 const addItem = async (work_order_id, { item_number, title, description, quantity, user_id, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
+  if (wo.status === 'FINALIZED') {
+    throw new ApiError(400, 'Finalized work orders cannot accept new items');
+  }
   const item = await workOrderRepository.createItem({ work_order_id, item_number, title, description, quantity });
+  if (wo.status === 'ANALYZED') {
+    await workOrderRepository.update(work_order_id, { status: 'DRAFT' });
+  }
   await auditService.log({
     user_id,
     action: 'ITEM_ADDED',
@@ -146,7 +167,25 @@ const deleteItem = async (id, { user_id, ip_address }) => {
   if (!existing) {
     throw new ApiError(404, 'Work order item not found');
   }
+  const parent = await workOrderRepository.findById(existing.work_order_id);
+  if (parent?.status === 'FINALIZED') {
+    throw new ApiError(400, 'Finalized work orders cannot delete items');
+  }
   await workOrderRepository.deleteItem(id);
+  const remainingItems = await workOrderRepository.countItemsByWorkOrderId(existing.work_order_id);
+  if (remainingItems === 0) {
+    if (parent && parent.status !== 'FINALIZED' && parent.status !== 'DRAFT') {
+      await workOrderRepository.update(existing.work_order_id, { status: 'DRAFT' });
+      await auditService.log({
+        user_id,
+        action: 'WORK_ORDER_RESET_TO_DRAFT',
+        entity_type: 'WORK_ORDER',
+        entity_id: existing.work_order_id,
+        details: { reason: 'Last custom item deleted' },
+        ip_address,
+      });
+    }
+  }
   await auditService.log({
     user_id,
     action: 'ITEM_DELETED',
@@ -158,14 +197,8 @@ const deleteItem = async (id, { user_id, ip_address }) => {
   return { id };
 };
 
-// ---------- Analyze ----------
-/**
- * Analyze all items in a work order:
- * 1. Classify each item (exact → rule → unknown)
- * 2. Persist classification
- * 3. Create/update estimation for firmware items
- * 4. Return per-item results + summary
- */
+/**ANALZYE AND CLASSIFY IT FLOW TO ENSURE THAT ALL ITEMS ARE CLASSIFIED AND ESTIMATED BEFORE FINALIZING THE WORK ORDER. */
+
 const analyzeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
@@ -205,11 +238,15 @@ const analyzeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
 
     // Record match for traceability
     if (classification.kb_item_id || classification.rule_id) {
+      const matchType =
+        classification.classification_method === 'EXACT_MATCH' ? 'EXACT'
+        : classification.classification_method === 'SIMILARITY' ? 'SIMILARITY'
+        : 'RULE';
       await classificationRepository.createMatch({
         classification_id: saved.id,
         kb_item_id: classification.kb_item_id || null,
         rule_id: classification.rule_id || null,
-        match_type: classification.classification_method === 'EXACT_MATCH' ? 'EXACT' : 'RULE',
+        match_type: matchType,
         match_score: classification.match_score,
       });
     }
@@ -225,7 +262,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
       const level = await estimationRepository.findComplexityLevelById(classification.complexity_level_id);
       complexityCode = level ? level.code : null;
     } else if (classification.fw_related === false) {
-      // Non-firmware → ensure no estimation exists
+      // Non-firmware no estimation exists
       await estimationService.createOrUpdateEstimation({
         work_order_item_id: item.id,
         complexity_level_id: null,

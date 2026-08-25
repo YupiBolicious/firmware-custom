@@ -10,6 +10,9 @@ const validateWorkOrderCreate = (req, res, next) => {
   if (!title || typeof title !== 'string' || !title.trim()) {
     errors.push('title is required');
   }
+if (!customer || typeof customer !== 'string' || !customer.trim()) {
+    errors.push('customer is required');
+  }
 
   if (errors.length > 0) {
     return next(new ApiError(400, 'Validation failed', errors));

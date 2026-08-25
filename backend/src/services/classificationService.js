@@ -52,16 +52,33 @@ const classifyItem = async (item) => {
     }
   }
 
-  // Exact match threshold — high confidence
+  // AUTO CLASSIFY FOR EXACT MATCH
   if (bestKb && bestKbScore >= 0.6) {
-    const confidence = Math.min(Number(bestKb.confidence_score), 99);
+    // const confidence = Math.min(Number(bestKb.confidence_score), 99);
+    //or limited by similarity
+    const confidenceBySimilarity =  Math.min(bestKbScore * 100, Number(bestKb.confidence_score), 99);
     return {
       fw_related: bestKb.fw_related,
       complexity_level_id: bestKb.fw_related ? bestKb.complexity_level_id : null,
-      classification_method: 'EXACT_MATCH',
-      confidence_score: confidence,
+      classification_method: 'EXACT_MATCH', //consider using similarity score as well -> 'SIMILARITY'
+      confidence_score: confidenceBySimilarity,
       classification_reason: `Exact match with knowledge base item ${bestKb.kb_code} (similarity ${(bestKbScore * 100).toFixed(0)}%)`,
       status: bestKb.fw_related ? 'CLASSIFIED' : 'NON_FIRMWARE',
+      kb_item_id: bestKb.id,
+      match_score: bestKbScore,
+    };
+  }
+
+  // 1b) SIMILARITY match — partial KB overlap, below exact threshold.
+  //     Suggests the best KB item but requires coder review to confirm.
+  if (bestKb && bestKbScore >= 0.35) {
+    return {
+      fw_related: null,
+      complexity_level_id: null,
+      classification_method: 'SIMILARITY',
+      confidence_score: null,
+      classification_reason: `Similar to knowledge base item ${bestKb.kb_code} (similarity ${(bestKbScore * 100).toFixed(0)}%). Requires coder review.`,
+      status: 'CODER_REVIEW',
       kb_item_id: bestKb.id,
       match_score: bestKbScore,
     };

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function WorkOrderList() {
+  const { hasRole } = useAuth();
   const [workOrders, setWorkOrders] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ export default function WorkOrderList() {
     <div>
       <div className="flex justify-between align-center mb-16">
         <h1>Work Orders</h1>
-        <Link className="btn" to="/work-orders/new">Create Work Order</Link>
+        {hasRole('PM') && <Link className="btn" to="/work-orders/new">Create Work Order</Link>}
       </div>
       {workOrders.length === 0 ? (
         <div className="panel text-muted">No work orders yet.</div>

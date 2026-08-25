@@ -18,11 +18,11 @@ router.put('/items/:itemId', authorize('PM'), validateItemUpdate, workOrderContr
 router.delete('/items/:itemId', authorize('PM'), workOrderController.deleteItem);
 
 // Work Orders — PM only for create/update; read for all authenticated
-router.get('/', workOrderController.list);
+router.get('/', authorize('PM', 'CODER'), workOrderController.list);
 router.get('/review-queue', authorize('CODER'), workOrderController.reviewQueue);
 router.post('/items/:itemId/review', authorize('CODER'), workOrderController.reviewItem);
 router.post('/', authorize('PM'), validateWorkOrderCreate, workOrderController.create);
-router.get('/:id', workOrderController.getById);
+router.get('/:id', authorize('PM', 'CODER'), workOrderController.getById);
 router.put('/:id', authorize('PM'), validateWorkOrderUpdate, workOrderController.update);
 
 // Items (nested under work order)

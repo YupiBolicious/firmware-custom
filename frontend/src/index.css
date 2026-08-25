@@ -116,6 +116,29 @@ h3 {
   margin-bottom: 16px;
 }
 
+.item-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 160px;
+}
+/* store item number in uppercase */
+.item-number-input {
+  text-transform: uppercase;
+}
+
+.custom-item-text {
+  text-transform: capitalize;
+}
+/*store WO in uppercase and capitalize*/
+.wo-number-input{
+  text-transform: uppercase;
+}
+.wo-input-text{
+  text-transform: capitalize;
+}
+
 /* Tables */
 table {
   width: 100%;
