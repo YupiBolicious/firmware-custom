@@ -6,6 +6,7 @@ const estimationService = require('./estimationService');
 const auditService = require('./auditService');
 const kbRepository = require('../repositories/kbRepository');
 const { ApiError } = require('../middleware/errorHandler');
+const { buildKeywords } = require('../utils/textUtils');
 
 // ---------- Work Orders ----------
 const listWorkOrders = async () => {
@@ -16,7 +17,7 @@ const listCoderReviewQueue = async () => {
   return workOrderRepository.findCoderReviewQueue();
 };
 
-const reviewItem = async (itemId, { complexity_level_id, notes, user_id, ip_address }) => {
+const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_id, ip_address }) => {
   const item = await workOrderRepository.findItemWithWorkOrder(itemId);
   if (!item) {
     throw new ApiError(404, 'Work order item not found');
@@ -61,6 +62,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, user_id, ip_addr
     description: item.description,
     fw_related: isFirmware,
     complexity_level_id: isFirmware ? level.id : null,
+    keywords: buildKeywords(item.title, item.description, keywords),
   });
 
   await auditService.log({
@@ -76,7 +78,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, user_id, ip_addr
     ...saved,
     complexity_code: level.code,
     complexity_name: level.name,
-    estimated_hours: isFirmware ? Number(level.total_hours) : null,
+    estimated_hours: isFirmware ? Number(level.total_hours) * (item.quantity || 1) : null,
     learned_kb_code: learnedKbItem.kb_code,
   };
 };
@@ -280,7 +282,9 @@ const analyzeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
       confidence_score: classification.confidence_score,
       classification_reason: classification.classification_reason,
       status: classification.status,
-      estimated_hours: estimation ? Number(estimation.total_hours) : null,
+      //estimated hours to display the total multiplied by the quantity
+      estimated_hours: estimation ? Number(estimation.total_hours) * (item.quantity || 1) : null,
+      quantity: item.quantity,
     });
   }
 

@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import RoleRoute from './components/RoleRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import CoderDashboard from './pages/CoderDashboard';
 import WorkOrderList from './pages/WorkOrderList';
 import WorkOrderCreate from './pages/WorkOrderCreate';
 import WorkOrderDetail from './pages/WorkOrderDetail';
@@ -13,7 +14,9 @@ import ReviewQueue from './pages/ReviewQueue';
 import KnowledgeBase from './pages/KnowledgeBase';
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+
+  const DashboardPage = hasRole('CODER') ? CoderDashboard : Dashboard;
 
   return (
     <Routes>
@@ -26,7 +29,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<DashboardPage />} />
         <Route element={<RoleRoute roles={['PM', 'CODER']} />}>
           <Route path="/work-orders" element={<WorkOrderList />} />
         </Route>

@@ -1,50 +1,16 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../api/client';
+import useReviewQueue from './useReviewQueue';
 
 export default function ReviewQueue() {
-  const [items, setItems] = useState([]);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [levels, setLevels] = useState([]);
-  const [selections, setSelections] = useState({});
-  const [reviewing, setReviewing] = useState(null);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [queueRes, levelsRes] = await Promise.all([
-          api.get('/work-orders/review-queue'),
-          api.get('/complexity-levels'),
-        ]);
-        setItems(queueRes.data.data);
-        setLevels(levelsRes.data.data.filter((level) => /^L[0-5]$/.test(level.code)));
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load review queue');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+  const {
+    items, error, loading, levels,
+    selections, setSelections,
+    keywordInputs, setKeywordInputs,
+    reviewing, review,
+  } = useReviewQueue();
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="alert alert-error">{error}</div>;
-
-  const review = async (item) => {
-    const complexity_level_id = Number(selections[item.item_id]);
-    if (!complexity_level_id) return;
-    setError('');
-    setReviewing(item.item_id);
-    try {
-      await api.post(`/work-orders/items/${item.item_id}/review`, { complexity_level_id });
-      setItems((current) => current.filter((currentItem) => currentItem.item_id !== item.item_id));
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to confirm review');
-    } finally {
-      setReviewing(null);
-    }
-  };
 
   return (
     <div>
@@ -60,6 +26,7 @@ export default function ReviewQueue() {
               <th>Title</th>
               <th>Reason</th>
               <th>Complexity</th>
+              <th>Keywords</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -78,6 +45,13 @@ export default function ReviewQueue() {
                     <option value="">Select L0-L5</option>
                     {levels.map((level) => <option key={level.id} value={level.id}>{level.code} - {level.name}</option>)}
                   </select>
+                </td>
+                <td>
+                  <input
+                    placeholder="optional keywords"
+                    value={keywordInputs[item.item_id] || ''}
+                    onChange={(event) => setKeywordInputs({ ...keywordInputs, [item.item_id]: event.target.value })}
+                  />
                 </td>
                 <td>
                   <Link className="btn btn-secondary btn-sm" to={`/work-orders/${item.work_order_id}`}>Open</Link>{' '}

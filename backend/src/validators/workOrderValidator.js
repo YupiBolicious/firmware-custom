@@ -1,7 +1,7 @@
 const { ApiError } = require('../middleware/errorHandler');
 
 const validateWorkOrderCreate = (req, res, next) => {
-  const { wo_number, title } = req.body || {};
+  const { wo_number, title, customer } = req.body || {};
   const errors = [];
 
   if (!wo_number || typeof wo_number !== 'string' || !wo_number.trim()) {
@@ -80,9 +80,27 @@ const validateItemUpdate = (req, res, next) => {
   next();
 };
 
+const validateReview = (req, res, next) => {
+  const { complexity_level_id, keywords } = req.body || {};
+  const errors = [];
+
+  if (!Number.isInteger(complexity_level_id)) {
+    errors.push('complexity_level_id is required');
+  }
+  if (keywords !== undefined && (typeof keywords !== 'string' || keywords.length > 500)) {
+    errors.push('keywords must be a string of max 500 characters');
+  }
+
+  if (errors.length > 0) {
+    return next(new ApiError(400, 'Validation failed', errors));
+  }
+  next();
+};
+
 module.exports = {
   validateWorkOrderCreate,
   validateWorkOrderUpdate,
   validateItemCreate,
   validateItemUpdate,
+  validateReview,
 };

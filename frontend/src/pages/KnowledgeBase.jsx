@@ -25,6 +25,10 @@ export default function KnowledgeBase() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testItemId, setTestItemId] = useState(null);
+  const [testText, setTestText] = useState('');
+  const [testResult, setTestResult] = useState(null);
+  const [testLoading, setTestLoading] = useState(false);
 
   const load = async () => {
     try {
@@ -126,6 +130,25 @@ export default function KnowledgeBase() {
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete knowledge base item');
+    }
+  };
+
+  const openTest = (item) => {
+    setTestItemId(item.id);
+    setTestText('');
+    setTestResult(null);
+  };
+
+  const handleTest = async () => {
+    if (!testText.trim()) return;
+    setTestLoading(true);
+    try {
+      const res = await api.post(`/kb/${testItemId}/test`, { sample_text: testText });
+      setTestResult(res.data.data);
+    } catch (err) {
+      setTestResult({ error: err.response?.data?.message || 'Test failed' });
+    } finally {
+      setTestLoading(false);
     }
   };
 
@@ -236,6 +259,7 @@ export default function KnowledgeBase() {
               {isAdmin && (
                 <td>
                   <button className="btn btn-secondary btn-sm" onClick={() => openEdit(item)}>Edit</button>{' '}
+                  <button className="btn btn-sm" onClick={() => openTest(item)}>Test</button>{' '}
                   <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item)}>Delete</button>
                 </td>
               )}
@@ -243,6 +267,58 @@ export default function KnowledgeBase() {
           ))}
         </tbody>
       </table>
+
+      {testItemId && (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <h3>Test KB Item</h3>
+          <div className="form-row">
+            <label>Sample work order text</label>
+            <textarea
+              value={testText}
+              onChange={(e) => setTestText(e.target.value)}
+              placeholder="Paste a title or description to test against this KB item..."
+              rows={3}
+            />
+          </div>
+          <div className="flex gap-8">
+            <button className="btn" onClick={handleTest} disabled={testLoading || !testText.trim()}>
+              {testLoading ? 'Testing...' : 'Run Test'}
+            </button>
+            <button className="btn btn-secondary" onClick={() => { setTestItemId(null); setTestResult(null); }}>Close</button>
+          </div>
+          {testResult && !testResult.error && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ marginBottom: 8 }}>
+                <strong>Verdict:</strong>{' '}
+                <span style={{
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontWeight: 600,
+                  backgroundColor: testResult.verdict === 'EXACT_MATCH' ? '#166534'
+                    : testResult.verdict === 'SIMILARITY' ? '#854d0e'
+                    : testResult.verdict === 'NON_FIRMWARE' ? '#6b21a8' : '#555',
+                  color: '#fff',
+                }}>
+                  {testResult.verdict.replace('_', ' ')}
+                </span>
+                <span style={{ marginLeft: 12, color: '#aaa' }}>
+                  {(testResult.score * 100).toFixed(0)}% similarity
+                </span>
+              </div>
+              <div style={{ fontSize: 13, color: '#aaa', marginBottom: 4 }}>
+                Matched tokens: {testResult.intersection.length > 0 ? testResult.intersection.join(', ') : '(none)'}
+              </div>
+              <div style={{ fontSize: 12, color: '#666' }}>
+                KB tokens ({testResult.kb_tokens.length}): {testResult.kb_tokens.join(', ')}
+              </div>
+              <div style={{ fontSize: 12, color: '#666' }}>
+                Input tokens ({testResult.item_tokens.length}): {testResult.item_tokens.join(', ')}
+              </div>
+            </div>
+          )}
+          {testResult?.error && <div className="alert alert-error" style={{ marginTop: 8 }}>{testResult.error}</div>}
+        </div>
+      )}
     </div>
   );
 }

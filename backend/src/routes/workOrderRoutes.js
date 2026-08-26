@@ -6,6 +6,7 @@ const {
   validateWorkOrderUpdate,
   validateItemCreate,
   validateItemUpdate,
+  validateReview,
 } = require('../validators/workOrderValidator');
 
 const router = express.Router();
@@ -20,7 +21,7 @@ router.delete('/items/:itemId', authorize('PM'), workOrderController.deleteItem)
 // Work Orders — PM only for create/update; read for all authenticated
 router.get('/', authorize('PM', 'CODER'), workOrderController.list);
 router.get('/review-queue', authorize('CODER'), workOrderController.reviewQueue);
-router.post('/items/:itemId/review', authorize('CODER'), workOrderController.reviewItem);
+router.post('/items/:itemId/review', authorize('CODER'), validateReview, workOrderController.reviewItem);
 router.post('/', authorize('PM'), validateWorkOrderCreate, workOrderController.create);
 router.get('/:id', authorize('PM', 'CODER'), workOrderController.getById);
 router.put('/:id', authorize('PM'), validateWorkOrderUpdate, workOrderController.update);

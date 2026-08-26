@@ -1,18 +1,5 @@
 const classificationRepository = require('../repositories/classificationRepository');
-
-// Normalize text for matching: lowercase, strip punctuation, collapse whitespace
-const normalize = (text) => {
-  return (text || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
-
-// Tokenize into a set of words
-const tokenize = (text) => {
-  return new Set(normalize(text).split(' ').filter(Boolean));
-};
+const { normalize, tokenize } = require('../utils/textUtils');
 
 // Jaccard similarity between two token sets
 const jaccard = (setA, setB) => {
@@ -116,4 +103,38 @@ const classifyItem = async (item) => {
   };
 };
 
-module.exports = { classifyItem };
+/**
+ * Test a single KB item against sample text.
+ * Returns { score, tokens_a, tokens_b, intersection, union, verdict }
+ */
+const testKbItem = async (kbItemId, sampleText) => {
+  const kbItems = await classificationRepository.findAllKbItems();
+  const kb = kbItems.find((k) => k.id === Number(kbItemId));
+  if (!kb) return null;
+
+  const itemTokens = tokenize(sampleText);
+  const kbTokens = tokenize(`${kb.title} ${kb.description || ''} ${kb.keywords || ''}`);
+  const union = new Set([...itemTokens, ...kbTokens]);
+  const intersection = [...itemTokens].filter((t) => kbTokens.has(t));
+
+  let verdict = 'NO_MATCH';
+  if (kb.fw_related === false) verdict = 'NON_FIRMWARE';
+  else if (intersection.length / union.size >= 0.60) verdict = 'EXACT_MATCH';
+  else if (intersection.length / union.size >= 0.35) verdict = 'SIMILARITY';
+
+  return {
+    kb_item_id: kb.id,
+    kb_code: kb.kb_code,
+    title: kb.title,
+    score: intersection.length / union.size,
+    intersection,
+    union_size: union.size,
+    item_tokens: [...itemTokens],
+    kb_tokens: [...kbTokens],
+    verdict,
+    fw_related: kb.fw_related,
+    complexity_level_id: kb.complexity_level_id,
+  };
+};
+
+module.exports = { classifyItem, testKbItem };

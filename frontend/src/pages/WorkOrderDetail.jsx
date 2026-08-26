@@ -201,6 +201,7 @@ export default function WorkOrderDetail() {
                 <th>Complexity</th>
                 <th>Confidence</th>
                 <th>Hours</th>
+                <th>Qty</th>
                 <th>Status</th>
                 <th>Reason</th>
               </tr>
@@ -214,6 +215,7 @@ export default function WorkOrderDetail() {
                   <td>{r.complexity_code || '-'}</td>
                   <td>{r.confidence_score != null ? `${r.confidence_score}%` : '-'}</td>
                   <td>{r.estimated_hours != null ? `${r.estimated_hours}h` : 'N/A'}</td>
+                  <td>{r.quantity || '-'}</td>
                   <td><StatusBadge status={r.status} /></td>
                   <td className="text-muted">{r.classification_reason}</td>
                 </tr>

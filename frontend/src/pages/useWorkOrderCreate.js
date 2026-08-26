@@ -60,7 +60,7 @@ export default function useWorkOrderCreate() {
       wo_number: form.wo_number.trim().toUpperCase(),
       title: form.title.trim().toUpperCase(),
       description: capitalizeWords(form.description),
-      customer: capitalizeWords(form.customer),
+      customer: form?.customer.trim() ? capitalizeWords(form.customer) : '',
     };
 
     try {
@@ -68,11 +68,13 @@ export default function useWorkOrderCreate() {
         await api.put(`/work-orders/${id}`, formattedForm);
         navigate(`/work-orders/${id}`);
       } else {
-        const response = await api.post('/work-orders', {
-          wo_number: form.wo_number.trim().toUpperCase(),
-          ...formattedForm,
-        });
-        navigate(`/work-orders/${response.data.data.id}`);
+        const response = await api.post('/work-orders', formattedForm);
+    navigate(`/work-orders/${response.data.data.id}`);
+        // const response = await api.post('/work-orders', {
+        //   wo_number: form.wo_number.trim().toUpperCase(),
+        //   ...formattedForm,
+        // });
+        // navigate(`/work-orders/${response.data.data.id}`);
       }
     } catch (err) {
       setError(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} work order`);

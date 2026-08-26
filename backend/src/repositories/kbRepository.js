@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-// Fetch all KB items (for management UI)
+// Fetch all KB items
 const findAll = async () => {
   const result = await pool.query(
     `SELECT kb.id, kb.kb_code, kb.title, kb.description, kb.keywords,
@@ -29,14 +29,14 @@ const findById = async (id) => {
 };
 
 const create = async ({
-  kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score, source,
+  kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score, source, is_active,
 }) => {
   const result = await pool.query(
     `INSERT INTO kb_items
-       (kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score, source)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       (kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score, source, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
-    [kb_code, title, description || null, keywords || null, fw_related, complexity_level_id || null, confidence_score, source || 'MANUAL']
+    [kb_code, title, description || null, keywords || null, fw_related, complexity_level_id || null, confidence_score, source || 'MANUAL', is_active !== false]
   );
   return result.rows[0];
 };
@@ -68,12 +68,12 @@ const remove = async (id) => {
 };
 
 const upsertCoderLearning = async ({
-  item_id, title, description, fw_related, complexity_level_id,
+  item_id, title, description, fw_related, complexity_level_id, keywords,
 }) => {
   const result = await pool.query(
     `INSERT INTO kb_items
        (kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score, source, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, 100, 'CODER_REVIEW', TRUE)
+     VALUES ($1, $2, $3, $4, $5, $6, 99, 'CODER_REVIEW', TRUE)
      ON CONFLICT (kb_code)
      DO UPDATE SET
        title = EXCLUDED.title,
@@ -90,7 +90,7 @@ const upsertCoderLearning = async ({
       `KB-CODER-${item_id}`,
       title,
       description || null,
-      [title, description].filter(Boolean).join(', '),
+      keywords || null,
       fw_related,
       complexity_level_id || null,
     ]

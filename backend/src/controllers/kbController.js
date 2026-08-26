@@ -1,4 +1,5 @@
 const kbRepository = require('../repositories/kbRepository');
+const classificationService = require('../services/classificationService');
 const { ApiError } = require('../middleware/errorHandler');
 
 const list = async (req, res, next) => {
@@ -56,4 +57,20 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = { list, getById, create, update, remove };
+const testKbItem = async (req, res, next) => {
+  try {
+    const { sample_text } = req.body;
+    if (!sample_text || !sample_text.trim()) {
+      return next(new ApiError(400, 'sample_text is required'));
+    }
+    const result = await classificationService.testKbItem(req.params.id, sample_text);
+    if (!result) {
+      return next(new ApiError(404, 'Knowledge base item not found'));
+    }
+    res.json({ success: true, message: 'KB item test result', data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { list, getById, create, update, remove, testKbItem };

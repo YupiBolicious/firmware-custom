@@ -7,7 +7,7 @@ const findAll = async () => {
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
             COUNT(woi.id)::int AS item_count,
-            COALESCE(SUM(ie.total_hours), 0) AS total_estimated_hours
+            COALESCE(SUM(ie.total_hours * woi.quantity), 0) AS total_estimated_hours
      FROM work_orders wo
      LEFT JOIN users u ON u.id = wo.created_by
      LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
