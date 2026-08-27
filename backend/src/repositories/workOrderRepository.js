@@ -4,15 +4,20 @@ const pool = require('../config/db');
 const findAll = async () => {
   const result = await pool.query(
     `SELECT wo.id, wo.wo_number, wo.title, wo.description, wo.customer, wo.status,
+            wo.machine_model_id, wo.machine_model_version_id,
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
+            mm.model_code AS machine_model_code, mm.name AS machine_model_name,
+            mmv.version_code AS machine_model_version,
             COUNT(woi.id)::int AS item_count,
             COALESCE(SUM(ie.total_hours * woi.quantity), 0) AS total_estimated_hours
      FROM work_orders wo
      LEFT JOIN users u ON u.id = wo.created_by
+     LEFT JOIN machine_model mm ON mm.id = wo.machine_model_id
+     LEFT JOIN machine_model_ver mmv ON mmv.id = wo.machine_model_version_id
      LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-     GROUP BY wo.id, u.full_name
+     GROUP BY wo.id, u.full_name, mm.model_code, mm.name, mmv.version_code
      ORDER BY wo.created_at DESC`
   );
   return result.rows;
@@ -21,10 +26,15 @@ const findAll = async () => {
 const findById = async (id) => {
   const result = await pool.query(
     `SELECT wo.id, wo.wo_number, wo.title, wo.description, wo.customer, wo.status,
+            wo.machine_model_id, wo.machine_model_version_id,
             wo.created_by, wo.created_at, wo.updated_at,
-            u.full_name AS created_by_name
+            u.full_name AS created_by_name,
+            mm.model_code AS machine_model_code, mm.name AS machine_model_name,
+            mmv.version_code AS machine_model_version
      FROM work_orders wo
      LEFT JOIN users u ON u.id = wo.created_by
+     LEFT JOIN machine_model mm ON mm.id = wo.machine_model_id
+     LEFT JOIN machine_model_ver mmv ON mmv.id = wo.machine_model_version_id
      WHERE wo.id = $1`,
     [id]
   );
@@ -105,27 +115,29 @@ const finalizeWithProductionTasks = async (workOrderId) => {
   }
 };
 
-const create = async ({ wo_number, title, description, customer, created_by }) => {
+const create = async ({ wo_number, title, description, customer, created_by, machine_model_id, machine_model_version_id }) => {
   const result = await pool.query(
-    `INSERT INTO work_orders (wo_number, title, description, customer, created_by)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO work_orders (wo_number, title, description, customer, created_by, machine_model_id, machine_model_version_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [wo_number, title, description || null, customer, created_by]
+    [wo_number, title, description || null, customer, created_by, machine_model_id, machine_model_version_id]
   );
   return result.rows[0];
 };
 
-const update = async (id, { title, description, customer, status }) => {
+const update = async (id, { title, description, customer, status, machine_model_id, machine_model_version_id }) => {
   const result = await pool.query(
     `UPDATE work_orders
      SET title = COALESCE($2, title),
          description = COALESCE($3, description),
          customer = COALESCE($4, customer),
          status = COALESCE($5, status),
+         machine_model_id = COALESCE($6, machine_model_id),
+         machine_model_version_id = COALESCE($7, machine_model_version_id),
          updated_at = NOW()
      WHERE id = $1
      RETURNING *`,
-    [id, title, description, customer, status]
+    [id, title, description, customer, status, machine_model_id, machine_model_version_id]
   );
   return result.rows[0] || null;
 };
@@ -210,6 +222,14 @@ const countItemsByWorkOrderId = async (workOrderId) => {
   return result.rows[0].count;
 };
 
+const updateStatus = async (id, status) => {
+  const result = await pool.query(
+    `UPDATE work_orders SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
+    [id, status]
+  );
+  return result.rows[0] || null;
+};
+
 module.exports = {
   findAll,
   findById,
@@ -225,4 +245,5 @@ module.exports = {
   updateItem,
   deleteItem,
   countItemsByWorkOrderId,
+  updateStatus,
 };

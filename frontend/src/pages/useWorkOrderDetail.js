@@ -11,11 +11,14 @@ export default function useWorkOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [startingProduction, setStartingProduction] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [message, setMessage] = useState('');
   const [itemForm, setItemForm] = useState(emptyItemForm);
   const [editingItemId, setEditingItemId] = useState(null);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   const load = async () => {
     try {
@@ -28,9 +31,18 @@ export default function useWorkOrderDetail() {
     }
   };
 
+  const loadDocuments = async () => {
+    try {
+      const res = await api.get(`/work-orders/${id}/documents`);
+      setDocuments(res.data.data);
+    } catch (err) {
+      // silent — documents are optional
+    }
+  };
+
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadDocuments();
   }, [id]);
 
   const handleItemChange = (event) => {
@@ -149,6 +161,57 @@ export default function useWorkOrderDetail() {
     }
   };
 
+  const handleStartProduction = async () => {
+    if (!window.confirm('Move this work order to production?')) return;
+    setError('');
+    setMessage('');
+    setStartingProduction(true);
+    try {
+      await api.post(`/work-orders/${id}/production`);
+      setMessage('Work order moved to production');
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to start production');
+    } finally {
+      setStartingProduction(false);
+    }
+  };
+
+  const handleUploadDocuments = async (files, description) => {
+    if (!files || files.length === 0) return;
+    setError('');
+    setMessage('');
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+      if (description) formData.append('description', description);
+      await api.post(`/work-orders/${id}/documents`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setMessage(`${files.length} document(s) uploaded`);
+      await Promise.all([load(), loadDocuments()]);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to upload documents');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId) => {
+    if (!window.confirm('Delete this document?')) return;
+    setError('');
+    try {
+      await api.delete(`/work-orders/${id}/documents/${docId}`);
+      setMessage('Document deleted');
+      await loadDocuments();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete document');
+    }
+  };
+
   return {
     id,
     wo,
@@ -156,11 +219,14 @@ export default function useWorkOrderDetail() {
     loading,
     analyzing,
     finalizing,
+    startingProduction,
+    uploading,
     analysis,
     message,
     itemForm,
     editingItemId,
     showAddItemForm,
+    documents,
     handleItemChange,
     openAddItem,
     handleAddItem,
@@ -170,5 +236,8 @@ export default function useWorkOrderDetail() {
     handleDeleteItem,
     handleAnalyze,
     handleFinalize,
+    handleStartProduction,
+    handleUploadDocuments,
+    handleDeleteDocument,
   };
 }

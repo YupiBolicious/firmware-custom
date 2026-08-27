@@ -4,7 +4,7 @@ const { ApiError } = require('./errorHandler');
 // Verify JWT and attach user to request
 const authenticate = (req, res, next) => {
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = header.startsWith('Bearer ') ? header.slice(7) : (req.query.token || null);
 
   if (!token) {
     return next(new ApiError(401, 'Authentication required'));

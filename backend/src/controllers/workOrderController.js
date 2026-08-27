@@ -1,4 +1,5 @@
 const workOrderService = require('../services/workOrderService');
+const { ApiError } = require('../middleware/errorHandler');
 
 const list = async (req, res, next) => {
   try {
@@ -128,6 +129,79 @@ const finalize = async (req, res, next) => {
   }
 };
 
+const startProduction = async (req, res, next) => {
+  try {
+    const data = await workOrderService.startProduction(req.params.id, {
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Work order moved to production', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const completeProduction = async (req, res, next) => {
+  try {
+    const data = await workOrderService.completeProduction(req.params.id, {
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Work order completed', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const uploadDocuments = async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return next(new ApiError(400, 'No files uploaded'));
+    }
+    const data = await workOrderService.uploadDocuments(req.params.id, req.files, {
+      user_id: req.user.id,
+      description: req.body.description,
+      ip_address: req.ip,
+    });
+    res.status(201).json({ success: true, message: 'Documents uploaded', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const listDocuments = async (req, res, next) => {
+  try {
+    const data = await workOrderService.listDocuments(req.params.id);
+    res.json({ success: true, message: 'Documents retrieved', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteDocument = async (req, res, next) => {
+  try {
+    const data = await workOrderService.deleteDocument(req.params.docId, {
+      user_id: req.user.id,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Document deleted', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const downloadDocument = async (req, res, next) => {
+  try {
+    const documentRepository = require('../repositories/documentRepository');
+    const doc = await documentRepository.findById(req.params.docId);
+    if (!doc) return next(new ApiError(404, 'Document not found'));
+    const filePath = require('path').join(__dirname, '..', '..', 'uploads', doc.filename);
+    const fs = require('fs');
+    if (!fs.existsSync(filePath)) return next(new ApiError(404, 'File not found on disk'));
+    res.download(filePath, doc.original_name);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   list,
   reviewQueue,
@@ -140,4 +214,10 @@ module.exports = {
   deleteItem,
   analyze,
   finalize,
+  startProduction,
+  completeProduction,
+  uploadDocuments,
+  listDocuments,
+  deleteDocument,
+  downloadDocument,
 };

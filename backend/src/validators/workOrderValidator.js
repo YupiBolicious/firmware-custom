@@ -1,7 +1,7 @@
 const { ApiError } = require('../middleware/errorHandler');
 
 const validateWorkOrderCreate = (req, res, next) => {
-  const { wo_number, title, customer } = req.body || {};
+  const { wo_number, title, customer, machine_model_id, machine_model_version_id } = req.body || {};
   const errors = [];
 
   if (!wo_number || typeof wo_number !== 'string' || !wo_number.trim()) {
@@ -10,8 +10,14 @@ const validateWorkOrderCreate = (req, res, next) => {
   if (!title || typeof title !== 'string' || !title.trim()) {
     errors.push('title is required');
   }
-if (!customer || typeof customer !== 'string' || !customer.trim()) {
+  if (!customer || typeof customer !== 'string' || !customer.trim()) {
     errors.push('customer is required');
+  }
+  if (!Number.isInteger(machine_model_id) || machine_model_id < 1) {
+    errors.push('machine_model_id is required');
+  }
+  if (!Number.isInteger(machine_model_version_id) || machine_model_version_id < 1) {
+    errors.push('machine_model_version_id is required');
   }
 
   if (errors.length > 0) {
@@ -21,7 +27,7 @@ if (!customer || typeof customer !== 'string' || !customer.trim()) {
 };
 
 const validateWorkOrderUpdate = (req, res, next) => {
-  const { title, description, customer, status } = req.body || {};
+  const { title, description, customer, status, machine_model_id, machine_model_version_id } = req.body || {};
   const errors = [];
 
   if (title !== undefined && (typeof title !== 'string' || !title.trim())) {
@@ -35,6 +41,12 @@ const validateWorkOrderUpdate = (req, res, next) => {
   }
   if (customer !== undefined && typeof customer !== 'string') {
     errors.push('customer must be a string');
+  }
+  if (machine_model_id !== undefined && (!Number.isInteger(machine_model_id) || machine_model_id < 1)) {
+    errors.push('machine_model_id must be a positive integer');
+  }
+  if (machine_model_version_id !== undefined && (!Number.isInteger(machine_model_version_id) || machine_model_version_id < 1)) {
+    errors.push('machine_model_version_id must be a positive integer');
   }
 
   if (errors.length > 0) {

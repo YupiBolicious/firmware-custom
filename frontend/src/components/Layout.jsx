@@ -19,6 +19,7 @@ export default function Layout() {
           {hasRole('PM', 'CODER') && <NavLink to="/work-orders">Work Orders</NavLink>}
           {hasRole('CODER') && <NavLink to="/review-queue">Review Queue</NavLink>}
           {hasRole('ADMIN') && <NavLink to="/complexity-levels">Complexity Levels</NavLink>}
+          {hasRole('ADMIN') && <NavLink to="/machine-models">Machine Models</NavLink>}
           {hasRole('ADMIN') && <NavLink to="/knowledge-base">Knowledge Base</NavLink>}
         </nav>
         <div className="user-info">

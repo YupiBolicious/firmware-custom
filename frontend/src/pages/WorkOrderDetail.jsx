@@ -1,14 +1,64 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import useWorkOrderDetail from './useWorkOrderDetail';
 
+const ALLOWED_EXTENSIONS = '.pdf,.doc,.docx,.zip,.7z';
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  let size = bytes;
+  while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+  return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
+function DocumentUpload({ uploading, onUpload }) {
+  const [files, setFiles] = useState(null);
+  const [description, setDescription] = useState('');
+
+  const handleSubmit = () => {
+    if (!files || files.length === 0) return;
+    onUpload(files, description || undefined);
+    setFiles(null);
+    setDescription('');
+  };
+
+  return (
+    <div style={{ marginBottom: 12, padding: 12, background: '#1a1a1a', borderRadius: 6, border: '1px solid #333' }}>
+      <div className="form-row">
+        <label>Select files</label>
+        <input
+          type="file"
+          accept={ALLOWED_EXTENSIONS}
+          multiple
+          onChange={(e) => setFiles(e.target.files)}
+        />
+      </div>
+      <div className="form-row">
+        <label>Description (optional)</label>
+        <input
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="e.g. Final firmware binary, test report..."
+        />
+      </div>
+      <button className="btn btn-sm" onClick={handleSubmit} disabled={!files || files.length === 0 || uploading}>
+        {uploading ? 'Uploading...' : `Upload${files ? ` (${files.length})` : ''}`}
+      </button>
+    </div>
+  );
+}
+
 export default function WorkOrderDetail() {
   const { hasRole } = useAuth();
   const isCoder = hasRole('CODER');
-  const { wo, error, loading, analyzing, finalizing, analysis, message, itemForm,
+  const { wo, error, loading, analyzing, finalizing, startingProduction, uploading, analysis, message, itemForm,
     editingItemId, handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
-    showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize } = useWorkOrderDetail();
+    showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
+    handleStartProduction, documents, handleUploadDocuments, handleDeleteDocument } = useWorkOrderDetail();
 
   if (loading) return <div>Loading...</div>;
   if (error && !wo) return <div className="alert alert-error">{error}</div>;
@@ -20,17 +70,22 @@ export default function WorkOrderDetail() {
   return (
     <div>
       <div className="flex justify-between align-center mb-16">
-        <h1>{wo.wo_number} — {wo.title}</h1>
+        <h1>{wo.wo_number}</h1>
         <div className="flex gap-8">
           <Link className="btn btn-secondary" to={isCoder ? '/review-queue' : '/work-orders'}>
             {isCoder ? 'Back to Review Queue' : 'Back to List'}
           </Link>
-          {!isCoder && wo.status !== 'FINALIZED' && (
+          {!isCoder && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED' && (
             <Link className="btn btn-secondary" to={`/work-orders/${wo.id}/edit`}>Edit Work Order</Link>
           )}
           {!isCoder && wo.status === 'ANALYZED' && (
             <button className="btn" onClick={handleFinalize} disabled={finalizing}>
               {finalizing ? 'Finalizing...' : 'Finalize Work Order'}
+            </button>
+          )}
+          {isCoder && wo.status === 'FINALIZED' && (
+            <button className="btn" onClick={handleStartProduction} disabled={startingProduction}>
+              {startingProduction ? 'Starting...' : 'Start Production'}
             </button>
           )}
         </div>
@@ -42,8 +97,10 @@ export default function WorkOrderDetail() {
       <div className="panel">
         <h3>Work Order Details</h3>
         <div className="form-grid">
-          <div><span className="text-muted">Status:</span> <span className="badge badge-info">{wo.status}</span></div>
+          <div><span className="text-muted">Status:</span> <StatusBadge status={wo.status} /></div>
           <div><span className="text-muted">Customer:</span> {wo.customer || '-'}</div>
+          <div><span className="text-muted">Machine Model:</span> {wo.machine_model_name ? `${wo.machine_model_code} - ${wo.machine_model_name}` : '-'}</div>
+          <div><span className="text-muted">Version:</span> {wo.machine_model_version || '-'}</div>
           <div><span className="text-muted">Created By:</span> {wo.created_by_name || '-'}</div>
           <div><span className="text-muted">Created At:</span> {new Date(wo.created_at).toLocaleString()}</div>
         </div>
@@ -56,10 +113,10 @@ export default function WorkOrderDetail() {
           <h3>Custom Items Details</h3>
           {!isCoder && (
             <div className="item-actions">
-              <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || wo.status === 'FINALIZED'}>
+              <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || wo.status !== 'DRAFT'}>
                 {analyzing ? 'Analyzing...' : 'Analyze / Estimate'}
               </button>
-              {wo.status !== 'FINALIZED' && (
+              {(wo.status === 'DRAFT' || wo.status === 'ANALYZED') && (
                 <button className="btn btn-secondary" type="button" onClick={openAddItem}>
                   {items.length === 0 ? '+ Add Custom Item' : '+ Add Another Item'}
                 </button>
@@ -101,8 +158,8 @@ export default function WorkOrderDetail() {
                   <td>{item.estimated_hours != null ? `${item.estimated_hours}h` : 'N/A'}</td>
                   <td><StatusBadge status={item.classification_status} /></td>
                   {!isCoder && <td>
-                    <button className="btn btn-secondary btn-sm" onClick={() => handleEditItem(item)} disabled={wo.status === 'FINALIZED'}>Edit</button>{' '}
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteItem(item.id)} disabled={wo.status === 'FINALIZED'}>Delete</button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => handleEditItem(item)} disabled={wo.status !== 'DRAFT'}>Edit</button>{' '}
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteItem(item.id)} disabled={wo.status !== 'DRAFT'}>Delete</button>
                   </td>}
                 </tr>
               ))}
@@ -248,6 +305,47 @@ export default function WorkOrderDetail() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Documents */}
+      {(wo.status === 'PRODUCTION' || wo.status === 'COMPLETED') && (
+        <div className="panel">
+          <h3 className="mb-16">Documentation File</h3>
+          {isCoder && wo.status === 'PRODUCTION' && (
+            <DocumentUpload uploading={uploading} onUpload={handleUploadDocuments} />
+          )}
+          {documents.length === 0 ? (
+            <div className="text-muted">{wo.status === 'PRODUCTION' ? 'No documents uploaded yet.' : 'No documents.'}</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Size</th>
+                  <th>Uploaded By</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {documents.map((doc) => (
+                  <tr key={doc.id}>
+                    <td><strong>{doc.original_name}</strong></td>
+                    <td>{formatBytes(doc.size_bytes)}</td>
+                    <td>{doc.uploaded_by_name || '-'}</td>
+                    <td className="text-muted">{new Date(doc.created_at).toLocaleString()}</td>
+                    <td>
+                      <a className="btn btn-secondary btn-sm" href={`/api/work-orders/${wo.id}/documents/${doc.id}/download?token=${localStorage.getItem('token')}`} target="_blank" rel="noreferrer">Download</a>
+                      {isCoder && wo.status === 'PRODUCTION' && (
+                        <>{' '}<button className="btn btn-danger btn-sm" onClick={() => handleDeleteDocument(doc.id)}>Delete</button></>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>

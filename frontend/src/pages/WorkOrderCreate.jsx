@@ -7,6 +7,8 @@ export default function WorkOrderCreate() {
     loading,
     saving,
     isEditMode,
+    models,
+    versions,
     handleChange,
     handleSubmit,
     handleCancel,
@@ -25,6 +27,24 @@ export default function WorkOrderCreate() {
           <div className="form-row">
             <label>Title</label>
             <input className="wo-input-text" name="title" value={form.title} onChange={handleChange} required />
+          </div>
+          <div className="form-row">
+            <label>Machine Model</label>
+            <select className="wo-input-text" name="machine_model_id" value={form.machine_model_id} onChange={handleChange} required>
+              <option value="">Select model...</option>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>{m.model_code} - {m.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-row">
+            <label>Version</label>
+            <select className="wo-input-text" name="machine_model_version_id" value={form.machine_model_version_id} onChange={handleChange} required disabled={!form.machine_model_id}>
+              <option value="">Select version...</option>
+              {versions.map((v) => (
+                <option key={v.id} value={v.id}>{v.version_code}{v.description ? ` - ${v.description}` : ''}</option>
+              ))}
+            </select>
           </div>
           <div className="form-row">
             <label>Description</label>

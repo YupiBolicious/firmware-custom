@@ -18,42 +18,169 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function CoderDashboard() {
-  const { data, error, loading, formatAction } = useCoderDashboard();
+  const {
+    data, error, loading, formatAction,
+    filters, showAdvanced, setShowAdvanced, setFilter, clearFilters,
+    filteredReviewQueue, filteredWorkQueue, filteredKpis, filteredWorkload, filteredTrend,
+    matchingCount, totalCount, hasActiveFilters,
+    uniqueComplexities,
+    CLASSIFICATION_STATUS_LABELS, WORK_ORDER_STATUS_LABELS,
+  } = useCoderDashboard();
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="alert alert-error">{error}</div>;
   if (!data) return null;
 
-  const { kpis, review_queue, work_queue, workload, coder_activity, new_work_orders, trend } = data;
-
   return (
     <div>
-      <h1>Coder Dashboard</h1>
+      <h1>Firmware Engineer Dashboard</h1>
 
       {/* 1. KPI Summary */}
       <div className="stats-grid mb-16">
         <div className="stat">
           <div className="label">Pending Review</div>
-          <div className="value" style={{ color: kpis.pending_review > 0 ? 'var(--warning)' : undefined }}>
-            {kpis.pending_review}
+          <div className="value" style={{ color: filteredKpis.pending_review > 0 ? 'var(--warning)' : undefined }}>
+            {filteredKpis.pending_review}
           </div>
         </div>
         <div className="stat">
           <div className="label">In Queue (Hours)</div>
-          <div className="value">{kpis.pending_hours.toFixed(1)}h</div>
+          <div className="value">{filteredKpis.pending_hours.toFixed(1)}h</div>
         </div>
         <div className="stat">
           <div className="label">Completed</div>
-          <div className="value" style={{ color: 'var(--success)' }}>{kpis.completed}</div>
+          <div className="value" style={{ color: 'var(--success)' }}>{filteredKpis.completed}</div>
         </div>
         <div className="stat">
           <div className="label">Completed Hours</div>
-          <div className="value">{kpis.completed_hours.toFixed(1)}h</div>
+          <div className="value">{filteredKpis.completed_hours.toFixed(1)}h</div>
         </div>
-        {kpis.overdue > 0 && (
+        {filteredKpis.overdue > 0 && (
           <div className="stat">
             <div className="label">Overdue</div>
-            <div className="value" style={{ color: 'var(--danger)' }}>{kpis.overdue}</div>
+            <div className="value" style={{ color: 'var(--danger)' }}>{filteredKpis.overdue}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Search & Filter Controls */}
+      <div className="panel mb-16">
+        <div className="flex justify-between align-center mb-8">
+          <h3 style={{ margin: 0 }}>
+            Filters
+            {hasActiveFilters && (
+              <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+                {matchingCount} of {totalCount} shown
+              </span>
+            )}
+          </h3>
+          <div className="flex gap-8">
+            {hasActiveFilters && (
+              <button className="btn btn-secondary btn-sm" onClick={clearFilters}>Clear Filters</button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-8 mb-8">
+          <input
+            style={{ flex: 1, padding: '6px 10px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 4, color: '#e0e0e0', fontSize: 13 }}
+            placeholder="Search WO number, item title, item number..."
+            value={filters.search}
+            onChange={(e) => setFilter('search', e.target.value)}
+          />
+          <button
+            className={`btn btn-sm ${showAdvanced ? '' : 'btn-secondary'}`}
+            onClick={() => setShowAdvanced(!showAdvanced)}
+          >
+            Advanced Filters {showAdvanced ? '\u25B2' : '\u25BC'}
+          </button>
+        </div>
+
+        {showAdvanced && (
+          <div style={{ padding: 12, background: '#1a1a1a', borderRadius: 6, border: '1px solid #333', marginBottom: 12 }}>
+            <div className="flex gap-8" style={{ flexWrap: 'wrap', alignItems: 'end' }}>
+              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
+                <label style={{ fontSize: 11, color: '#aaa' }}>Complexity</label>
+                <select
+                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  value={filters.complexityFilter}
+                  onChange={(e) => setFilter('complexityFilter', e.target.value)}
+                >
+                  <option value="ALL">All</option>
+                  {uniqueComplexities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
+                <label style={{ fontSize: 11, color: '#aaa' }}>Confidence Min %</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="0"
+                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  value={filters.confidenceMin}
+                  onChange={(e) => setFilter('confidenceMin', e.target.value)}
+                />
+              </div>
+              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
+                <label style={{ fontSize: 11, color: '#aaa' }}>Confidence Max %</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="100"
+                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  value={filters.confidenceMax}
+                  onChange={(e) => setFilter('confidenceMax', e.target.value)}
+                />
+              </div>
+              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
+                <label style={{ fontSize: 11, color: '#aaa' }}>Classification Status</label>
+                <select
+                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  value={filters.classificationStatusFilter}
+                  onChange={(e) => setFilter('classificationStatusFilter', e.target.value)}
+                >
+                  <option value="ALL">All</option>
+                  {Object.entries(CLASSIFICATION_STATUS_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
+                <label style={{ fontSize: 11, color: '#aaa' }}>Work Order Status</label>
+                <select
+                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  value={filters.workOrderStatusFilter}
+                  onChange={(e) => setFilter('workOrderStatusFilter', e.target.value)}
+                >
+                  <option value="ALL">All</option>
+                  {Object.entries(WORK_ORDER_STATUS_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
+                <label style={{ fontSize: 11, color: '#aaa' }}>From</label>
+                <input
+                  type="date"
+                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  value={filters.dateFrom}
+                  onChange={(e) => setFilter('dateFrom', e.target.value)}
+                />
+              </div>
+              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
+                <label style={{ fontSize: 11, color: '#aaa' }}>To</label>
+                <input
+                  type="date"
+                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  value={filters.dateTo}
+                  onChange={(e) => setFilter('dateTo', e.target.value)}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -61,29 +188,35 @@ export default function CoderDashboard() {
       {/* 2. Review Queue */}
       <div className="panel mb-16">
         <div className="flex justify-between align-center mb-16">
-          <h3>Review Queue</h3>
-          {review_queue.length > 0 && (
-            <Link to="/review-queue" className="btn btn-sm">Review All</Link>
+          <h3>
+            Review Queue
+            {hasActiveFilters && (
+              <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+                {filteredReviewQueue.length} shown
+              </span>
+            )}
+          </h3>
+          {data.review_queue.length > 0 && (
+            <Link to="/review-queue" className="btn btn-sm">Review</Link>
           )}
         </div>
-        {review_queue.length === 0 ? (
-          <div className="text-muted">No items awaiting review.</div>
+        {filteredReviewQueue.length === 0 ? (
+          <div className="text-muted">{hasActiveFilters ? 'No review items match the current filters.' : 'No items awaiting review.'}</div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>WO</th>
+                <th>Work Orders</th>
                 <th>Custom Item</th>
                 <th>Qty</th>
                 <th>Confidence</th>
                 <th>Complexity</th>
                 <th>Hours</th>
                 <th>Waiting</th>
-                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {review_queue.map((r) => (
+              {filteredReviewQueue.map((r) => (
                 <tr key={r.item_id}>
                   <td><Link to={`/work-orders/${r.work_order_id}`}>{r.wo_number}</Link></td>
                   <td>{r.title}</td>
@@ -92,7 +225,6 @@ export default function CoderDashboard() {
                   <td>{r.complexity_code || <span className="badge badge-warning">Unassigned</span>}</td>
                   <td>{r.estimated_hours > 0 ? `${r.estimated_hours}h` : '-'}</td>
                   <td><RelativeTime date={r.created_at} /></td>
-                  <td><Link to="/review-queue" className="btn btn-sm">Review</Link></td>
                 </tr>
               ))}
             </tbody>
@@ -102,24 +234,31 @@ export default function CoderDashboard() {
 
       {/* 3. Work Queue + Workload */}
       <div className="panel mb-16">
-        <h3 className="mb-16">Work Queue</h3>
-        {work_queue.length === 0 ? (
-          <div className="text-muted">No active work items.</div>
+        <h3 className="mb-16">
+          Work Queue
+          {hasActiveFilters && (
+            <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+              {filteredWorkQueue.length} shown
+            </span>
+          )}
+        </h3>
+        {filteredWorkQueue.length === 0 ? (
+          <div className="text-muted">{hasActiveFilters ? 'No work items match the current filters.' : 'No active work items.'}</div>
         ) : (
           <table>
             <thead>
               <tr>
-                <th>WO</th>
+                <th>Work Orders</th>
                 <th>Custom Item</th>
                 <th>Qty</th>
                 <th>Complexity</th>
                 <th>Hours</th>
-                <th>WO Status</th>
-                <th>Class. Status</th>
+                <th>Work Order Status</th>
+                <th>Classification Status</th>
               </tr>
             </thead>
             <tbody>
-              {work_queue.map((r) => (
+              {filteredWorkQueue.map((r) => (
                 <tr key={r.item_id}>
                   <td><Link to={`/work-orders/${r.work_order_id || ''}`}>{r.wo_number}</Link></td>
                   <td>{r.title}</td>
@@ -145,87 +284,33 @@ export default function CoderDashboard() {
         <div className="stats-grid mt-16">
           <div className="stat">
             <div className="label">Queued Hours</div>
-            <div className="value">{workload.queued_hours.toFixed(1)}h</div>
+            <div className="value">{filteredWorkload.queued_hours.toFixed(1)}h</div>
           </div>
           <div className="stat">
             <div className="label">In Progress Hours</div>
-            <div className="value">{workload.in_progress_hours.toFixed(1)}h</div>
+            <div className="value">{filteredWorkload.in_progress_hours.toFixed(1)}h</div>
           </div>
           <div className="stat">
             <div className="label">Completed Hours</div>
-            <div className="value" style={{ color: 'var(--success)' }}>{workload.completed_hours.toFixed(1)}h</div>
+            <div className="value" style={{ color: 'var(--success)' }}>{filteredWorkload.completed_hours.toFixed(1)}h</div>
           </div>
           <div className="stat">
             <div className="label">Total Hours</div>
-            <div className="value">{(workload.queued_hours + workload.in_progress_hours + workload.completed_hours).toFixed(1)}h</div>
+            <div className="value">{(filteredWorkload.queued_hours + filteredWorkload.in_progress_hours + filteredWorkload.completed_hours).toFixed(1)}h</div>
           </div>
         </div>
       </div>
 
-      {/* 4. Coder Activity */}
-      <div className="panel mb-16">
-        <h3 className="mb-16">Recent Activity</h3>
-        {coder_activity.length === 0 ? (
-          <div className="text-muted">No recent coder activity.</div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>User</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {coder_activity.map((a) => (
-                <tr key={a.id}>
-                  <td>{formatAction(a.action, a.details)}</td>
-                  <td>{a.user_name}</td>
-                  <td className="text-muted"><RelativeTime date={a.created_at} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* 5. New Work Orders */}
-      <div className="panel mb-16">
-        <h3 className="mb-16">New Work Orders</h3>
-        {new_work_orders.length === 0 ? (
-          <div className="text-muted">No new work orders.</div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Work Order</th>
-                <th>Title</th>
-                <th>Created By</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {new_work_orders.map((wo) => (
-                <tr key={wo.id}>
-                  <td><strong>{wo.details?.wo_number || '-'}</strong></td>
-                  <td>{wo.details?.title || '-'}</td>
-                  <td>{wo.user_name}</td>
-                  <td className="text-muted"><RelativeTime date={wo.created_at} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      
 
       {/* 6. Workload Trend */}
       <div className="panel mb-16">
         <h3 className="mb-16">Workload Trend (8 Weeks)</h3>
-        {trend.length === 0 ? (
+        {filteredTrend.length === 0 ? (
           <div className="text-muted">No trend data available.</div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={trend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <BarChart data={filteredTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
               <XAxis
                 dataKey="week"
@@ -245,6 +330,64 @@ export default function CoderDashboard() {
           </ResponsiveContainer>
         )}
       </div>
+
+      {/* 4+5. Recent Activity & New Work Orders — side by side */}
+      <div className="split-2">
+        <div className="panel panel-accent-amber">
+          <h3 className="mb-16">Recent Activity</h3>
+          {data.coder_activity.length === 0 ? (
+            <div className="text-muted">No recent coder activity.</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>User</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.coder_activity.map((a) => (
+                  <tr key={a.id}>
+                    <td>{formatAction(a.action, a.details)}</td>
+                    <td>{a.user_name}</td>
+                    <td className="text-muted"><RelativeTime date={a.created_at} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="panel panel-accent-green">
+          <h3 className="mb-16">New Work Orders</h3>
+          {data.new_work_orders.length === 0 ? (
+            <div className="text-muted">No new work orders.</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Work Order</th>
+                  <th>Title</th>
+                  <th>Created By</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.new_work_orders.map((wo) => (
+                  <tr key={wo.id}>
+                    <td><strong>{wo.details?.wo_number || '-'}</strong></td>
+                    <td>{wo.details?.title || '-'}</td>
+                    <td>{wo.user_name}</td>
+                    <td className="text-muted"><RelativeTime date={wo.created_at} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
+
 }

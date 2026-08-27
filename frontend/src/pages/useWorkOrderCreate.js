@@ -5,8 +5,10 @@ import api from '../api/client';
 const emptyForm = {
   wo_number: '',
   title: '',
+  machine_model_id: '',
+  machine_model_version_id: '',
   description: '',
-  customer: '',
+  customer: ''
 };
 
 const capitalizeWords = (value = '') =>
@@ -23,6 +25,19 @@ export default function useWorkOrderCreate() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
+  const [models, setModels] = useState([]);
+  const [versions, setVersions] = useState([]);
+
+  useEffect(() => {
+    api.get('/machine-models').then((res) => setModels(res.data.data || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!form.machine_model_id) { setVersions([]); return; }
+    api.get(`/machine-models/${form.machine_model_id}/versions`)
+      .then((res) => setVersions(res.data.data || []))
+      .catch(() => setVersions([]));
+  }, [form.machine_model_id]);
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -34,6 +49,8 @@ export default function useWorkOrderCreate() {
         setForm({
           wo_number: workOrder.wo_number,
           title: workOrder.title,
+          machine_model_id: workOrder.machine_model_id || '',
+          machine_model_version_id: workOrder.machine_model_version_id || '',
           description: workOrder.description || '',
           customer: workOrder.customer || '',
         });
@@ -59,6 +76,8 @@ export default function useWorkOrderCreate() {
     const formattedForm = {
       wo_number: form.wo_number.trim().toUpperCase(),
       title: form.title.trim().toUpperCase(),
+      machine_model_id: Number(form.machine_model_id),
+      machine_model_version_id: Number(form.machine_model_version_id),
       description: capitalizeWords(form.description),
       customer: form?.customer.trim() ? capitalizeWords(form.customer) : '',
     };
@@ -93,6 +112,8 @@ export default function useWorkOrderCreate() {
     loading,
     saving,
     isEditMode,
+    models,
+    versions,
     handleChange,
     handleSubmit,
     handleCancel,

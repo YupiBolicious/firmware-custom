@@ -66,10 +66,12 @@ const findReviewQueue = async () => {
 
 const findWorkQueue = async (userId) => {
   const result = await pool.query(
-    `SELECT woi.id AS item_id, woi.item_number, woi.title, woi.quantity,
-            wo.wo_number, wo.status AS work_order_status,
+    `SELECT woi.id AS item_id, woi.work_order_id,woi.item_number, woi.title, woi.description,
+            woi.quantity, wo.wo_number, wo.title AS work_order_title,
+            wo.status AS work_order_status, wo.created_at AS work_order_created_at,
             cl.code AS complexity_code, cl.name AS complexity_name,
-            c.status AS classification_status, c.reviewed_by,
+            c.status AS classification_status, c.confidence_score,
+            c.reviewed_by, c.created_at AS classification_created_at,
             COALESCE(ie.total_hours * woi.quantity, 0)::numeric AS estimated_hours
      FROM work_order_items woi
      JOIN work_orders wo ON wo.id = woi.work_order_id

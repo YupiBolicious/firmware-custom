@@ -6,17 +6,21 @@ import RoleRoute from './components/RoleRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CoderDashboard from './pages/CoderDashboard';
+import PMDashboard from './pages/PMDashboard';
 import WorkOrderList from './pages/WorkOrderList';
 import WorkOrderCreate from './pages/WorkOrderCreate';
 import WorkOrderDetail from './pages/WorkOrderDetail';
 import ComplexityLevels from './pages/ComplexityLevels';
 import ReviewQueue from './pages/ReviewQueue';
+import MachineModels from './pages/MachineModels';
 import KnowledgeBase from './pages/KnowledgeBase';
 
 export default function App() {
   const { user, hasRole } = useAuth();
 
-  const DashboardPage = hasRole('CODER') ? CoderDashboard : Dashboard;
+  const DashboardPage = hasRole('CODER') ? CoderDashboard
+                    : hasRole('PM')     ? PMDashboard
+                    :                     Dashboard;
 
   return (
     <Routes>
@@ -44,6 +48,9 @@ export default function App() {
         <Route path="/knowledge-base" element={<KnowledgeBase />} />
         <Route element={<RoleRoute roles={['CODER']} />}>
           <Route path="/review-queue" element={<ReviewQueue />} />
+        </Route>
+        <Route element={<RoleRoute roles={['ADMIN']} />}>
+          <Route path="/machine-models" element={<MachineModels />} />
         </Route>
       </Route>
 

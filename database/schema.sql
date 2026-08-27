@@ -113,7 +113,9 @@ CREATE TABLE IF NOT EXISTS work_orders (
     title           VARCHAR(300) NOT NULL,
     description     TEXT,
     customer        VARCHAR(200),
-    status          VARCHAR(30) NOT NULL DEFAULT 'DRAFT',  -- DRAFT | ANALYZED | FINALIZED
+    status          VARCHAR(30) NOT NULL DEFAULT 'DRAFT',  -- DRAFT | ANALYZED | FINALIZED | PRODUCTION | COMPLETED
+    machine_model_id        INT REFERENCES machine_model(id),
+    machine_model_version_id INT REFERENCES machine_model_ver(id),
     created_by      INT REFERENCES users(id),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -197,6 +199,18 @@ CREATE TABLE IF NOT EXISTS production_tasks (
     status              VARCHAR(30) NOT NULL DEFAULT 'OPEN',
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS work_order_documents (
+    id              SERIAL PRIMARY KEY,
+    work_order_id   INT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+    filename        VARCHAR(255) NOT NULL,
+    original_name   VARCHAR(255) NOT NULL,
+    mime_type       VARCHAR(100),
+    size_bytes      INT,
+    description     TEXT,
+    uploaded_by     INT REFERENCES users(id),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- FOR RECORD AND TRAVEABILITY EAH
@@ -300,13 +314,25 @@ INSERT INTO kb_items (kb_code, title, description, keywords, fw_related, complex
 ('KB-0005', 'Closed-loop control implementation', 'Implement closed-loop control', 'closed,loop,control', TRUE,  (SELECT id FROM complexity_levels WHERE code='L4'), 93.00, 'SEED')
 ON CONFLICT (kb_code) DO NOTHING;
 
--- Machine models (minimal seed)
+-- Machine models (seed)
 INSERT INTO machine_model (model_code, name, description) VALUES
-('MM-1000', 'Model 1000', 'Base machine model')
+('FWX-100', 'FWX-100 Series', 'Base firmware platform for standard production units'),
+('FWX-200', 'FWX-200 Series', 'Advanced platform with expanded I/O and connectivity'),
+('FWX-300', 'FWX-300 Series', 'High-performance platform for industrial applications')
 ON CONFLICT (model_code) DO NOTHING;
 
 INSERT INTO machine_model_ver (machine_model_id, version_code, description)
-SELECT id, 'V1.0', 'Initial version' FROM machine_model WHERE model_code = 'MM-1000'
+SELECT id, 'v1.0', 'Initial release' FROM machine_model WHERE model_code = 'FWX-100'
+UNION ALL
+SELECT id, 'v2.0', 'Updated communication protocols' FROM machine_model WHERE model_code = 'FWX-100'
+UNION ALL
+SELECT id, 'v1.0', 'Initial release' FROM machine_model WHERE model_code = 'FWX-200'
+UNION ALL
+SELECT id, 'v1.1', 'Bugfix release' FROM machine_model WHERE model_code = 'FWX-200'
+UNION ALL
+SELECT id, 'v2.0', 'Major rewrite with new HAL' FROM machine_model WHERE model_code = 'FWX-200'
+UNION ALL
+SELECT id, 'v1.0', 'Initial release' FROM machine_model WHERE model_code = 'FWX-300'
 ON CONFLICT DO NOTHING;
 
 -- MOCK WORK ORDER WO-2026-001 (for validation)
