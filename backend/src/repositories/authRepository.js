@@ -1,24 +1,33 @@
 const pool = require('../config/db');
 
-const findByUsername = async (username) => {
+const findByIdentifier = async (identifier) => {
   const result = await pool.query(
     `SELECT u.id, u.username, u.email, u.password_hash, u.full_name, u.is_active
      FROM users u
-     WHERE u.username = $1`,
-    [username]
+     WHERE u.email = $1 OR LOWER(u.username) = $1
+     ORDER BY (u.email = $1) DESC, u.id
+     LIMIT 1`,
+    [identifier]
   );
   return result.rows[0] || null;
 };
 
-const findRolesByUserId = async (userId) => {
+const findByIdWithPassword = async (id) => {
   const result = await pool.query(
-    `SELECT r.code
-     FROM roles r
-     JOIN user_roles ur ON ur.role_id = r.id
-     WHERE ur.user_id = $1`,
-    [userId]
+    `SELECT u.id, u.email, u.password_hash, u.full_name, u.is_active
+     FROM users u
+     WHERE u.id = $1`,
+    [id]
   );
-  return result.rows.map((row) => row.code);
+  return result.rows[0] || null;
 };
 
-module.exports = { findByUsername, findRolesByUserId };
+const updatePasswordHash = async (userId, hash) => {
+  const result = await pool.query(
+    `UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1 RETURNING id`,
+    [userId, hash]
+  );
+  return result.rows[0] || null;
+};
+
+module.exports = { findByIdentifier, findByIdWithPassword, updatePasswordHash };

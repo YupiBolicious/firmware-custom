@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(username, password);
+      await login(identifier, password);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
@@ -32,12 +32,12 @@ export default function Login() {
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-row">
-            <label>Username</label>
+            <label>Email or Username</label>
             <input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="pm@demo"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="you@company.com or username"
               required
             />
           </div>
@@ -56,7 +56,7 @@ export default function Login() {
           </button>
         </form>
         <div className="text-muted mt-16" style={{ fontSize: 12 }}>
-          Demo: pm@demo / coder@demo / admin@demo — password: password123
+          Demo: pm@demo.com / coder@demo.com / admin@demo.com — password: password123
         </div>
       </div>
     </div>

@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { Pencil, Trash2, FlaskConical, X, Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const PAGE_SIZE = 10;
 
 const emptyForm = {
   kb_code: '',
@@ -24,11 +27,16 @@ export default function KnowledgeBase() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [testItemId, setTestItemId] = useState(null);
   const [testText, setTestText] = useState('');
   const [testResult, setTestResult] = useState(null);
   const [testLoading, setTestLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const [fwFilter, setFwFilter] = useState('ALL');
+  const [cxFilter, setCxFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
 
   const load = async () => {
     try {
@@ -152,6 +160,26 @@ export default function KnowledgeBase() {
     }
   };
 
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items.filter((item) => {
+      if (fwFilter !== 'ALL' && String(!!item.fw_related) !== fwFilter) return false;
+      if (cxFilter !== 'ALL' && Number(item.complexity_level_id) !== Number(cxFilter)) return false;
+      if (!q) return true;
+      return ['kb_code', 'title', 'description', 'keywords']
+        .some((field) => String(item[field] || '').toLowerCase().includes(q));
+    });
+  }, [items, search, fwFilter, cxFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedItems = filteredItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const resetPage = (setter) => (value) => {
+    setter(value);
+    setPage(1);
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error && items.length === 0) return <div className="alert alert-error">{error}</div>;
 
@@ -160,7 +188,9 @@ export default function KnowledgeBase() {
       <div className="flex justify-between align-center mb-16">
         <h1>Knowledge Base</h1>
         {isAdmin && (
-          <button className="btn" onClick={openCreate}>+ Add KB Item</button>
+          <button className="btn" onClick={openCreate} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Plus size={16} /> Add KB Item
+          </button>
         )}
       </div>
       <div className="text-muted mb-16">
@@ -231,42 +261,129 @@ export default function KnowledgeBase() {
         </div>
       )}
 
+      <div className="panel mb-16 kb-filter-bar">
+        <div className="flex gap-8" style={{ flexWrap: 'wrap', alignItems: 'end' }}>
+          <div className="form-row" style={{ flex: 2, minWidth: 220, marginBottom: 0 }}>
+            <label>Search</label>
+            <input
+              value={search}
+              onChange={(e) => resetPage(setSearch)(e.target.value)}
+              placeholder="Search code, title, description, keywords..."
+            />
+          </div>
+          <div className="form-row" style={{ flex: 1, minWidth: 150, marginBottom: 0 }}>
+            <label>Firmware Related</label>
+            <select value={fwFilter} onChange={(e) => resetPage(setFwFilter)(e.target.value)}>
+              <option value="ALL">All</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+          <div className="form-row" style={{ flex: 1, minWidth: 150, marginBottom: 0 }}>
+            <label>Complexity Level</label>
+            <select value={cxFilter} onChange={(e) => resetPage(setCxFilter)(e.target.value)}>
+              <option value="ALL">All</option>
+              {levels.map((level) => (
+                <option key={level.id} value={level.id}>{level.code} - {level.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       <table>
         <thead>
           <tr>
             <th>Code</th>
             <th>Title</th>
-            <th>Description</th>
-            <th>Keywords</th>
             <th>Firmware</th>
             <th>Complexity</th>
-            <th>Confidence</th>
-            <th>Active</th>
-            {isAdmin && <th>Actions</th>}
+            {isAdmin && <th className="col-actions">Actions</th>}
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
-            <tr key={item.id}>
-              <td><strong>{item.kb_code}</strong></td>
-              <td>{item.title}</td>
-              <td className="text-muted">{item.description || '-'}</td>
-              <td className="text-muted">{item.keywords || '-'}</td>
-              <td>{item.fw_related ? 'YES' : 'NO'}</td>
-              <td>{item.complexity_code || '-'}</td>
-              <td>{item.confidence_score}%</td>
-              <td>{item.is_active ? 'Yes' : 'No'}</td>
-              {isAdmin && (
-                <td>
-                  <button className="btn btn-secondary btn-sm" onClick={() => openEdit(item)}>Edit</button>{' '}
-                  <button className="btn btn-sm" onClick={() => openTest(item)}>Test</button>{' '}
-                  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item)}>Delete</button>
-                </td>
+          {paginatedItems.map((item) => (
+            <Fragment key={item.id}>
+              <tr>
+                <td><strong>{item.kb_code}</strong></td>
+                <td>{item.title}</td>
+                <td>{item.fw_related ? 'YES' : 'NO'}</td>
+                <td>{item.complexity_code || '-'}</td>
+                {isAdmin && (
+                  <td className="col-actions">
+                    <span className="icon-actions">
+                      <button className="icon-btn" title={expandedId === item.id ? 'Hide details' : 'View details'} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>
+                        {expandedId === item.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+                      <button className="icon-btn" title="Edit" onClick={() => openEdit(item)}>
+                        <Pencil size={16} />
+                      </button>
+                      <button className="icon-btn icon-btn-danger" title="Delete" onClick={() => handleDelete(item)}>
+                        <Trash2 size={16} />
+                      </button>
+                    </span>
+                  </td>
+                )}
+              </tr>
+              {expandedId === item.id && (
+                <tr className="kb-detail-row">
+                  <td colSpan={isAdmin ? 5 : 4}>
+                    <div className="kb-detail-grid">
+                      <div>
+                        <div className="kb-detail-label">Description</div>
+                        <div className="text-muted">{item.description || '-'}</div>
+                      </div>
+                      <div>
+                        <div className="kb-detail-label">Keywords</div>
+                        <div className="text-muted">{item.keywords || '-'}</div>
+                      </div>
+                      <div>
+                        <div className="kb-detail-label">Confidence</div>
+                        <div>{item.confidence_score}%</div>
+                      </div>
+                      <div>
+                        <div className="kb-detail-label">Active</div>
+                        <div>{item.is_active ? 'Yes' : 'No'}</div>
+                      </div>
+                      <div>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => openTest(item)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        >
+                          <FlaskConical size={14} /> Test
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
               )}
-            </tr>
+            </Fragment>
           ))}
         </tbody>
       </table>
+
+      {filteredItems.length === 0 ? (
+        <div className="text-muted mt-8">
+          {search || fwFilter !== 'ALL' || cxFilter !== 'ALL'
+            ? 'No KB items match the current filters.'
+            : 'No KB items found.'}
+        </div>
+      ) : (
+        <div className="flex justify-between align-center mt-16">
+          <span className="text-muted" style={{ fontSize: 13 }}>
+            {filteredItems.length} item{(filteredItems.length !== 1) ? 's' : ''} · Page {currentPage} of {totalPages}
+          </span>
+          <div className="flex gap-8">
+            <button className="btn btn-secondary btn-sm" onClick={() => setPage(currentPage - 1)} disabled={currentPage <= 1} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <ChevronLeft size={14} /> Prev
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setPage(currentPage + 1)} disabled={currentPage >= totalPages} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              Next <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {testItemId && (
         <div className="panel" style={{ marginTop: 16 }}>
@@ -284,7 +401,9 @@ export default function KnowledgeBase() {
             <button className="btn" onClick={handleTest} disabled={testLoading || !testText.trim()}>
               {testLoading ? 'Testing...' : 'Run Test'}
             </button>
-            <button className="btn btn-secondary" onClick={() => { setTestItemId(null); setTestResult(null); }}>Close</button>
+            <button className="btn btn-secondary" onClick={() => { setTestItemId(null); setTestResult(null); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <X size={14} /> Close
+            </button>
           </div>
           {testResult && !testResult.error && (
             <div style={{ marginTop: 12 }}>

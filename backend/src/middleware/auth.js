@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
+const userRepository = require('../repositories/userRepository');
 const { ApiError } = require('./errorHandler');
 
-// Verify JWT and attach user to request
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : (req.query.token || null);
 
@@ -10,16 +10,28 @@ const authenticate = (req, res, next) => {
     return next(new ApiError(401, 'Authentication required'));
   }
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { id, username, full_name, roles: [] }
-    next();
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
     return next(new ApiError(401, 'Invalid or expired token'));
   }
+
+  try {
+    const user = await userRepository.findUserWithRolesById(decoded.id);
+    if (!user) {
+      return next(new ApiError(401, 'Account not found'));
+    }
+    if (!user.is_active) {
+      return next(new ApiError(403, 'Account is deactivated'));
+    }
+    req.user = { id: user.id, email: user.email, full_name: user.full_name, roles: user.roles };
+    next();
+  } catch (err) {
+    next(err);
+  }
 };
 
-// Role-based access control
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
