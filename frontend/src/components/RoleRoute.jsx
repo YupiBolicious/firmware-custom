@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function RoleRoute({ roles, children }) {
   const { user } = useAuth();
-  const allowed = roles.some((role) => user?.roles?.includes(role));
+  const allowed = roles.some((role) => user?.roles?.includes(role)) || user?.roles?.includes('ADMIN');
 
   if (!allowed) {
     return <Navigate to={user?.roles?.includes('CODER') ? '/' : '/'} replace />;

@@ -1,4 +1,5 @@
 const workOrderRepository = require('../repositories/workOrderRepository');
+const machineModelRepository = require('../repositories/machineModelRepository');
 const classificationRepository = require('../repositories/classificationRepository');
 const classificationService = require('../services/classificationService');
 const estimationRepository = require('../repositories/estimationRepository');
@@ -10,6 +11,24 @@ const { reviewItem } = require('./reviewService');
 const { uploadDocuments, listDocuments, deleteDocument } = require('./documentService');
 
 // ---------- Work Orders ----------
+const resolveGroupTargets = async (machine_model_id, machine_model_version_id) => {
+  let modelId;
+  if (Number.isInteger(machine_model_id)) {
+    modelId = machine_model_id;
+  } else {
+    const model = await machineModelRepository.findOrCreateByCode(machine_model_id.trim());
+    modelId = model.id;
+  }
+  let versionId;
+  if (Number.isInteger(machine_model_version_id)) {
+    versionId = machine_model_version_id;
+  } else {
+    const version = await machineModelRepository.findOrCreateVersion(modelId, machine_model_version_id.trim());
+    versionId = version.id;
+  }
+  return { machine_model_id: modelId, machine_model_version_id: versionId };
+};
+
 const listWorkOrders = async () => {
   return workOrderRepository.findAll();
 };
@@ -24,29 +43,35 @@ const getWorkOrder = async (id) => {
     throw new ApiError(404, 'Work order not found');
   }
   const productionTasks = await workOrderRepository.findProductionTasksByWorkOrderId(id);
+  const groups = await workOrderRepository.findGroupsByWorkOrderId(id);
   const items = await workOrderRepository.findItemsByWorkOrderId(id);
-  return { ...wo, items, production_tasks: productionTasks };
+  return { ...wo, groups, items, production_tasks: productionTasks };
 };
 
-const createWorkOrder = async ({ wo_number, title, description, customer, created_by, machine_model_id, machine_model_version_id, ip_address }) => {
-  const wo = await workOrderRepository.create({ wo_number, title, description, customer, created_by, machine_model_id, machine_model_version_id });
+const createWorkOrder = async ({ wo_number, title, description, customer, created_by, groups, ip_address }) => {
+  const resolvedGroups = [];
+  for (const group of groups || []) {
+    const targets = await resolveGroupTargets(group.machine_model_id, group.machine_model_version_id);
+    resolvedGroups.push({ ...targets, serial_number: group.serial_number });
+  }
+  const wo = await workOrderRepository.createWithGroups({ wo_number, title, description, customer, created_by, groups: resolvedGroups });
   await auditService.log({
     user_id: created_by,
     action: 'WORK_ORDER_CREATED',
     entity_type: 'WORK_ORDER',
     entity_id: wo.id,
-    details: { wo_number: wo.wo_number, title: wo.title },
+    details: { wo_number: wo.wo_number, title: wo.title, group_count: wo.groups.length },
     ip_address,
   });
   return wo;
 };
 
-const updateWorkOrder = async (id, { title, description, customer, status, machine_model_id, machine_model_version_id, user_id, ip_address }) => {
+const updateWorkOrder = async (id, { title, description, customer, status, user_id, ip_address }) => {
   const existing = await workOrderRepository.findById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order not found');
   }
-  const wo = await workOrderRepository.update(id, { title, description, customer, status, machine_model_id, machine_model_version_id });
+  const wo = await workOrderRepository.update(id, { title, description, customer, status });
   await auditService.log({
     user_id,
     action: 'WORK_ORDER_UPDATED',
@@ -58,16 +83,122 @@ const updateWorkOrder = async (id, { title, description, customer, status, machi
   return wo;
 };
 
-// ---------- Items ----------
-const addItem = async (work_order_id, { item_number, title, description, quantity, user_id, ip_address }) => {
+// ---------- Groups ----------
+const assertGroupsEditable = (wo) => {
+  if (['FINALIZED', 'PRODUCTION', 'COMPLETED'].includes(wo.status)) {
+    throw new ApiError(400, 'Work order groups cannot be modified after finalization');
+  }
+};
+
+const addGroup = async (work_order_id, { machine_model_id, machine_model_version_id, serial_number, user_id, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
+  assertGroupsEditable(wo);
+  const targets = await resolveGroupTargets(machine_model_id, machine_model_version_id);
+  const group = await workOrderRepository.createGroup({
+    work_order_id,
+    machine_model_id: targets.machine_model_id,
+    machine_model_version_id: targets.machine_model_version_id,
+    serial_number: typeof serial_number === 'string' && serial_number.trim() ? serial_number.trim() : null,
+  });
+  await auditService.log({
+    user_id,
+    action: 'WORK_ORDER_GROUP_ADDED',
+    entity_type: 'WORK_ORDER_GROUP',
+    entity_id: group.id,
+    details: { work_order_id, machine_model_id, machine_model_version_id, serial_number: group.serial_number },
+    ip_address,
+  });
+  return group;
+};
+
+const updateGroup = async (work_order_id, groupId, { machine_model_id, machine_model_version_id, serial_number, user_id, ip_address }) => {
+  const wo = await workOrderRepository.findById(work_order_id);
+  if (!wo) {
+    throw new ApiError(404, 'Work order not found');
+  }
+  assertGroupsEditable(wo);
+  const targets = await resolveGroupTargets(machine_model_id, machine_model_version_id);
+  const group = await workOrderRepository.updateGroup(groupId, work_order_id, {
+    machine_model_id: targets.machine_model_id,
+    machine_model_version_id: targets.machine_model_version_id,
+    serial_number: typeof serial_number === 'string' && serial_number.trim() ? serial_number.trim() : null,
+  });
+  if (!group) {
+    throw new ApiError(404, 'Work order group not found');
+  }
+  await auditService.log({
+    user_id,
+    action: 'WORK_ORDER_GROUP_UPDATED',
+    entity_type: 'WORK_ORDER_GROUP',
+    entity_id: group.id,
+    details: { work_order_id, machine_model_id, machine_model_version_id, serial_number: group.serial_number },
+    ip_address,
+  });
+  return group;
+};
+
+const deleteGroup = async (work_order_id, groupId, { user_id, ip_address }) => {
+  const wo = await workOrderRepository.findById(work_order_id);
+  if (!wo) {
+    throw new ApiError(404, 'Work order not found');
+  }
+  assertGroupsEditable(wo);
+  const itemCount = await workOrderRepository.countItemsByGroupId(groupId);
+  if (itemCount > 0) {
+    throw new ApiError(400, 'Cannot delete a group that still has custom items');
+  }
+  const deleted = await workOrderRepository.deleteGroup(groupId, work_order_id);
+  if (!deleted) {
+    throw new ApiError(404, 'Work order group not found');
+  }
+  await auditService.log({
+    user_id,
+    action: 'WORK_ORDER_GROUP_DELETED',
+    entity_type: 'WORK_ORDER_GROUP',
+    entity_id: groupId,
+    details: { work_order_id },
+    ip_address,
+  });
+  return deleted;
+};
+
+// ---------- Items ----------
+const generateItemNumber = async (work_order_group_id) => {
+  const numbers = await workOrderRepository.findItemNumbersByGroupId(work_order_group_id);
+  let max = 0;
+  for (const value of numbers) {
+    const parsed = parseInt(value, 10);
+    if (!Number.isNaN(parsed) && parsed > max) {
+      max = parsed;
+    }
+  }
+  const next = max + 1;
+  return next > 99 ? String(next) : String(next).padStart(2, '0');
+};
+
+const addItem = async (work_order_id, { work_order_group_id, item_number, title, description, quantity, user_id, ip_address }) => {
+  const wo = await workOrderRepository.findById(work_order_id);
+  if (!wo) {
+    throw new ApiError(404, 'Work order not found');
+  }
+  const group = await workOrderRepository.findGroupById(work_order_group_id, work_order_id);
+  if (!group) {
+    throw new ApiError(404, 'Work order group not found');
+  }
   if (wo.status === 'FINALIZED') {
     throw new ApiError(400, 'Finalized work orders cannot accept new items');
   }
-  const item = await workOrderRepository.createItem({ work_order_id, item_number, title, description, quantity });
+  const item = await workOrderRepository.createItem({
+    work_order_id,
+    work_order_group_id,
+    item_number: await generateItemNumber(work_order_group_id),
+    title,
+    description,
+    quantity,
+  });
   if (wo.status === 'ANALYZED') {
     await workOrderRepository.update(work_order_id, { status: 'DRAFT' });
   }
@@ -76,7 +207,7 @@ const addItem = async (work_order_id, { item_number, title, description, quantit
     action: 'ITEM_ADDED',
     entity_type: 'WORK_ORDER_ITEM',
     entity_id: item.id,
-    details: { work_order_id, item_number: item.item_number, title: item.title },
+    details: { work_order_id, work_order_group_id, item_number: item.item_number, title: item.title },
     ip_address,
   });
   return item;
@@ -342,6 +473,9 @@ module.exports = {
   getWorkOrder,
   createWorkOrder,
   updateWorkOrder,
+  addGroup,
+  updateGroup,
+  deleteGroup,
   addItem,
   updateItem,
   deleteItem,

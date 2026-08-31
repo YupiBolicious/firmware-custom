@@ -19,10 +19,28 @@ const findKpis = async () => {
 
 const findWorkQueue = async () => {
   const result = await pool.query(`
-    SELECT wo.id, wo.wo_number, wo.title, wo.status, wo.updated_at,
+    SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title, wo.status, wo.updated_at,
            wo.customer, wo.created_at,
-           mm.id AS machine_model_id, mm.model_code, mm.name AS machine_model_name,
-           mmv.id AS machine_model_version_id, mmv.version_code,
+           (SELECT string_agg(g.label, '; ')
+            FROM (
+              SELECT DISTINCT CONCAT_WS(' ', mm.model_code, mmv.version_code, NULLIF(g.serial_number, '')) AS label
+              FROM work_order_groups g
+              LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
+              LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
+              WHERE g.work_order_id = wo.id
+            ) g
+           ) AS group_summary,
+           (SELECT COALESCE(jsonb_agg(to_jsonb(jg)), '[]'::jsonb)
+            FROM (
+              SELECT DISTINCT g.id, g.machine_model_id, g.machine_model_version_id,
+                     g.serial_number, mm.model_code, mm.name AS machine_model_name,
+                     mmv.version_code
+              FROM work_order_groups g
+              LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
+              LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
+              WHERE g.work_order_id = wo.id
+            ) jg
+           ) AS groups,
            COUNT(woi.id)::int AS item_count,
            COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric AS total_estimated_hours,
            COUNT(DISTINCT woi.id) FILTER (
@@ -42,9 +60,7 @@ const findWorkQueue = async () => {
     LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
     LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
     LEFT JOIN classifications c ON c.work_order_item_id = woi.id
-    LEFT JOIN machine_model mm ON mm.id = wo.machine_model_id
-    LEFT JOIN machine_model_ver mmv ON mmv.id = wo.machine_model_version_id
-    GROUP BY wo.id, mm.id, mm.model_code, mm.name, mmv.id, mmv.version_code
+    GROUP BY wo.id
     ORDER BY wo.created_at DESC
   `);
   return result.rows;
@@ -54,7 +70,7 @@ const findAttentionItems = async () => {
   const result = await pool.query(`
     SELECT * FROM (
       -- 1. Blocked: awaiting coder review for more than 48 hours
-      SELECT wo.id AS work_order_id, wo.wo_number, wo.title,
+      SELECT wo.id AS work_order_id, wo.wo_number, COALESCE(wo.title, '') AS title,
              'blocked_48h' AS kind, 'danger' AS priority,
              'Waiting >48h for coder review' AS message,
              EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600 AS age_hours
@@ -67,7 +83,7 @@ const findAttentionItems = async () => {
         AND wo.status NOT IN ('FINALIZED', 'COMPLETED')
       UNION ALL
       -- 2. Coder review pending (24-48h window, not yet blocked)
-      SELECT wo.id, wo.wo_number, wo.title,
+      SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title,
              'coder_review' AS kind, 'warning' AS priority,
              'Waiting for coder review' AS message,
              EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600 AS age_hours
@@ -80,7 +96,7 @@ const findAttentionItems = async () => {
         AND wo.status NOT IN ('FINALIZED', 'COMPLETED')
       UNION ALL
       -- 3. Review item with no coder assigned
-      SELECT wo.id, wo.wo_number, wo.title,
+      SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title,
              'unassigned_review' AS kind, 'info' AS priority,
              'Review item unassigned to a coder' AS message,
              EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600 AS age_hours
@@ -92,7 +108,7 @@ const findAttentionItems = async () => {
         AND wo.status NOT IN ('FINALIZED', 'COMPLETED')
       UNION ALL
       -- 4. Unclassified items in an active work order
-      SELECT wo.id, wo.wo_number, wo.title,
+      SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title,
              'unclassified' AS kind, 'warning' AS priority,
              COUNT(DISTINCT woi.id)::text || ' unclassified item(s) present' AS message,
              NULL::numeric AS age_hours
@@ -101,10 +117,10 @@ const findAttentionItems = async () => {
       JOIN classifications c ON c.work_order_item_id = woi.id
       WHERE c.status = 'PENDING'
         AND wo.status NOT IN ('FINALIZED', 'COMPLETED')
-      GROUP BY wo.id, wo.wo_number, wo.title
+      GROUP BY wo.id, wo.wo_number, COALESCE(wo.title, '')
       UNION ALL
       -- 5. Stale: no progress for 7+ days while still active
-      SELECT wo.id, wo.wo_number, wo.title,
+      SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title,
              'stale' AS kind, 'warning' AS priority,
              'No progress in 7+ days' AS message,
              EXTRACT(EPOCH FROM (NOW() - GREATEST(COALESCE(wo.updated_at, '2000-01-01'),
@@ -113,7 +129,7 @@ const findAttentionItems = async () => {
       LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
       LEFT JOIN classifications c ON c.work_order_item_id = woi.id
       WHERE wo.status IN ('DRAFT', 'ANALYZED', 'PRODUCTION')
-      GROUP BY wo.id, wo.wo_number, wo.title, wo.updated_at
+      GROUP BY wo.id, wo.wo_number, COALESCE(wo.title, ''), wo.updated_at
       HAVING GREATEST(COALESCE(wo.updated_at, '2000-01-01'),
                       COALESCE(MAX(c.reviewed_at), '2000-01-01')) < NOW() - INTERVAL '7 days'
     ) alerts

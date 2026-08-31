@@ -41,14 +41,14 @@ export default function App() {
       >
         <Route path="/" element={<DashboardPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route element={<RoleRoute roles={['PM', 'CODER']} />}>
+        <Route element={<RoleRoute roles={['PM', 'CODER', 'ADMIN']} />}>
           <Route path="/work-orders" element={<WorkOrderList />} />
         </Route>
         <Route element={<RoleRoute roles={['PM']} />}>
           <Route path="/work-orders/new" element={<WorkOrderCreate />} />
           <Route path="/work-orders/:id/edit" element={<WorkOrderCreate />} />
         </Route>
-        <Route element={<RoleRoute roles={['PM', 'CODER']} />}>
+        <Route element={<RoleRoute roles={['PM', 'CODER', 'ADMIN']} />}>
           <Route path="/work-orders/:id" element={<WorkOrderDetail />} />
         </Route>
         <Route path="/complexity-levels" element={<ComplexityLevels />} />

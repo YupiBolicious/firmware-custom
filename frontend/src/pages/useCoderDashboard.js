@@ -35,8 +35,8 @@ function formatAction(action, details) {
 const initialFilters = {
   search: '',
   complexityFilter: 'ALL',
-  confidenceMin: '',
-  confidenceMax: '',
+  // confidenceMin: '',
+  // confidenceMax: '',
   classificationStatusFilter: 'ALL',
   workOrderStatusFilter: 'ALL',
   dateFrom: '',

@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api/client';
 
+const emptyGroup = { machine_model_id: '', machine_model_version_id: '', serial_number: '' };
+
 const emptyForm = {
   wo_number: '',
   title: '',
-  machine_model_id: '',
-  machine_model_version_id: '',
   description: '',
-  customer: ''
+  customer: '',
+  groups: [{ ...emptyGroup }],
 };
 
 const capitalizeWords = (value = '') =>
@@ -25,19 +26,6 @@ export default function useWorkOrderCreate() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
-  const [models, setModels] = useState([]);
-  const [versions, setVersions] = useState([]);
-
-  useEffect(() => {
-    api.get('/machine-models').then((res) => setModels(res.data.data || [])).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!form.machine_model_id) { setVersions([]); return; }
-    api.get(`/machine-models/${form.machine_model_id}/versions`)
-      .then((res) => setVersions(res.data.data || []))
-      .catch(() => setVersions([]));
-  }, [form.machine_model_id]);
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -48,11 +36,14 @@ export default function useWorkOrderCreate() {
         const workOrder = response.data.data;
         setForm({
           wo_number: workOrder.wo_number,
-          title: workOrder.title,
-          machine_model_id: workOrder.machine_model_id || '',
-          machine_model_version_id: workOrder.machine_model_version_id || '',
+          title: workOrder.title || '',
           description: workOrder.description || '',
           customer: workOrder.customer || '',
+          groups: (workOrder.groups || []).map((g) => ({
+            machine_model_id: g.machine_model_code || '',
+            machine_model_version_id: g.machine_model_version || '',
+            serial_number: g.serial_number || '',
+          })),
         });
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load work order');
@@ -68,18 +59,37 @@ export default function useWorkOrderCreate() {
     setForm({ ...form, [event.target.name]: event.target.value });
   };
 
+  const handleGroupFieldChange = (index, field, value) => {
+    setForm((prev) => {
+      const groups = prev.groups.map((g, i) => (i === index ? { ...g, [field]: value } : g));
+      return { ...prev, groups };
+    });
+  };
+
+  const addGroup = () => {
+    setForm((prev) => ({ ...prev, groups: [...prev.groups, { ...emptyGroup }] }));
+  };
+
+  const removeGroup = (index) => {
+    setForm((prev) => ({ ...prev, groups: prev.groups.filter((_, i) => i !== index) }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
     setSaving(true);
 
+    const formattedGroups = form.groups.map((g) => ({
+      machine_model_id: g.machine_model_id.trim(),
+      machine_model_version_id: g.machine_model_version_id.trim(),
+      serial_number: g.serial_number && g.serial_number.trim() ? g.serial_number.trim() : undefined,
+    }));
+
     const formattedForm = {
       wo_number: form.wo_number.trim().toUpperCase(),
-      title: form.title.trim().toUpperCase(),
-      machine_model_id: Number(form.machine_model_id),
-      machine_model_version_id: Number(form.machine_model_version_id),
+      title: form.title && form.title.trim() ? capitalizeWords(form.title) : undefined,
       description: capitalizeWords(form.description),
-      customer: form?.customer.trim() ? capitalizeWords(form.customer) : '',
+      customer: form.customer && form.customer.trim() ? capitalizeWords(form.customer) : '',
     };
 
     try {
@@ -87,13 +97,8 @@ export default function useWorkOrderCreate() {
         await api.put(`/work-orders/${id}`, formattedForm);
         navigate(`/work-orders/${id}`);
       } else {
-        const response = await api.post('/work-orders', formattedForm);
-    navigate(`/work-orders/${response.data.data.id}`);
-        // const response = await api.post('/work-orders', {
-        //   wo_number: form.wo_number.trim().toUpperCase(),
-        //   ...formattedForm,
-        // });
-        // navigate(`/work-orders/${response.data.data.id}`);
+        const response = await api.post('/work-orders', { ...formattedForm, groups: formattedGroups });
+        navigate(`/work-orders/${response.data.data.id}`);
       }
     } catch (err) {
       setError(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} work order`);
@@ -112,23 +117,11 @@ export default function useWorkOrderCreate() {
     loading,
     saving,
     isEditMode,
-    models,
-    versions,
     handleChange,
+    handleGroupFieldChange,
+    addGroup,
+    removeGroup,
     handleSubmit,
     handleCancel,
   };
 }
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setError('');
-  //   setLoading(true);
-  //   try {
-  //     const res = await api.post('/work-orders', form);
-  //     navigate(`/work-orders/${res.data.data.id}`);
-  //   } catch (err) {
-  //     setError(err.response?.data?.message || 'Failed to create work order');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };

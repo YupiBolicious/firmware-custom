@@ -37,6 +37,7 @@ const authorize = (...roles) => {
     if (!req.user) {
       return next(new ApiError(401, 'Authentication required'));
     }
+    if (req.user.roles.includes('ADMIN')) return next();
     const userRoles = req.user.roles || [];
     const hasRole = roles.some((r) => userRoles.includes(r));
     if (!hasRole) {

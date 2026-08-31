@@ -38,21 +38,21 @@ export default function CoderDashboard() {
       {/* 1. KPI Summary */}
       <div className="stats-grid mb-16">
         <div className="stat">
-          <div className="label">Pending Review</div>
+          <div className="label">Items Pending Review</div>
           <div className="value" style={{ color: filteredKpis.pending_review > 0 ? 'var(--warning)' : undefined }}>
             {filteredKpis.pending_review}
           </div>
         </div>
         <div className="stat">
-          <div className="label">In Queue (Hours)</div>
+          <div className="label">Items In Queue (Hours)</div>
           <div className="value">{filteredKpis.pending_hours.toFixed(1)}h</div>
         </div>
         <div className="stat">
-          <div className="label">Completed</div>
+          <div className="label">Items Completed</div>
           <div className="value" style={{ color: 'var(--success)' }}>{filteredKpis.completed}</div>
         </div>
         <div className="stat">
-          <div className="label">Completed Hours</div>
+          <div className="label">Total Completed Hours</div>
           <div className="value">{filteredKpis.completed_hours.toFixed(1)}h</div>
         </div>
         {filteredKpis.overdue > 0 && (
@@ -112,7 +112,7 @@ export default function CoderDashboard() {
                   ))}
                 </select>
               </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
+              {/* <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
                 <label style={{ fontSize: 11, color: '#aaa' }}>Confidence Min %</label>
                 <input
                   type="number"
@@ -135,7 +135,7 @@ export default function CoderDashboard() {
                   value={filters.confidenceMax}
                   onChange={(e) => setFilter('confidenceMax', e.target.value)}
                 />
-              </div>
+              </div> */}
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
                 <label style={{ fontSize: 11, color: '#aaa' }}>Classification Status</label>
                 <select
@@ -208,6 +208,7 @@ export default function CoderDashboard() {
               <tr>
                 <th>Work Orders</th>
                 <th>Custom Item</th>
+                <th>Model / Unit</th>
                 <th>Qty</th>
                 <th>Confidence</th>
                 <th>Complexity</th>
@@ -220,6 +221,9 @@ export default function CoderDashboard() {
                 <tr key={r.item_id}>
                   <td><Link to={`/work-orders/${r.work_order_id}`}>{r.wo_number}</Link></td>
                   <td>{r.title}</td>
+                  <td>
+                    {[r.machine_model_code, r.machine_model_version, r.serial_number ? `SN: ${r.serial_number}` : null].filter(Boolean).join(' / ') || '-'}
+                  </td>
                   <td>{r.quantity}</td>
                   <td>{r.confidence_score != null ? `${r.confidence_score}%` : '-'}</td>
                   <td>{r.complexity_code || <span className="badge badge-warning">Unassigned</span>}</td>
@@ -250,6 +254,8 @@ export default function CoderDashboard() {
               <tr>
                 <th>Work Orders</th>
                 <th>Custom Item</th>
+                <th>Model / Ver</th>
+                <th>Serial Number</th>
                 <th>Qty</th>
                 <th>Complexity</th>
                 <th>Hours</th>
@@ -262,6 +268,8 @@ export default function CoderDashboard() {
                 <tr key={r.item_id}>
                   <td><Link to={`/work-orders/${r.work_order_id || ''}`}>{r.wo_number}</Link></td>
                   <td>{r.title}</td>
+                  <td>{[r.machine_model_code, r.machine_model_version].filter(Boolean).join(' / ') || '-'}</td>
+                  <td>{[r.serial_number ? `SN: ${r.serial_number}` : '-'].filter(Boolean).join(' ')}</td>
                   <td>{r.quantity}</td>
                   <td>{r.complexity_code || '-'}</td>
                   <td>{r.estimated_hours > 0 ? `${r.estimated_hours}h` : '-'}</td>

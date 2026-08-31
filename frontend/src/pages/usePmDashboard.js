@@ -79,9 +79,11 @@ export default function usePmDashboard() {
   const uniqueModels = useMemo(() => {
     const map = new Map();
     workQueue.forEach((w) => {
-      if (w.machine_model_id && !map.has(w.machine_model_id)) {
-        map.set(w.machine_model_id, { id: w.machine_model_id, code: w.model_code, name: w.machine_model_name });
-      }
+      (w.groups || []).forEach((g) => {
+        if (g.machine_model_id && !map.has(g.machine_model_id)) {
+          map.set(g.machine_model_id, { id: g.machine_model_id, code: g.model_code, name: g.machine_model_name });
+        }
+      });
     });
     return [...map.values()];
   }, [workQueue]);
@@ -89,9 +91,11 @@ export default function usePmDashboard() {
   const uniqueVersions = useMemo(() => {
     const map = new Map();
     workQueue.forEach((w) => {
-      if (w.machine_model_version_id && !map.has(w.machine_model_version_id)) {
-        map.set(w.machine_model_version_id, { id: w.machine_model_version_id, code: w.version_code, model_id: w.machine_model_id });
-      }
+      (w.groups || []).forEach((g) => {
+        if (g.machine_model_version_id && !map.has(g.machine_model_version_id)) {
+          map.set(g.machine_model_version_id, { id: g.machine_model_version_id, code: g.version_code, model_id: g.machine_model_id });
+        }
+      });
     });
     let versions = [...map.values()];
     if (filters.modelFilter !== 'ALL') {
@@ -110,14 +114,15 @@ export default function usePmDashboard() {
       if (filters.search) {
         const q = filters.search.toLowerCase();
         const matchSearch = w.wo_number.toLowerCase().includes(q)
-          || w.title.toLowerCase().includes(q)
+          || ((w.title || '').toLowerCase().includes(q))
           || (w.customer || '').toLowerCase().includes(q)
+          || (w.group_summary || '').toLowerCase().includes(q)
           || (w.item_titles || []).some((t) => t.toLowerCase().includes(q));
         if (!matchSearch) return false;
       }
       if (filters.statusFilter !== 'ALL' && w.status !== filters.statusFilter) return false;
-      if (filters.modelFilter !== 'ALL' && w.machine_model_id !== Number(filters.modelFilter)) return false;
-      if (filters.versionFilter !== 'ALL' && w.machine_model_version_id !== Number(filters.versionFilter)) return false;
+      if (filters.modelFilter !== 'ALL' && !(w.groups || []).some((g) => g.machine_model_id === Number(filters.modelFilter))) return false;
+      if (filters.versionFilter !== 'ALL' && !(w.groups || []).some((g) => g.machine_model_version_id === Number(filters.versionFilter))) return false;
       if (filters.complexityFilter !== 'ALL' && w.complexity_code !== filters.complexityFilter) return false;
       if (filters.fwRelatedFilter === 'FW' && !w.all_fw_related) return false;
       if (filters.fwRelatedFilter === 'NON_FW' && w.all_fw_related) return false;

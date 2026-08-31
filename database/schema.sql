@@ -106,31 +106,42 @@ CREATE TABLE IF NOT EXISTS machine_model_ver (
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (machine_model_id, version_code)
 );
--- WORK ORDERS ADN ITEMS
+-- WORK ORDERS AND ITEMS
 CREATE TABLE IF NOT EXISTS work_orders (
     id              SERIAL PRIMARY KEY,
     wo_number       VARCHAR(50) NOT NULL UNIQUE,
-    title           VARCHAR(300) NOT NULL,
+    title           VARCHAR(300),
     description     TEXT,
     customer        VARCHAR(200),
     status          VARCHAR(30) NOT NULL DEFAULT 'DRAFT',  -- DRAFT | ANALYZED | FINALIZED | PRODUCTION | COMPLETED
-    machine_model_id        INT REFERENCES machine_model(id),
-    machine_model_version_id INT REFERENCES machine_model_ver(id),
     created_by      INT REFERENCES users(id),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- MODEL/VERSION/SN GROUP PER WORK ORDER (WO -> groups -> items -> classification/complexity -> estimation)
+CREATE TABLE IF NOT EXISTS work_order_groups (
+    id                         SERIAL PRIMARY KEY,
+    work_order_id              INT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+    machine_model_id           INT REFERENCES machine_model(id),
+    machine_model_version_id   INT REFERENCES machine_model_ver(id),
+    serial_number              VARCHAR(100),
+    created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (work_order_id, machine_model_id, machine_model_version_id, serial_number)
+);
+
 CREATE TABLE IF NOT EXISTS work_order_items (
-    id              SERIAL PRIMARY KEY,
-    work_order_id   INT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
-    item_number     VARCHAR(50) NOT NULL,
-    title           VARCHAR(300) NOT NULL,
-    description     TEXT,
-    quantity        INT NOT NULL DEFAULT 1,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (work_order_id, item_number)
+    id                  SERIAL PRIMARY KEY,
+    work_order_id       INT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+    work_order_group_id INT NOT NULL REFERENCES work_order_groups(id) ON DELETE CASCADE,
+    item_number         VARCHAR(50) NOT NULL,
+    title               VARCHAR(300) NOT NULL,
+    description         TEXT,
+    quantity            INT NOT NULL DEFAULT 1,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (work_order_group_id, item_number)
 );
 -- CLASSFDICATIONS TO CHECK LEVEL
 CREATE TABLE IF NOT EXISTS classifications (
@@ -230,6 +241,7 @@ CREATE INDEX IF NOT EXISTS idx_classifications_reviewed_by_status ON classificat
 CREATE INDEX IF NOT EXISTS idx_classifications_created_at ON classifications(created_at);
 CREATE INDEX IF NOT EXISTS idx_classifications_reviewed_at ON classifications(reviewed_at) WHERE reviewed_at IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_work_orders_status ON work_orders(status);
+CREATE INDEX IF NOT EXISTS idx_work_order_groups_work_order_id ON work_order_groups(work_order_id);
 CREATE INDEX IF NOT EXISTS idx_work_order_items_work_order_id ON work_order_items(work_order_id);
 CREATE INDEX IF NOT EXISTS idx_audit_trail_action_created ON audit_trail(action, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_item_estimations_work_order_item_id ON item_estimations(work_order_item_id);
@@ -341,9 +353,18 @@ SELECT 'WO-2026-001', 'Firmware Custom Items - Q1 2026', 'Mock customer for prot
 FROM users u WHERE u.username = 'pm@demo'
 ON CONFLICT (wo_number) DO NOTHING;
 
-INSERT INTO work_order_items (work_order_id, item_number, title, description, quantity)
-SELECT wo.id, it.item_number, it.title, it.description, it.quantity
+INSERT INTO work_order_groups (work_order_id, machine_model_id, machine_model_version_id)
+SELECT wo.id, mm.id, mmv.id
 FROM work_orders wo
+JOIN machine_model mm ON mm.model_code = 'FWX-100'
+JOIN machine_model_ver mmv ON mmv.machine_model_id = mm.id AND mmv.version_code = 'v1.0'
+WHERE wo.wo_number = 'WO-2026-001'
+  AND NOT EXISTS (SELECT 1 FROM work_order_groups wog WHERE wog.work_order_id = wo.id);
+
+INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, description, quantity)
+SELECT wo.id, wog.id, it.item_number, it.title, it.description, it.quantity
+FROM work_orders wo
+JOIN work_order_groups wog ON wog.work_order_id = wo.id
 JOIN (VALUES
     ('ITEM-001', 'Change alarm setpoint configuration', 'Adjust the alarm setpoint configuration for the machine', 1),
     ('ITEM-002', 'Update UI text', 'Update the displayed UI text on the operator panel', 1),
@@ -351,4 +372,4 @@ JOIN (VALUES
     ('ITEM-004', 'Mechanical label change', 'Change the mechanical label on the enclosure', 1)
 ) AS it(item_number, title, description, quantity)
 ON wo.wo_number = 'WO-2026-001'
-ON CONFLICT (work_order_id, item_number) DO NOTHING;
+ON CONFLICT (work_order_group_id, item_number) DO NOTHING;

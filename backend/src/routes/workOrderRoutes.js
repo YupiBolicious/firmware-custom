@@ -6,6 +6,8 @@ const { authenticate, authorize } = require('../middleware/auth');
 const {
   validateWorkOrderCreate,
   validateWorkOrderUpdate,
+  validateGroupCreate,
+  validateGroupUpdate,
   validateItemCreate,
   validateItemUpdate,
   validateReview,
@@ -35,25 +37,29 @@ const upload = multer({
 
 router.use(authenticate);
 
-router.put('/items/:itemId', authorize('PM'), validateItemUpdate, workOrderController.updateItem);
-router.delete('/items/:itemId', authorize('PM'), workOrderController.deleteItem);
+router.put('/items/:itemId', authorize('PM', 'ADMIN'), validateItemUpdate, workOrderController.updateItem);
+router.delete('/items/:itemId', authorize('PM', 'ADMIN'), workOrderController.deleteItem);
 
-router.get('/', authorize('PM', 'CODER'), workOrderController.list);
-router.get('/review-queue', authorize('CODER'), workOrderController.reviewQueue);
-router.post('/items/:itemId/review', authorize('CODER'), validateReview, workOrderController.reviewItem);
-router.post('/', authorize('PM'), validateWorkOrderCreate, workOrderController.create);
-router.get('/:id', authorize('PM', 'CODER'), workOrderController.getById);
-router.put('/:id', authorize('PM'), validateWorkOrderUpdate, workOrderController.update);
+router.get('/', authorize('PM', 'CODER', 'ADMIN'), workOrderController.list);
+router.get('/review-queue', authorize('CODER', 'ADMIN'), workOrderController.reviewQueue);
+router.post('/items/:itemId/review', authorize('CODER', 'ADMIN'), validateReview, workOrderController.reviewItem);
+router.post('/', authorize('PM', 'ADMIN'), validateWorkOrderCreate, workOrderController.create);
+router.get('/:id', authorize('PM', 'CODER', 'ADMIN'), workOrderController.getById);
+router.put('/:id', authorize('PM', 'ADMIN'), validateWorkOrderUpdate, workOrderController.update);
 
-router.post('/:id/items', authorize('PM'), validateItemCreate, workOrderController.addItem);
+router.post('/:id/groups', authorize('PM', 'ADMIN'), validateGroupCreate, workOrderController.addGroup);
+router.put('/:id/groups/:groupId', authorize('PM', 'ADMIN'), validateGroupUpdate, workOrderController.updateGroup);
+router.delete('/:id/groups/:groupId', authorize('PM', 'ADMIN'), workOrderController.deleteGroup);
 
-router.post('/:id/analyze', authorize('PM'), workOrderController.analyze);
-router.post('/:id/finalize', authorize('PM'), workOrderController.finalize);
-router.post('/:id/production', authorize('CODER'), workOrderController.startProduction);
+router.post('/:id/items', authorize('PM', 'ADMIN'), validateItemCreate, workOrderController.addItem);
 
-router.get('/:id/documents', authorize('PM', 'CODER'), workOrderController.listDocuments);
-router.get('/:id/documents/:docId/download', authorize('PM', 'CODER'), workOrderController.downloadDocument);
-router.post('/:id/documents', authorize('CODER'), upload.array('files', 10), workOrderController.uploadDocuments);
-router.delete('/:id/documents/:docId', authorize('CODER'), workOrderController.deleteDocument);
+router.post('/:id/analyze', authorize('PM', 'ADMIN'), workOrderController.analyze);
+router.post('/:id/finalize', authorize('PM', 'ADMIN'), workOrderController.finalize);
+router.post('/:id/production', authorize('CODER', 'ADMIN'), workOrderController.startProduction);
+
+router.get('/:id/documents', authorize('PM', 'CODER', 'ADMIN'), workOrderController.listDocuments);
+router.get('/:id/documents/:docId/download', authorize('PM', 'CODER', 'ADMIN'), workOrderController.downloadDocument);
+router.post('/:id/documents', authorize('CODER', 'ADMIN'), upload.array('files', 10), workOrderController.uploadDocuments);
+router.delete('/:id/documents/:docId', authorize('CODER', 'ADMIN'), workOrderController.deleteDocument);
 
 module.exports = router;

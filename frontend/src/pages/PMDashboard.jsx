@@ -206,6 +206,7 @@ export default function PMDashboard() {
             <thead>
               <tr>
                 <th>WO Number</th>
+                <th>Model</th>
                 <th>Title</th>
                 <th>Customer</th>
                 <th>Items</th>
@@ -219,7 +220,8 @@ export default function PMDashboard() {
               {filteredQueue.map((w) => (
                 <tr key={w.id}>
                   <td><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
-                  <td>{w.title}</td>
+                  <td className="text-muted">{w.group_summary || '-'}</td>
+                  <td>{w.title || '-'}</td>
                   <td className="text-muted">{w.customer || '-'}</td>
                   <td>{w.item_count}</td>
                   <td>
@@ -304,7 +306,7 @@ export default function PMDashboard() {
 
       {/* 5. Workload & Status Trend */}
       <div className="panel mb-16">
-        <h3 className="mb-16">Workload & Status Trend (8 Weeks)</h3>
+        <h3 className="mb-16">Workload & Status Chart</h3>
         {filteredTrend.length === 0 ? (
           <div className="text-muted">No trend data available.</div>
         ) : (

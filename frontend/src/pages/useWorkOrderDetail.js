@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/client';
 
-const emptyItemForm = { item_number: '', title: '', description: '', quantity: 1 };
+const emptyItemForm = { title: '', description: '', quantity: 1, work_order_group_id: '' };
+const emptyGroupForm = { machine_model_id: '', machine_model_version_id: '', serial_number: '' };
 
 export default function useWorkOrderDetail() {
   const { id } = useParams();
@@ -19,6 +20,9 @@ export default function useWorkOrderDetail() {
   const [showAddItemForm, setShowAddItemForm] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [groupForm, setGroupForm] = useState(emptyGroupForm);
+  const [editingGroupId, setEditingGroupId] = useState(null);
+  const [showAddGroup, setShowAddGroup] = useState(false);
 
   const load = async () => {
     try {
@@ -55,9 +59,9 @@ export default function useWorkOrderDetail() {
         .toLowerCase()
         .replace(/\b\w/g, (character) => character.toUpperCase());
 
-  const openAddItem = () => {
+  const openAddItem = (groupId) => {
     setEditingItemId(null);
-    setItemForm(emptyItemForm);
+    setItemForm({ ...emptyItemForm, work_order_group_id: groupId || '' });
     setShowAddItemForm(true);
   };
 
@@ -68,10 +72,10 @@ export default function useWorkOrderDetail() {
       await api.post(`/work-orders/${id}/items`, {
         ...itemForm,
         //store in capitalized and trimmed
-        item_number: itemForm.item_number.trim().toUpperCase(),
         title: capitalizeWords(itemForm.title),
         description: capitalizeWords(itemForm.description),
         quantity: parseInt(itemForm.quantity, 10) || 1,
+        work_order_group_id: parseInt(itemForm.work_order_group_id, 10) || null,
         });
       setItemForm(emptyItemForm);
       setShowAddItemForm(false);
@@ -86,7 +90,6 @@ export default function useWorkOrderDetail() {
     setShowAddItemForm(false);
     setEditingItemId(item.id);
     setItemForm({
-      item_number: item.item_number,
       title: item.title,
       description: item.description || '',
       quantity: item.quantity,
@@ -126,6 +129,70 @@ export default function useWorkOrderDetail() {
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete item');
+    }
+  };
+
+  const handleGroupFormChange = (event) => {
+    const { name, value } = event.target;
+    setGroupForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const openAddGroup = () => {
+    setEditingGroupId(null);
+    setGroupForm(emptyGroupForm);
+    setShowAddGroup(true);
+  };
+
+  const openEditGroup = (group) => {
+    setEditingGroupId(group.id);
+    setGroupForm({
+      machine_model_id: group.machine_model_code || '',
+      machine_model_version_id: group.machine_model_version || '',
+      serial_number: group.serial_number || '',
+    });
+    setShowAddGroup(true);
+  };
+
+  const cancelGroupForm = () => {
+    setEditingGroupId(null);
+    setShowAddGroup(false);
+    setGroupForm(emptyGroupForm);
+  };
+
+  const handleSubmitGroup = async (event) => {
+    event.preventDefault();
+    setError('');
+    setMessage('');
+    const payload = {
+      machine_model_id: groupForm.machine_model_id.trim(),
+      machine_model_version_id: groupForm.machine_model_version_id.trim(),
+      serial_number: groupForm.serial_number && groupForm.serial_number.trim() ? groupForm.serial_number.trim() : undefined,
+    };
+    try {
+      if (editingGroupId) {
+        await api.put(`/work-orders/${id}/groups/${editingGroupId}`, payload);
+        setMessage('Group updated');
+      } else {
+        await api.post(`/work-orders/${id}/groups`, payload);
+        setMessage('Group added');
+      }
+      cancelGroupForm();
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to save group');
+    }
+  };
+
+  const handleDeleteGroup = async (groupId) => {
+    if (!window.confirm('Delete this group?')) return;
+    setError('');
+    setMessage('');
+    try {
+      await api.delete(`/work-orders/${id}/groups/${groupId}`);
+      setMessage('Group deleted');
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete group');
     }
   };
 
@@ -227,6 +294,9 @@ export default function useWorkOrderDetail() {
     editingItemId,
     showAddItemForm,
     documents,
+    groupForm,
+    editingGroupId,
+    showAddGroup,
     handleItemChange,
     openAddItem,
     handleAddItem,
@@ -234,6 +304,12 @@ export default function useWorkOrderDetail() {
     handleUpdateItem,
     cancelEdit,
     handleDeleteItem,
+    handleGroupFormChange,
+    openAddGroup,
+    openEditGroup,
+    cancelGroupForm,
+    handleSubmitGroup,
+    handleDeleteGroup,
     handleAnalyze,
     handleFinalize,
     handleStartProduction,

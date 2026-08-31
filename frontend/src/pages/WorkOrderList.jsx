@@ -39,6 +39,7 @@ export default function WorkOrderList() {
           <thead>
             <tr>
               <th>WO Number</th>
+              <th>Model</th>
               <th>Title</th>
               <th>Customer</th>
               <th>Status</th>
@@ -52,7 +53,8 @@ export default function WorkOrderList() {
             {workOrders.map((wo) => (
               <tr key={wo.id}>
                 <td><Link to={`/work-orders/${wo.id}`}>{wo.wo_number}</Link></td>
-                <td>{wo.title}</td>
+                <td>{wo.group_summary || '-'}</td>
+                <td>{wo.title || '-'}</td>
                 <td>{wo.customer || '-'}</td>
                 <td><span className="badge badge-info">{wo.status}</span></td>
                 <td>{wo.item_count}</td>

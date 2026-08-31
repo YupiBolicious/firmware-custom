@@ -20,7 +20,7 @@ const NAV_ITEMS = [
   {
     to: '/work-orders',
     label: 'Work Orders',
-    roles: ['PM', 'CODER'],
+    roles: ['PM', 'CODER', 'ADMIN'],
     icon: <ClipboardList size={16} strokeWidth={1.5} />,
   },
   {

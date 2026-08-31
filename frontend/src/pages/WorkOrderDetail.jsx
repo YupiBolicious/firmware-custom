@@ -58,13 +58,18 @@ export default function WorkOrderDetail() {
   const { wo, error, loading, analyzing, finalizing, startingProduction, uploading, analysis, message, itemForm,
     editingItemId, handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
     showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
-    handleStartProduction, documents, handleUploadDocuments, handleDeleteDocument } = useWorkOrderDetail();
+    handleStartProduction, documents, handleUploadDocuments, handleDeleteDocument,
+    groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
+    cancelGroupForm, handleSubmitGroup, handleDeleteGroup } = useWorkOrderDetail();
 
   if (loading) return <div>Loading...</div>;
   if (error && !wo) return <div className="alert alert-error">{error}</div>;
   if (!wo) return <div className="alert alert-error">Work order not found</div>;
 
   const items = wo.items || [];
+  const groups = wo.groups || [];
+  const groupsEditable = wo.status === 'DRAFT' || wo.status === 'ANALYZED';
+  const itemsByGroup = groups.map((group) => ({ ...group, items: items.filter((i) => i.work_order_group_id === group.id) }));
   const summary = analysis?.summary || null;
 
   return (
@@ -99,74 +104,132 @@ export default function WorkOrderDetail() {
         <div className="form-grid">
           <div><span className="text-muted">Status:</span> <StatusBadge status={wo.status} /></div>
           <div><span className="text-muted">Customer:</span> {wo.customer || '-'}</div>
-          <div><span className="text-muted">Machine Model:</span> {wo.machine_model_name ? `${wo.machine_model_code} - ${wo.machine_model_name}` : '-'}</div>
-          <div><span className="text-muted">Version:</span> {wo.machine_model_version || '-'}</div>
+          <div><span className="text-muted">Title:</span> {wo.title || '-'}</div>
           <div><span className="text-muted">Created By:</span> {wo.created_by_name || '-'}</div>
           <div><span className="text-muted">Created At:</span> {new Date(wo.created_at).toLocaleString()}</div>
+          {['ANALYZED', 'FINALIZED'].includes(wo.status) && (
+            <div><span className="text-muted">Total Estimated Hours:</span> {wo.total_estimated_hours}h</div>
+          )}
         </div>
         {wo.description && <div className="mt-8 text-muted">{wo.description}</div>}
       </div>
 
-      {/* Items */}
+      {/* Groups & Items */}
       <div className="panel">
         <div className="flex justify-between align-center mb-8">
-          <h3>Custom Items Details</h3>
+          <h3>Groups & Custom Items</h3>
           {!isCoder && (
             <div className="item-actions">
               <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || wo.status !== 'DRAFT'}>
                 {analyzing ? 'Analyzing...' : 'Analyze / Estimate'}
               </button>
-              {(wo.status === 'DRAFT' || wo.status === 'ANALYZED') && (
-                <button className="btn btn-secondary" type="button" onClick={openAddItem}>
-                  {items.length === 0 ? '+ Add Custom Item' : '+ Add Another Item'}
+              {groupsEditable && (
+                <button className="btn btn-secondary" type="button" onClick={openAddGroup}>
+                  + Add Model
                 </button>
               )}
             </div>
           )}
         </div>
 
-        {items.length === 0 ? (
-          <div className="text-muted">No custom items yet. Use the add button above to create the first item.</div>
+        {groups.length === 0 ? (
+          <div className="text-muted">
+            No groups yet. Use &quot;Add Model&quot; to create the first Model / Version / Serial-Number unit.
+          </div>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Title</th>
-                <th>Description</th>
-                <th>Qty</th>
-                <th>Firmware</th>
-                <th>Complexity</th>
-                <th>Confidence</th>
-                <th>Hours</th>
-                <th>Status</th>
-                {!isCoder && <th>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.item_number}</td>
-                  <td>{item.title}</td>
-                  <td>{item.description || '-'}</td>
-                  <td>{item.quantity}</td>
-                  <td>
-                    {item.fw_related === true ? 'YES' : item.fw_related === false ? 'NO' : '-'}
-                  </td>
-                  <td>{item.complexity_code || '-'}</td>
-                  <td>{item.confidence_score != null ? `${item.confidence_score}%` : '-'}</td>
-                  <td>{item.estimated_hours != null ? `${item.estimated_hours}h` : 'N/A'}</td>
-                  <td><StatusBadge status={item.classification_status} /></td>
-                  {!isCoder && <td>
-                    <button className="btn btn-secondary btn-sm" onClick={() => handleEditItem(item)} disabled={wo.status !== 'DRAFT'}>Edit</button>{' '}
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteItem(item.id)} disabled={wo.status !== 'DRAFT'}>Delete</button>
-                  </td>}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          itemsByGroup.map((group) => (
+            <div key={group.id} className="panel" style={{ marginBottom: 12, padding: 12 }}>
+              <div className="flex justify-between align-center mb-8">
+                <strong>
+                  {group.machine_model_code || '—'} {group.machine_model_version ? `/ ${group.machine_model_version}` : ''}
+                  {group.serial_number ? ` / SN: ${group.serial_number}` : ''}
+                </strong>
+                {!isCoder && groupsEditable && (
+                  <div>
+                    <button className="btn btn-secondary btn-sm" onClick={() => openEditGroup(group)}>Edit</button>{' '}
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteGroup(group.id)} disabled={group.items.length > 0}>Delete</button>
+                  </div>
+                )}
+              </div>
+
+              {group.items.length === 0 ? (
+                <div className="text-muted mb-8">No custom items in this group.</div>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Title</th>
+                      <th>Description</th>
+                      <th>Qty</th>
+                      <th>Firmware</th>
+                      <th>Complexity</th>
+                      <th>Confidence</th>
+                      <th>Hours</th>
+                      <th>Status</th>
+                      {!isCoder && <th>Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.item_number}</td>
+                        <td>{item.title}</td>
+                        <td>{item.description || '-'}</td>
+                        <td>{item.quantity}</td>
+                        <td>
+                          {item.fw_related === true ? 'YES' : item.fw_related === false ? 'NO' : '-'}
+                        </td>
+                        <td>{item.complexity_code || '-'}</td>
+                        <td>{item.confidence_score != null ? `${item.confidence_score}%` : '-'}</td>
+                        <td>{item.estimated_hours != null ? `${item.estimated_hours}h` : 'N/A'}</td>
+                        <td><StatusBadge status={item.classification_status} /></td>
+                        {!isCoder && <td>
+                          <button className="btn btn-secondary btn-sm" onClick={() => handleEditItem(item)} disabled={wo.status !== 'DRAFT'}>Edit</button>{' '}
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteItem(item.id)} disabled={wo.status !== 'DRAFT'}>Delete</button>
+                        </td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              {!isCoder && groupsEditable && (
+                <button className="btn btn-secondary btn-sm mt-8" type="button" onClick={() => openAddItem(group.id)}>
+                  + Add Item
+                </button>
+              )}
+            </div>
+          ))
         )}
       </div>
+
+      {/* Add / Edit Group */}
+      {!isCoder && showAddGroup && (
+        <div className="panel">
+          <h3>{editingGroupId ? 'Edit Model' : 'Add Model'}</h3>
+          <form onSubmit={handleSubmitGroup}>
+            <div className="form-grid">
+              <div className="form-row">
+                <label>Machine Model</label>
+                <input className="wo-input-text sn-input" name="machine_model_id" value={groupForm.machine_model_id} onChange={handleGroupFormChange} placeholder="e.g. FWX-100" required />
+              </div>
+              <div className="form-row">
+                <label>Version</label>
+                <input className="wo-input-text sn-input" name="machine_model_version_id" value={groupForm.machine_model_version_id} onChange={handleGroupFormChange} placeholder="e.g. v1.0" required />
+              </div>
+            </div>
+            <div className="form-row">
+              <label>Serial Number (optional)</label>
+              <input className="wo-input-text sn-input" name="serial_number" value={groupForm.serial_number} onChange={handleGroupFormChange} />
+            </div>
+            <div className="flex gap-8">
+              <button className="btn" type="submit">{editingGroupId ? 'Update Model' : 'Add Model'}</button>
+              <button className="btn btn-secondary" type="button" onClick={cancelGroupForm}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Edit Item */}
       {!isCoder && (editingItemId || showAddItemForm) && (
@@ -174,19 +237,6 @@ export default function WorkOrderDetail() {
           <h3>{editingItemId ? 'Edit Item' : 'Add Custom Item'}</h3>
           <form onSubmit={editingItemId ? handleUpdateItem : handleAddItem}>
           <div className="form-grid">
-            <div className="form-row">
-              <label>Item Number</label>
-              {/*item number edit is disabled when existing item or if the work order is finalized*/}
-                <input
-                className="item-number-input"
-                name="item_number"
-                value={itemForm.item_number}
-                onChange={handleItemChange}
-                placeholder="ITEM-005"
-                disabled={!!editingItemId || wo.status === 'FINALIZED'}
-                required
-              />
-            </div>
             <div className="form-row">
               <label>Quantity</label>
               <input
@@ -200,6 +250,18 @@ export default function WorkOrderDetail() {
               />
             </div>
           </div>
+          {!editingItemId && (
+          <div className="form-row">
+            <label>Model/Ver/SN</label>
+            <select className="wo-input-text" name="work_order_group_id" value={itemForm.work_order_group_id} onChange={handleItemChange} required>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.machine_model_code || '—'}{g.machine_model_version ? ` / ${g.machine_model_version}` : ''}{g.serial_number ? ` / SN: ${g.serial_number}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          )}
           <div className="form-row">
             <label>Title</label>
             <input className='custom-item-text' name="title" value={itemForm.title} onChange={handleItemChange} required disabled={wo.status === 'FINALIZED'} />
@@ -253,6 +315,7 @@ export default function WorkOrderDetail() {
             <thead>
               <tr>
                 <th>Item</th>
+                <th>Model / Unit</th>
                 <th>Title</th>
                 <th>Firmware</th>
                 <th>Complexity</th>
@@ -267,6 +330,9 @@ export default function WorkOrderDetail() {
               {analysis.results.map((r) => (
                 <tr key={r.item_id}>
                   <td>{r.item_number}</td>
+                  <td>
+                    {[r.machine_model_code, r.machine_model_version, r.serial_number ? `SN: ${r.serial_number}` : null].filter(Boolean).join(' / ') || '-'}
+                  </td>
                   <td>{r.title}</td>
                   <td>{r.fw_related === true ? 'YES' : r.fw_related === false ? 'NO' : 'Pending'}</td>
                   <td>{r.complexity_code || '-'}</td>

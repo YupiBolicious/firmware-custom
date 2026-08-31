@@ -80,6 +80,44 @@ const addItem = async (req, res, next) => {
   }
 };
 
+const addGroup = async (req, res, next) => {
+  try {
+    const data = await workOrderService.addGroup(req.params.id, {
+      ...req.body,
+      user_id: req.user.id,
+      ip_address: req.ip,
+    });
+    res.status(201).json({ success: true, message: 'Group added successfully', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateGroup = async (req, res, next) => {
+  try {
+    const data = await workOrderService.updateGroup(req.params.id, req.params.groupId, {
+      ...req.body,
+      user_id: req.user.id,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Group updated successfully', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteGroup = async (req, res, next) => {
+  try {
+    const data = await workOrderService.deleteGroup(req.params.id, req.params.groupId, {
+      user_id: req.user.id,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Group deleted successfully', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const updateItem = async (req, res, next) => {
   try {
     const data = await workOrderService.updateItem(req.params.itemId, {
@@ -209,6 +247,9 @@ module.exports = {
   getById,
   create,
   update,
+  addGroup,
+  updateGroup,
+  deleteGroup,
   addItem,
   updateItem,
   deleteItem,

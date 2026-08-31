@@ -18,8 +18,9 @@ const jaccard = (setA, setB) => {
  * Returns { fw_related, complexity_level_id, classification_method, confidence_score, classification_reason, status }
  */
 const classifyItem = async (item) => {
-  const text = normalize(`${item.title} ${item.description || ''}`);
-  const tokens = tokenize(`${item.title} ${item.description || ''}`);
+  const context = [item.machine_model_code, item.machine_model_version, item.serial_number].filter(Boolean).join(' ');
+  const text = normalize(`${item.title} ${item.description || ''} ${context}`);
+  const tokens = tokenize(`${item.title} ${item.description || ''} ${context}`);
 
   // Load reference data
   const [kbItems, rules] = await Promise.all([
