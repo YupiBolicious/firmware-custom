@@ -293,7 +293,7 @@ const findItemById = async (id) => {
 
 const findItemWithWorkOrder = async (id) => {
   const result = await pool.query(
-    `SELECT woi.*, wo.wo_number, wo.status AS work_order_status
+    `SELECT woi.*, wo.wo_number, wo.status AS work_order_status, wo.created_by AS wo_created_by
      FROM work_order_items woi
      JOIN work_orders wo ON wo.id = woi.work_order_id
      WHERE woi.id = $1`,

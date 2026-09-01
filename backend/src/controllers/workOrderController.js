@@ -59,6 +59,7 @@ const update = async (req, res, next) => {
     const data = await workOrderService.updateWorkOrder(req.params.id, {
       ...req.body,
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Work order updated successfully', data });
@@ -72,6 +73,7 @@ const addItem = async (req, res, next) => {
     const data = await workOrderService.addItem(req.params.id, {
       ...req.body,
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.status(201).json({ success: true, message: 'Item added successfully', data });
@@ -85,6 +87,7 @@ const addGroup = async (req, res, next) => {
     const data = await workOrderService.addGroup(req.params.id, {
       ...req.body,
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.status(201).json({ success: true, message: 'Group added successfully', data });
@@ -98,6 +101,7 @@ const updateGroup = async (req, res, next) => {
     const data = await workOrderService.updateGroup(req.params.id, req.params.groupId, {
       ...req.body,
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Group updated successfully', data });
@@ -110,6 +114,7 @@ const deleteGroup = async (req, res, next) => {
   try {
     const data = await workOrderService.deleteGroup(req.params.id, req.params.groupId, {
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Group deleted successfully', data });
@@ -123,6 +128,7 @@ const updateItem = async (req, res, next) => {
     const data = await workOrderService.updateItem(req.params.itemId, {
       ...req.body,
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Item updated successfully', data });
@@ -135,6 +141,7 @@ const deleteItem = async (req, res, next) => {
   try {
     const data = await workOrderService.deleteItem(req.params.itemId, {
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Item deleted successfully', data });
@@ -147,6 +154,7 @@ const analyze = async (req, res, next) => {
   try {
     const data = await workOrderService.analyzeWorkOrder(req.params.id, {
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Work order analyzed successfully', data });
@@ -159,6 +167,7 @@ const finalize = async (req, res, next) => {
   try {
     const data = await workOrderService.finalizeWorkOrder(req.params.id, {
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Work order finalized successfully', data });
@@ -240,6 +249,46 @@ const downloadDocument = async (req, res, next) => {
   }
 };
 
+const listAccess = async (req, res, next) => {
+  try {
+    const data = await workOrderService.listWorkOrderAccess(req.params.id, {
+      user_id: req.user.id,
+      roles: req.user.roles,
+    });
+    res.json({ success: true, message: 'Work order access retrieved', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const grantAccess = async (req, res, next) => {
+  try {
+    const data = await workOrderService.grantWorkOrderAccess(req.params.id, {
+      user_id: req.user.id,
+      roles: req.user.roles,
+      target_user_id: req.body.user_id,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Access granted', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const revokeAccess = async (req, res, next) => {
+  try {
+    const data = await workOrderService.revokeWorkOrderAccess(req.params.id, {
+      user_id: req.user.id,
+      roles: req.user.roles,
+      target_user_id: req.params.userId,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Access revoked', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   list,
   reviewQueue,
@@ -261,4 +310,7 @@ module.exports = {
   listDocuments,
   deleteDocument,
   downloadDocument,
+  listAccess,
+  grantAccess,
+  revokeAccess,
 };

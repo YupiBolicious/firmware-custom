@@ -4,6 +4,8 @@ const estimationRepository = require('../repositories/estimationRepository');
 const estimationService = require('../services/estimationService');
 const kbRepository = require('../repositories/kbRepository');
 const auditService = require('../services/auditService');
+const notificationService = require('../services/notificationService');
+const workOrderAccessRepository = require('../repositories/workOrderAccessRepository');
 const { ApiError } = require('../middleware/errorHandler');
 const { buildKeywords } = require('../utils/textUtils');
 
@@ -63,6 +65,17 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
     details: { work_order_id: item.work_order_id, complexity_code: level.code, fw_related: isFirmware },
     ip_address,
   });
+
+  const granteeIds = await workOrderAccessRepository.findUserIdsByWorkOrderId(item.work_order_id);
+  const recipientIds = new Set([item.wo_created_by, ...granteeIds].filter((x) => x != null));
+  for (const uid of recipientIds) {
+    notificationService.notify({
+      user_id: uid,
+      status: 'ITEM_REVIEWED',
+      message: `item ${item.item_number} in ${item.wo_number} has been reviewed by a FW engineer`,
+      entity_id: item.work_order_id,
+    });
+  }
 
   return {
     ...saved,

@@ -9,6 +9,15 @@ const list = async (req, res, next) => {
   }
 };
 
+const listPmUsers = async (req, res, next) => {
+  try {
+    const data = await userService.listPmUsers();
+    res.json({ success: true, message: 'PM users retrieved', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const create = async (req, res, next) => {
   try {
     const data = await userService.createUser({
@@ -50,4 +59,4 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-module.exports = { list, create, update, resetPassword };
+module.exports = { list, listPmUsers, create, update, resetPassword };

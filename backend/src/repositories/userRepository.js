@@ -29,6 +29,25 @@ const findAll = async () => {
   return result.rows;
 };
 
+const findAllByRole = async (roleCode) => {
+  const result = await pool.query(
+    `SELECT ${USER_COLUMNS},
+            COALESCE(array_agg(r.code ORDER BY r.code) FILTER (WHERE r.code IS NOT NULL), '{}') AS roles
+     FROM users u
+     LEFT JOIN user_roles ur ON ur.user_id = u.id
+     LEFT JOIN roles r ON r.id = ur.role_id
+     WHERE u.id IN (
+       SELECT ur2.user_id FROM user_roles ur2
+       JOIN roles r2 ON r2.id = ur2.role_id
+       WHERE r2.code = $1
+     )
+     GROUP BY u.id
+     ORDER BY u.id`,
+    [roleCode]
+  );
+  return result.rows;
+};
+
 const findByEmailId = async (email) => {
   const result = await pool.query(
     `SELECT id FROM users WHERE email = $1`,
@@ -160,6 +179,7 @@ const updatePasswordHash = async (userId, hash) => {
 module.exports = {
   findUserWithRolesById,
   findAll,
+  findAllByRole,
   findByEmailId,
   findByUsernameId,
   findRolesByUserId,

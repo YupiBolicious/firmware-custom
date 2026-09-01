@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 const emptyItemForm = { title: '', description: '', quantity: 1, work_order_group_id: '' };
 const emptyGroupForm = { machine_model_id: '', machine_model_version_id: '', serial_number: '' };
 
 export default function useWorkOrderDetail() {
   const { id } = useParams();
+  const { user, hasRole } = useAuth();
   const [wo, setWo] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [startingProduction, setStartingProduction] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [message, setMessage] = useState('');
   const [itemForm, setItemForm] = useState(emptyItemForm);
@@ -23,6 +26,9 @@ export default function useWorkOrderDetail() {
   const [groupForm, setGroupForm] = useState(emptyGroupForm);
   const [editingGroupId, setEditingGroupId] = useState(null);
   const [showAddGroup, setShowAddGroup] = useState(false);
+  const [access, setAccess] = useState([]);
+  const [accessBusy, setAccessBusy] = useState(null);
+  const [users, setUsers] = useState([]);
 
   const load = async () => {
     try {
@@ -44,10 +50,36 @@ export default function useWorkOrderDetail() {
     }
   };
 
+  const loadAccess = async () => {
+    try {
+      const res = await api.get(`/work-orders/${id}/access`);
+      setAccess(Array.isArray(res.data.data) ? res.data.data : []);
+    } catch (err) {
+      setAccess([]);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const res = await api.get('/users/pm');
+      setUsers(Array.isArray(res.data.data) ? res.data.data : []);
+    } catch (err) {
+      setUsers([]);
+    }
+  };
+
   useEffect(() => {
     load();
     loadDocuments();
+    loadAccess();
+    loadUsers();
   }, [id]);
+
+  const isAdmin = hasRole('ADMIN');
+  const isOwner = !!wo && Number(wo.created_by) === Number(user?.id);
+  const isGranted = !!wo && access.some((a) => Number(a.user_id) === Number(user?.id));
+  const canManageAccess = isAdmin || isOwner;
+  const canEdit = isAdmin || isOwner || isGranted;
 
   const handleItemChange = (event) => {
     setItemForm({ ...itemForm, [event.target.name]: event.target.value });
@@ -77,7 +109,8 @@ export default function useWorkOrderDetail() {
         quantity: parseInt(itemForm.quantity, 10) || 1,
         work_order_group_id: parseInt(itemForm.work_order_group_id, 10) || null,
         });
-      setItemForm(emptyItemForm);
+      setItemForm(emptyItemForm);      
+      setAnalysis(null);
       setShowAddItemForm(false);
       setMessage('Item added');
       await load();
@@ -107,6 +140,7 @@ export default function useWorkOrderDetail() {
       });
       setEditingItemId(null);
       setItemForm(emptyItemForm);
+      setAnalysis(null);
       setMessage('Item updated');
       await load();
     } catch (err) {
@@ -125,6 +159,7 @@ export default function useWorkOrderDetail() {
     setError('');
     try {
       await api.delete(`/work-orders/items/${itemId}`);
+      setAnalysis(null);
       setMessage('Item deleted');
       await load();
     } catch (err) {
@@ -244,6 +279,22 @@ export default function useWorkOrderDetail() {
     }
   };
 
+  const handleCompleteProduction = async () => {
+    if (!window.confirm('Complete this work order?')) return;
+    setError('');
+    setMessage('');
+    setCompleting(true);
+    try {
+      await api.post(`/work-orders/${id}/production/complete`);
+      setMessage('Work order completed');
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to complete work order');
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   const handleUploadDocuments = async (files, description) => {
     if (!files || files.length === 0) return;
     setError('');
@@ -279,6 +330,36 @@ export default function useWorkOrderDetail() {
     }
   };
 
+  const handleGrantAccess = async (targetUserId) => {
+    if (!targetUserId) return;
+    setError('');
+    setAccessBusy('grant');
+    try {
+      await api.post(`/work-orders/${id}/access`, { user_id: targetUserId });
+      setMessage('Access granted');
+      await loadAccess();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to grant access');
+    } finally {
+      setAccessBusy(null);
+    }
+  };
+
+  const handleRevokeAccess = async (targetUserId) => {
+    if (!window.confirm('Revoke access for this user?')) return;
+    setError('');
+    setAccessBusy(targetUserId);
+    try {
+      await api.delete(`/work-orders/${id}/access/${targetUserId}`);
+      setMessage('Access revoked');
+      await loadAccess();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to revoke access');
+    } finally {
+      setAccessBusy(null);
+    }
+  };
+
   return {
     id,
     wo,
@@ -287,6 +368,7 @@ export default function useWorkOrderDetail() {
     analyzing,
     finalizing,
     startingProduction,
+    completing,
     uploading,
     analysis,
     message,
@@ -297,6 +379,13 @@ export default function useWorkOrderDetail() {
     groupForm,
     editingGroupId,
     showAddGroup,
+    access,
+    accessBusy,
+    users,
+    canEdit,
+    canManageAccess,
+    isOwner,
+    isAdmin,
     handleItemChange,
     openAddItem,
     handleAddItem,
@@ -313,7 +402,10 @@ export default function useWorkOrderDetail() {
     handleAnalyze,
     handleFinalize,
     handleStartProduction,
+    handleCompleteProduction,
     handleUploadDocuments,
     handleDeleteDocument,
+    handleGrantAccess,
+    handleRevokeAccess,
   };
 }

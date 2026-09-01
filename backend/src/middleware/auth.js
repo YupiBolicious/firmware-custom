@@ -32,6 +32,7 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+/* SU for Admin */
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {

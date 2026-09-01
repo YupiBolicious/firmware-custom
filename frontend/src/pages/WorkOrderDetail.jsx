@@ -55,12 +55,14 @@ function DocumentUpload({ uploading, onUpload }) {
 export default function WorkOrderDetail() {
   const { hasRole } = useAuth();
   const isCoder = hasRole('CODER');
-  const { wo, error, loading, analyzing, finalizing, startingProduction, uploading, analysis, message, itemForm,
+  const { wo, error, loading, analyzing, finalizing, startingProduction, completing, uploading, analysis, message, itemForm,
     editingItemId, handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
     showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
-    handleStartProduction, documents, handleUploadDocuments, handleDeleteDocument,
+    handleStartProduction, handleCompleteProduction, documents, handleUploadDocuments, handleDeleteDocument,
     groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
-    cancelGroupForm, handleSubmitGroup, handleDeleteGroup } = useWorkOrderDetail();
+    cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
+    access, accessBusy, users, canEdit, canManageAccess, isOwner, isAdmin,
+    handleGrantAccess, handleRevokeAccess } = useWorkOrderDetail();
 
   if (loading) return <div>Loading...</div>;
   if (error && !wo) return <div className="alert alert-error">{error}</div>;
@@ -80,10 +82,10 @@ export default function WorkOrderDetail() {
           <Link className="btn btn-secondary" to={isCoder ? '/review-queue' : '/work-orders'}>
             {isCoder ? 'Back to Review Queue' : 'Back to List'}
           </Link>
-          {!isCoder && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED' && (
+          {canEdit && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED' && (
             <Link className="btn btn-secondary" to={`/work-orders/${wo.id}/edit`}>Edit Work Order</Link>
           )}
-          {!isCoder && wo.status === 'ANALYZED' && (
+          {canEdit && wo.status === 'ANALYZED' && (
             <button className="btn" onClick={handleFinalize} disabled={finalizing}>
               {finalizing ? 'Finalizing...' : 'Finalize Work Order'}
             </button>
@@ -91,6 +93,11 @@ export default function WorkOrderDetail() {
           {isCoder && wo.status === 'FINALIZED' && (
             <button className="btn" onClick={handleStartProduction} disabled={startingProduction}>
               {startingProduction ? 'Starting...' : 'Start Production'}
+            </button>
+          )}
+          {isCoder && wo.status === 'PRODUCTION' && (
+            <button className="btn" onClick={handleCompleteProduction} disabled={completing}>
+              {completing ? 'Completing...' : 'Complete Production'}
             </button>
           )}
         </div>
@@ -114,13 +121,70 @@ export default function WorkOrderDetail() {
         {wo.description && <div className="mt-8 text-muted">{wo.description}</div>}
       </div>
 
+      {/* Access Management */}
+      {canManageAccess && (
+        <div className="panel">
+          <div className="flex justify-between align-center mb-16">
+            <h3 style={{ margin: 0 }}>Shared Access</h3>
+          </div>
+          <div className="flex gap-8 mb-16">
+            <select className="wo-input-text" defaultValue="" id="access-grant-select">
+              <option value="" disabled>Select user to grant access...</option>
+              {users
+                .filter((u) => Number(u.id) !== Number(wo.created_by) && !access.some((a) => Number(a.user_id) === Number(u.id)))
+                .map((u) => (
+                  <option key={u.id} value={u.id}>{u.full_name || u.username} ({u.username})</option>
+                ))}
+            </select>
+            <button
+              className="btn btn-sm"
+              disabled={accessBusy === 'grant'}
+              onClick={() => {
+                const el = document.getElementById('access-grant-select');
+                const val = el && el.value;
+                if (val) {
+                  handleGrantAccess(val);
+                  el.value = '';
+                }
+              }}
+            >
+              {accessBusy === 'grant' ? 'Granting...' : 'Grant Access'}
+            </button>
+          </div>
+          {access.length === 0 ? (
+            <div className="text-muted">No shared access. Only the owner (and admins) can edit this work order.</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {access.map((a) => (
+                  <tr key={a.user_id}>
+                    <td>{a.full_name || a.username} ({a.username})</td>
+                    <td>
+                      <button className="btn btn-danger btn-sm" disabled={accessBusy === a.user_id} onClick={() => handleRevokeAccess(a.user_id)}>
+                        {accessBusy === a.user_id ? 'Removing...' : 'Revoke'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
       {/* Groups & Items */}
       <div className="panel">
         <div className="flex justify-between align-center mb-8">
           <h3>Groups & Custom Items</h3>
-          {!isCoder && (
+          {canEdit && (
             <div className="item-actions">
-              <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || wo.status !== 'DRAFT'}>
+              <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || (wo.status !== 'DRAFT' && wo.status !== 'ANALYZED')}>
                 {analyzing ? 'Analyzing...' : 'Analyze / Estimate'}
               </button>
               {groupsEditable && (
@@ -131,6 +195,86 @@ export default function WorkOrderDetail() {
             </div>
           )}
         </div>
+
+        {/* Edit / Add Item Form */}
+        {canEdit && (editingItemId || showAddItemForm) && (
+          <div style={{ marginTop: 12, marginBottom: 12, padding: 12, background: '#1a1a1a', borderRadius: 6, border: '1px solid #333' }}>
+            <h3>{editingItemId ? 'Edit Item' : 'Add Custom Item'}</h3>
+            <form onSubmit={editingItemId ? handleUpdateItem : handleAddItem}>
+            <div className="form-grid">
+              <div className="form-row">
+                <label>Quantity</label>
+                <input
+                  className="custom-item-text"
+                  name="quantity"
+                  type="number"
+                  min="1"
+                  value={itemForm.quantity}
+                  onChange={handleItemChange}
+                  disabled={wo.status === 'FINALIZED'}
+                />
+              </div>
+            </div>
+            {!editingItemId && (
+            <div className="form-row">
+              <label>Model/Ver/SN</label>
+              <select className="wo-input-text" name="work_order_group_id" value={itemForm.work_order_group_id} onChange={handleItemChange} required>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.machine_model_code || '—'}{g.machine_model_version ? ` / ${g.machine_model_version}` : ''}{g.serial_number ? ` / SN: ${g.serial_number}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            )}
+            <div className="form-row">
+              <label>Title</label>
+              <input className='custom-item-text' name="title" value={itemForm.title} onChange={handleItemChange} required disabled={wo.status === 'FINALIZED'} />
+            </div>
+            <div className="form-row">
+              <label>Description</label>
+              <textarea className="custom-item-text" name="description" value={itemForm.description} onChange={handleItemChange} disabled={wo.status === 'FINALIZED'} />
+            </div>
+            <div className="flex gap-8">
+                <button className="btn" type="submit" disabled={wo.status === 'FINALIZED'}>{editingItemId ? 'Update Item' : 'Add Item'}</button>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={cancelEdit}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Add / Edit Group */}
+        {canEdit && showAddGroup && (
+          <div className="panel" style={{ marginTop: 12, marginBottom: 12 }}>
+            <h3>{editingGroupId ? 'Edit Model' : 'Add Model'}</h3>
+            <form onSubmit={handleSubmitGroup}>
+              <div className="form-grid">
+                <div className="form-row">
+                  <label>Machine Model</label>
+                  <input className="wo-input-text sn-input" name="machine_model_id" value={groupForm.machine_model_id} onChange={handleGroupFormChange} placeholder="e.g. FWX-100" required />
+                </div>
+                <div className="form-row">
+                  <label>Version</label>
+                  <input className="wo-input-text sn-input" name="machine_model_version_id" value={groupForm.machine_model_version_id} onChange={handleGroupFormChange} placeholder="e.g. v1.0" required />
+                </div>
+              </div>
+              <div className="form-row">
+                <label>Serial Number (optional)</label>
+                <input className="wo-input-text sn-input" name="serial_number" value={groupForm.serial_number} onChange={handleGroupFormChange} />
+              </div>
+              <div className="flex gap-8">
+                <button className="btn" type="submit">{editingGroupId ? 'Update Model' : 'Add Model'}</button>
+                <button className="btn btn-secondary" type="button" onClick={cancelGroupForm}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {groups.length === 0 ? (
           <div className="text-muted">
@@ -144,7 +288,7 @@ export default function WorkOrderDetail() {
                   {group.machine_model_code || '—'} {group.machine_model_version ? `/ ${group.machine_model_version}` : ''}
                   {group.serial_number ? ` / SN: ${group.serial_number}` : ''}
                 </strong>
-                {!isCoder && groupsEditable && (
+                {canEdit && groupsEditable && (
                   <div>
                     <button className="btn btn-secondary btn-sm" onClick={() => openEditGroup(group)}>Edit</button>{' '}
                     <button className="btn btn-danger btn-sm" onClick={() => handleDeleteGroup(group.id)} disabled={group.items.length > 0}>Delete</button>
@@ -167,7 +311,7 @@ export default function WorkOrderDetail() {
                       <th>Confidence</th>
                       <th>Hours</th>
                       <th>Status</th>
-                      {!isCoder && <th>Actions</th>}
+                      {canEdit && <th>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -184,9 +328,9 @@ export default function WorkOrderDetail() {
                         <td>{item.confidence_score != null ? `${item.confidence_score}%` : '-'}</td>
                         <td>{item.estimated_hours != null ? `${item.estimated_hours}h` : 'N/A'}</td>
                         <td><StatusBadge status={item.classification_status} /></td>
-                        {!isCoder && <td>
-                          <button className="btn btn-secondary btn-sm" onClick={() => handleEditItem(item)} disabled={wo.status !== 'DRAFT'}>Edit</button>{' '}
-                          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteItem(item.id)} disabled={wo.status !== 'DRAFT'}>Delete</button>
+                        {canEdit && <td>
+                          <button className="btn btn-secondary btn-sm" onClick={() => handleEditItem(item)} disabled={wo.status !== 'DRAFT' && wo.status !== 'ANALYZED'}>Edit</button>{' '}
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteItem(item.id)} disabled={wo.status !== 'DRAFT' && wo.status !== 'ANALYZED'}>Delete</button>
                         </td>}
                       </tr>
                     ))}
@@ -194,7 +338,7 @@ export default function WorkOrderDetail() {
                 </table>
               )}
 
-              {!isCoder && groupsEditable && (
+              {canEdit && groupsEditable && (
                 <button className="btn btn-secondary btn-sm mt-8" type="button" onClick={() => openAddItem(group.id)}>
                   + Add Item
                 </button>
@@ -203,86 +347,6 @@ export default function WorkOrderDetail() {
           ))
         )}
       </div>
-
-      {/* Add / Edit Group */}
-      {!isCoder && showAddGroup && (
-        <div className="panel">
-          <h3>{editingGroupId ? 'Edit Model' : 'Add Model'}</h3>
-          <form onSubmit={handleSubmitGroup}>
-            <div className="form-grid">
-              <div className="form-row">
-                <label>Machine Model</label>
-                <input className="wo-input-text sn-input" name="machine_model_id" value={groupForm.machine_model_id} onChange={handleGroupFormChange} placeholder="e.g. FWX-100" required />
-              </div>
-              <div className="form-row">
-                <label>Version</label>
-                <input className="wo-input-text sn-input" name="machine_model_version_id" value={groupForm.machine_model_version_id} onChange={handleGroupFormChange} placeholder="e.g. v1.0" required />
-              </div>
-            </div>
-            <div className="form-row">
-              <label>Serial Number (optional)</label>
-              <input className="wo-input-text sn-input" name="serial_number" value={groupForm.serial_number} onChange={handleGroupFormChange} />
-            </div>
-            <div className="flex gap-8">
-              <button className="btn" type="submit">{editingGroupId ? 'Update Model' : 'Add Model'}</button>
-              <button className="btn btn-secondary" type="button" onClick={cancelGroupForm}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Edit Item */}
-      {!isCoder && (editingItemId || showAddItemForm) && (
-        <div className="panel">
-          <h3>{editingItemId ? 'Edit Item' : 'Add Custom Item'}</h3>
-          <form onSubmit={editingItemId ? handleUpdateItem : handleAddItem}>
-          <div className="form-grid">
-            <div className="form-row">
-              <label>Quantity</label>
-              <input
-                className="custom-item-text"
-                name="quantity"
-                type="number"
-                min="1"
-                value={itemForm.quantity}
-                onChange={handleItemChange}
-                disabled={wo.status === 'FINALIZED'}
-              />
-            </div>
-          </div>
-          {!editingItemId && (
-          <div className="form-row">
-            <label>Model/Ver/SN</label>
-            <select className="wo-input-text" name="work_order_group_id" value={itemForm.work_order_group_id} onChange={handleItemChange} required>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.machine_model_code || '—'}{g.machine_model_version ? ` / ${g.machine_model_version}` : ''}{g.serial_number ? ` / SN: ${g.serial_number}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          )}
-          <div className="form-row">
-            <label>Title</label>
-            <input className='custom-item-text' name="title" value={itemForm.title} onChange={handleItemChange} required disabled={wo.status === 'FINALIZED'} />
-          </div>
-          <div className="form-row">
-            <label>Description</label>
-            <textarea className="custom-item-text" name="description" value={itemForm.description} onChange={handleItemChange} disabled={wo.status === 'FINALIZED'} />
-          </div>
-          <div className="flex gap-8">
-              <button className="btn" type="submit" disabled={wo.status === 'FINALIZED'}>{editingItemId ? 'Update Item' : 'Add Item'}</button>
-              <button
-                className="btn btn-secondary"
-                type="button"
-                onClick={cancelEdit}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {/* Estimation Preview */}
       {analysis && (

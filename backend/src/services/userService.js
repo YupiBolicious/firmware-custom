@@ -10,6 +10,10 @@ const listUsers = async () => {
   return userRepository.findAll();
 };
 
+const listPmUsers = async () => {
+  return userRepository.findAllByRole('PM');
+};
+
 const createUser = async ({ actorId, body, ip_address }) => {
   userValidator.validateUserCreate(body);
 
@@ -109,4 +113,4 @@ const resetPassword = async ({ actorId, id, body, ip_address }) => {
   return { id: existing.id, email: existing.email };
 };
 
-module.exports = { listUsers, createUser, updateUser, resetPassword };
+module.exports = { listUsers, listPmUsers, createUser, updateUser, resetPassword };

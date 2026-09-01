@@ -1,10 +1,13 @@
 const workOrderRepository = require('../repositories/workOrderRepository');
+const workOrderAccessRepository = require('../repositories/workOrderAccessRepository');
+const userRepository = require('../repositories/userRepository');
 const machineModelRepository = require('../repositories/machineModelRepository');
 const classificationRepository = require('../repositories/classificationRepository');
 const classificationService = require('../services/classificationService');
 const estimationRepository = require('../repositories/estimationRepository');
 const estimationService = require('../services/estimationService');
 const auditService = require('../services/auditService');
+const notificationService = require('../services/notificationService');
 const { ApiError } = require('../middleware/errorHandler');
 
 const { reviewItem } = require('./reviewService');
@@ -66,11 +69,65 @@ const createWorkOrder = async ({ wo_number, title, description, customer, create
   return wo;
 };
 
-const updateWorkOrder = async (id, { title, description, customer, status, user_id, ip_address }) => {
+// ---------- Access Control ----------
+const assertCanEditWorkOrder = async (wo, user_id, roles) => {
+  const userRoles = roles || [];
+  if (userRoles.includes('ADMIN')) return;
+  if (wo.created_by === Number(user_id)) return;
+  const granted = await workOrderAccessRepository.hasAccess(wo.id, user_id);
+  if (granted) return;
+  throw new ApiError(403, 'You do not have permission to edit this work order');
+};
+
+const assertCanManageAccess = async (wo, user_id, roles) => {
+  const userRoles = roles || [];
+  if (userRoles.includes('ADMIN')) return;
+  if (wo.created_by === Number(user_id)) return;
+  throw new ApiError(403, 'Only the owner or an administrator can manage access');
+};
+
+const notifyWorkOrderRecipients = async ({ work_order_id, wo_number, owner_id, status, message }) => {
+  const granteeIds = await workOrderAccessRepository.findUserIdsByWorkOrderId(work_order_id);
+   const [admins, coders] = await Promise.all([
+    userRepository.findAllByRole('ADMIN'),
+    userRepository.findAllByRole('CODER'),
+  ]);
+  const recipientIds = new Set([
+    owner_id,
+    ...granteeIds,
+    ...admins.map((u) => u.id),
+    ...coders.map((u) => u.id),
+  ]);
+  for (const uid of recipientIds) {
+    if (uid == null) continue;
+    notificationService.notify({ user_id: uid, status, message, entity_id: work_order_id });
+  }
+};
+//   const recipientIds = new Set([owner_id, ...granteeIds]);
+//   for (const uid of recipientIds) {
+//     if (uid == null) continue;
+//     notificationService.notify({ user_id: uid, status, message, entity_id: work_order_id });
+//   }
+// };
+
+const notifyCodersOfReview = async ({ work_order_id, wo_number, message }) => {
+  const [admins, coders] = await Promise.all([
+    userRepository.findAllByRole('ADMIN'),
+    userRepository.findAllByRole('CODER'),
+  ]);
+  const recipientIds = new Set([...admins.map((u) => u.id), ...coders.map((u) => u.id)]);
+  for (const uid of recipientIds) {
+    if (uid == null) continue;
+    notificationService.notify({ user_id: uid, status: 'CODER_REVIEW', message, entity_id: work_order_id });
+  }
+};
+
+const updateWorkOrder = async (id, { title, description, customer, status, user_id, roles, ip_address }) => {
   const existing = await workOrderRepository.findById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order not found');
   }
+  await assertCanEditWorkOrder(existing, user_id, roles);
   const wo = await workOrderRepository.update(id, { title, description, customer, status });
   await auditService.log({
     user_id,
@@ -90,11 +147,12 @@ const assertGroupsEditable = (wo) => {
   }
 };
 
-const addGroup = async (work_order_id, { machine_model_id, machine_model_version_id, serial_number, user_id, ip_address }) => {
+const addGroup = async (work_order_id, { machine_model_id, machine_model_version_id, serial_number, user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
+  await assertCanEditWorkOrder(wo, user_id, roles);
   assertGroupsEditable(wo);
   const targets = await resolveGroupTargets(machine_model_id, machine_model_version_id);
   const group = await workOrderRepository.createGroup({
@@ -114,11 +172,12 @@ const addGroup = async (work_order_id, { machine_model_id, machine_model_version
   return group;
 };
 
-const updateGroup = async (work_order_id, groupId, { machine_model_id, machine_model_version_id, serial_number, user_id, ip_address }) => {
+const updateGroup = async (work_order_id, groupId, { machine_model_id, machine_model_version_id, serial_number, user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
+  await assertCanEditWorkOrder(wo, user_id, roles);
   assertGroupsEditable(wo);
   const targets = await resolveGroupTargets(machine_model_id, machine_model_version_id);
   const group = await workOrderRepository.updateGroup(groupId, work_order_id, {
@@ -140,11 +199,12 @@ const updateGroup = async (work_order_id, groupId, { machine_model_id, machine_m
   return group;
 };
 
-const deleteGroup = async (work_order_id, groupId, { user_id, ip_address }) => {
+const deleteGroup = async (work_order_id, groupId, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
+  await assertCanEditWorkOrder(wo, user_id, roles);
   assertGroupsEditable(wo);
   const itemCount = await workOrderRepository.countItemsByGroupId(groupId);
   if (itemCount > 0) {
@@ -179,11 +239,12 @@ const generateItemNumber = async (work_order_group_id) => {
   return next > 99 ? String(next) : String(next).padStart(2, '0');
 };
 
-const addItem = async (work_order_id, { work_order_group_id, item_number, title, description, quantity, user_id, ip_address }) => {
+const addItem = async (work_order_id, { work_order_group_id, item_number, title, description, quantity, user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
+  await assertCanEditWorkOrder(wo, user_id, roles);
   const group = await workOrderRepository.findGroupById(work_order_group_id, work_order_id);
   if (!group) {
     throw new ApiError(404, 'Work order group not found');
@@ -213,11 +274,13 @@ const addItem = async (work_order_id, { work_order_group_id, item_number, title,
   return item;
 };
 
-const updateItem = async (id, { title, description, quantity, user_id, ip_address }) => {
+const updateItem = async (id, { title, description, quantity, user_id, roles, ip_address }) => {
   const existing = await workOrderRepository.findItemById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order item not found');
   }
+  const parent = await workOrderRepository.findById(existing.work_order_id);
+  await assertCanEditWorkOrder(parent || { id: existing.work_order_id, created_by: null }, user_id, roles);
   const item = await workOrderRepository.updateItem(id, { title, description, quantity });
   await auditService.log({
     user_id,
@@ -230,12 +293,13 @@ const updateItem = async (id, { title, description, quantity, user_id, ip_addres
   return item;
 };
 
-const deleteItem = async (id, { user_id, ip_address }) => {
+const deleteItem = async (id, { user_id, roles, ip_address }) => {
   const existing = await workOrderRepository.findItemById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order item not found');
   }
   const parent = await workOrderRepository.findById(existing.work_order_id);
+  await assertCanEditWorkOrder(parent || { id: existing.work_order_id, created_by: null }, user_id, roles);
   if (parent?.status === 'FINALIZED') {
     throw new ApiError(400, 'Finalized work orders cannot delete items');
   }
@@ -266,11 +330,12 @@ const deleteItem = async (id, { user_id, ip_address }) => {
 };
 
 // ---------- Analyze & Finalize ----------
-const analyzeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
+const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
+  await assertCanEditWorkOrder(wo, user_id, roles);
 
   const items = await workOrderRepository.findItemsByWorkOrderId(work_order_id);
   if (items.length === 0) {
@@ -278,6 +343,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
   }
 
   const results = [];
+  const newlyInReview = [];
   for (const item of items) {
     const classification = item.reviewed_by
       ? {
@@ -291,6 +357,10 @@ const analyzeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
         rule_id: null,
       }
       : await classificationService.classifyItem(item);
+
+    if (classification.status === 'CODER_REVIEW' && item.classification_status !== 'CODER_REVIEW') {
+      newlyInReview.push(item);
+    }
 
     const saved = await classificationRepository.upsertClassification({
       work_order_item_id: item.id,
@@ -361,14 +431,23 @@ const analyzeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
 
   const summary = buildSummary(results);
 
+  if (newlyInReview.length > 0) {
+    await notifyCodersOfReview({
+      work_order_id,
+      wo_number: wo.wo_number,
+      message: `${newlyInReview.length} new/changed item(s) in ${wo.wo_number} need coder review`,
+    });
+  }
+
   return { work_order: { ...wo, status: 'ANALYZED' }, results, summary };
 };
 
-const finalizeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
+const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
+  await assertCanEditWorkOrder(wo, user_id, roles);
   if (wo.status === 'FINALIZED') {
     return {
       work_order: wo,
@@ -412,6 +491,13 @@ const finalizeWorkOrder = async (work_order_id, { user_id, ip_address }) => {
       production_task_count: productionTasks.length,
     },
     ip_address,
+  });
+  await notifyWorkOrderRecipients({
+    work_order_id: finalized.id,
+    wo_number: finalized.wo_number,
+    owner_id: finalized.created_by,
+    status: 'WO_FINALIZED',
+    message: `${finalized.wo_number} has been finalized`,
   });
 
   return { work_order: finalized, production_tasks: productionTasks };
@@ -463,7 +549,97 @@ const completeProduction = async (id, { ip_address }) => {
     details: { wo_number: wo.wo_number, title: wo.title },
     ip_address,
   });
+  await notifyWorkOrderRecipients({
+    work_order_id: id,
+    wo_number: wo.wo_number,
+    owner_id: wo.created_by,
+    status: 'WO_COMPLETED',
+    message: `${wo.wo_number} has been completed`,
+  });
   return updated;
+};
+
+// ---------- Access Management ----------
+const listWorkOrderAccess = async (work_order_id, { user_id, roles }) => {
+  const wo = await workOrderRepository.findById(work_order_id);
+  if (!wo) {
+    throw new ApiError(404, 'Work order not found');
+  }
+  return workOrderAccessRepository.findGrantedByWorkOrderId(work_order_id);
+};
+
+const grantWorkOrderAccess = async (work_order_id, { user_id, target_user_id, roles, ip_address }) => {
+  const wo = await workOrderRepository.findById(work_order_id);
+  if (!wo) {
+    throw new ApiError(404, 'Work order not found');
+  }
+  await assertCanManageAccess(wo, user_id, roles);
+  if (Number(target_user_id) === Number(wo.created_by)) {
+    throw new ApiError(400, 'The owner already has access');
+  }
+  const target = await userRepository.findUserWithRolesById(Number(target_user_id));
+  if (!target) {
+    throw new ApiError(404, 'User not found');
+  }
+  const granted = await workOrderAccessRepository.grant(work_order_id, target_user_id, user_id);
+  await auditService.log({
+    user_id,
+    action: 'WORK_ORDER_ACCESS_GRANTED',
+    entity_type: 'WORK_ORDER',
+    entity_id: work_order_id,
+    details: { wo_number: wo.wo_number, granted_user_id: target_user_id },
+    ip_address,
+  });
+  notificationService.notify({
+    user_id: target_user_id,
+    status: 'ACCESS_GRANTED',
+    message: `You can now edit ${wo.wo_number}`,
+    entity_id: work_order_id,
+  });
+  if (Number(wo.created_by) !== Number(target_user_id)) {
+    notificationService.notify({
+      user_id: wo.created_by,
+      status: 'ACCESS_GRANTED',
+      message: `${target.username} can now edit ${wo.wo_number}`,
+      entity_id: work_order_id,
+    });
+  }
+  return granted || { work_order_id, user_id: target_user_id };
+};
+
+const revokeWorkOrderAccess = async (work_order_id, { user_id, target_user_id, roles, ip_address }) => {
+  const wo = await workOrderRepository.findById(work_order_id);
+  if (!wo) {
+    throw new ApiError(404, 'Work order not found');
+  }
+  await assertCanManageAccess(wo, user_id, roles);
+  const revoked = await workOrderAccessRepository.revoke(work_order_id, target_user_id);
+  await auditService.log({
+    user_id,
+    action: 'WORK_ORDER_ACCESS_REVOKED',
+    entity_type: 'WORK_ORDER',
+    entity_id: work_order_id,
+    details: { wo_number: wo.wo_number, revoked_user_id: target_user_id },
+    ip_address,
+  });
+  if (revoked) {
+    const revokedTarget = await userRepository.findUserWithRolesById(Number(target_user_id));
+    notificationService.notify({
+      user_id: target_user_id,
+      status: 'ACCESS_REVOKED',
+      message: `Your access to ${wo.wo_number} was revoked`,
+      entity_id: work_order_id,
+    });
+    if (Number(wo.created_by) !== Number(target_user_id)) {
+      notificationService.notify({
+        user_id: wo.created_by,
+        status: 'ACCESS_REVOKED',
+        message: `${revokedTarget ? revokedTarget.username : `user id ${target_user_id}`} no longer has access to ${wo.wo_number}`,
+        entity_id: work_order_id,
+      });
+    }
+  }
+  return revoked;
 };
 
 module.exports = {
@@ -486,4 +662,7 @@ module.exports = {
   uploadDocuments,
   listDocuments,
   deleteDocument,
+  listWorkOrderAccess,
+  grantWorkOrderAccess,
+  revokeWorkOrderAccess,
 };

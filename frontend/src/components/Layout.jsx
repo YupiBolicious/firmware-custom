@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 import {Menu, LayoutDashboard,
   ClipboardList,
   ClipboardCheck,
@@ -122,6 +123,9 @@ export default function Layout() {
         </div>
       </aside>
       <main className="main">
+        <header className="app-header">
+          <NotificationBell />
+        </header>
         <Outlet />
       </main>
     </div>

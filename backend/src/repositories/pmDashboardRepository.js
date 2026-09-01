@@ -110,7 +110,7 @@ const findAttentionItems = async () => {
       -- 4. Unclassified items in an active work order
       SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title,
              'unclassified' AS kind, 'warning' AS priority,
-             COUNT(DISTINCT woi.id)::text || ' unclassified item(s) present' AS message,
+             COUNT(DISTINCT woi.id)::text || ' unclassified item present' AS message,
              NULL::numeric AS age_hours
       FROM work_orders wo
       JOIN work_order_items woi ON woi.work_order_id = wo.id
