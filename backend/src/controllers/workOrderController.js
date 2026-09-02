@@ -198,6 +198,24 @@ const completeProduction = async (req, res, next) => {
   }
 };
 
+const completeProductionTask = async (req, res, next) => {
+  try {
+    const completed = req.body.completed === undefined ? true : Boolean(req.body.completed);
+    const data = await workOrderService.completeProductionTask(req.params.taskId, {
+      completed,
+      user_id: req.user.id,
+      ip_address: req.ip,
+    });
+    res.json({
+      success: true,
+      message: completed ? 'Production item completed' : 'Production item reopened',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const uploadDocuments = async (req, res, next) => {
   try {
     if (!req.files || req.files.length === 0) {
@@ -306,6 +324,7 @@ module.exports = {
   finalize,
   startProduction,
   completeProduction,
+  completeProductionTask,
   uploadDocuments,
   listDocuments,
   deleteDocument,

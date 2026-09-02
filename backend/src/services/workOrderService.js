@@ -8,6 +8,7 @@ const estimationRepository = require('../repositories/estimationRepository');
 const estimationService = require('../services/estimationService');
 const auditService = require('../services/auditService');
 const notificationService = require('../services/notificationService');
+const notificationRepository = require('../repositories/notificationRepository');
 const { ApiError } = require('../middleware/errorHandler');
 
 const { reviewItem } = require('./reviewService');
@@ -52,6 +53,10 @@ const getWorkOrder = async (id) => {
 };
 
 const createWorkOrder = async ({ wo_number, title, description, customer, created_by, groups, ip_address }) => {
+  const existing = await workOrderRepository.findByWoNumber(wo_number);
+  if (existing) {
+    throw new ApiError(409, 'A work order with this number already exists');
+  }
   const resolvedGroups = [];
   for (const group of groups || []) {
     const targets = await resolveGroupTargets(group.machine_model_id, group.machine_model_version_id);
@@ -129,6 +134,9 @@ const updateWorkOrder = async (id, { title, description, customer, status, user_
   }
   await assertCanEditWorkOrder(existing, user_id, roles);
   const wo = await workOrderRepository.update(id, { title, description, customer, status });
+  if (status === 'DRAFT' && existing.status !== 'DRAFT') {
+    await workOrderRepository.deleteProductionTasksByWorkOrderId(id);
+  }
   await auditService.log({
     user_id,
     action: 'WORK_ORDER_UPDATED',
@@ -308,6 +316,7 @@ const deleteItem = async (id, { user_id, roles, ip_address }) => {
   if (remainingItems === 0) {
     if (parent && parent.status !== 'FINALIZED' && parent.status !== 'DRAFT') {
       await workOrderRepository.update(existing.work_order_id, { status: 'DRAFT' });
+      await workOrderRepository.deleteProductionTasksByWorkOrderId(existing.work_order_id);
       await auditService.log({
         user_id,
         action: 'WORK_ORDER_RESET_TO_DRAFT',
@@ -317,6 +326,10 @@ const deleteItem = async (id, { user_id, roles, ip_address }) => {
         ip_address,
       });
     }
+  }
+  const remainingReview = await classificationRepository.countReviewItemsByWorkOrderId(existing.work_order_id);
+  if (remainingReview === 0) {
+    await notificationRepository.deleteByEntityAndStatus(existing.work_order_id, 'CODER_REVIEW');
   }
   await auditService.log({
     user_id,
@@ -435,7 +448,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     await notifyCodersOfReview({
       work_order_id,
       wo_number: wo.wo_number,
-      message: `${newlyInReview.length} new/changed item(s) in ${wo.wo_number} need coder review`,
+      message: `${newlyInReview.length} item in ${wo.wo_number} need coder review`,
     });
   }
 
@@ -536,10 +549,39 @@ const startProduction = async (id, { ip_address }) => {
   return updated;
 };
 
+const completeProductionTask = async (taskId, { completed, user_id, ip_address }) => {
+  const task = await workOrderRepository.findProductionTaskById(taskId);
+  if (!task) throw new ApiError(404, 'Production task not found');
+  const wo = await workOrderRepository.findById(task.work_order_id);
+  if (!wo) throw new ApiError(404, 'Work order not found');
+  if (wo.status !== 'PRODUCTION') {
+    throw new ApiError(400, 'Work order must be in production to update tasks');
+  }
+  const saved = await workOrderRepository.completeProductionTask(taskId, completed);
+  await auditService.log({
+    user_id,
+    action: completed ? 'PRODUCTION_TASK_COMPLETED' : 'PRODUCTION_TASK_REOPENED',
+    entity_type: 'PRODUCTION_TASK',
+    entity_id: taskId,
+    details: {
+      work_order_id: task.work_order_id,
+      wo_number: wo.wo_number,
+      task_code: task.task_code,
+      work_order_item_id: task.work_order_item_id,
+    },
+    ip_address,
+  });
+  return saved;
+};
+
 const completeProduction = async (id, { ip_address }) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) throw new ApiError(404, 'Work order not found');
   if (wo.status !== 'PRODUCTION') throw new ApiError(400, 'Work order must be in PRODUCTION to complete');
+  const { total, open } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
+  if (open > 0) {
+    throw new ApiError(400, `All production items must be completed first (${open} of ${total} still open)`);
+  }
   const updated = await workOrderRepository.updateStatus(id, 'COMPLETED');
   await auditService.log({
     user_id: null,
@@ -659,6 +701,7 @@ module.exports = {
   finalizeWorkOrder,
   startProduction,
   completeProduction,
+  completeProductionTask,
   uploadDocuments,
   listDocuments,
   deleteDocument,

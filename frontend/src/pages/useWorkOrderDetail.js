@@ -16,6 +16,7 @@ export default function useWorkOrderDetail() {
   const [finalizing, setFinalizing] = useState(false);
   const [startingProduction, setStartingProduction] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [savingTaskId, setSavingTaskId] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [message, setMessage] = useState('');
   const [itemForm, setItemForm] = useState(emptyItemForm);
@@ -72,8 +73,9 @@ export default function useWorkOrderDetail() {
     load();
     loadDocuments();
     loadAccess();
+    if(hasRole('ADMIN') || hasRole('PM'))
     loadUsers();
-  }, [id]);
+  }, [id, hasRole]);
 
   const isAdmin = hasRole('ADMIN');
   const isOwner = !!wo && Number(wo.created_by) === Number(user?.id);
@@ -295,6 +297,21 @@ export default function useWorkOrderDetail() {
     }
   };
 
+  const handleCompleteTask = async (taskId, completed) => {
+    setError('');
+    setMessage('');
+    setSavingTaskId(taskId);
+    try {
+      await api.put(`/work-orders/${id}/production/tasks/${taskId}`, { completed });
+      setMessage(completed ? 'Production item completed' : 'Production item reopened');
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update production item');
+    } finally {
+      setSavingTaskId(null);
+    }
+  };
+
   const handleUploadDocuments = async (files, description) => {
     if (!files || files.length === 0) return;
     setError('');
@@ -369,6 +386,7 @@ export default function useWorkOrderDetail() {
     finalizing,
     startingProduction,
     completing,
+    savingTaskId,
     uploading,
     analysis,
     message,
@@ -403,6 +421,7 @@ export default function useWorkOrderDetail() {
     handleFinalize,
     handleStartProduction,
     handleCompleteProduction,
+    handleCompleteTask,
     handleUploadDocuments,
     handleDeleteDocument,
     handleGrantAccess,

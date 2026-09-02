@@ -51,4 +51,14 @@ const markAllRead = async (userId) => {
   return result.rowCount;
 };
 
-module.exports = { create, findByUserId, countUnread, markRead, markAllRead };
+const deleteByEntityAndStatus = async (entityId, status) => {
+  const result = await pool.query(
+    `DELETE FROM notifications
+     WHERE entity_id = $1 AND status = $2 AND is_read = FALSE
+     RETURNING id`,
+    [entityId, status]
+  );
+  return result.rowCount;
+};
+
+module.exports = { create, findByUserId, countUnread, markRead, markAllRead, deleteByEntityAndStatus };

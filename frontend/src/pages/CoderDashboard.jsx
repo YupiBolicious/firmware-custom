@@ -24,6 +24,9 @@ export default function CoderDashboard() {
     filteredReviewQueue, filteredWorkQueue, filteredKpis, filteredWorkload, filteredTrend,
     matchingCount, totalCount, hasActiveFilters,
     uniqueComplexities,
+    coderActivity, newWorkOrders,
+    activityPage, setActivityPage, newWoPage, setNewWoPage,
+    coderActivityTotalPages, newWorkOrdersTotalPages,
     CLASSIFICATION_STATUS_LABELS, WORK_ORDER_STATUS_LABELS,
   } = useCoderDashboard();
 
@@ -343,55 +346,105 @@ export default function CoderDashboard() {
       <div className="split-2">
         <div className="panel panel-accent-amber">
           <h3 className="mb-16">Recent Activity</h3>
-          {data.coder_activity.length === 0 ? (
+          {coderActivity.length === 0 ? (
             <div className="text-muted">No recent coder activity.</div>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Action</th>
-                  <th>User</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.coder_activity.map((a) => (
-                  <tr key={a.id}>
-                    <td>{formatAction(a.action, a.details)}</td>
-                    <td>{a.user_name}</td>
-                    <td className="text-muted"><RelativeTime date={a.created_at} /></td>
+            <>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Action</th>
+                    <th>User</th>
+                    <th>Time</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {coderActivity.map((a) => (
+                    <tr key={a.id}>
+                      <td>{formatAction(a.action, a.details)}</td>
+                      <td>{a.user_name}</td>
+                      <td className="text-muted"><RelativeTime date={a.created_at} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {coderActivityTotalPages > 1 && (
+                <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
+                  <span className="text-muted" style={{ fontSize: 13 }}>
+                    Page {activityPage} of {coderActivityTotalPages}
+                  </span>
+                  <div className="flex gap-8">
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setActivityPage(activityPage - 1)}
+                      disabled={activityPage <= 1}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setActivityPage(activityPage + 1)}
+                      disabled={activityPage >= coderActivityTotalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         <div className="panel panel-accent-green">
           <h3 className="mb-16">New Work Orders</h3>
-          {data.new_work_orders.length === 0 ? (
+          {newWorkOrders.length === 0 ? (
             <div className="text-muted">No new work orders.</div>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Work Order</th>
-                  <th>Title</th>
-                  <th>Created By</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.new_work_orders.map((wo) => (
-                  <tr key={wo.id}>
-                    <td><strong>{wo.details?.wo_number || '-'}</strong></td>
-                    <td>{wo.details?.title || '-'}</td>
-                    <td>{wo.user_name}</td>
-                    <td className="text-muted"><RelativeTime date={wo.created_at} /></td>
+            <>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Work Order</th>
+                    <th>Title</th>
+                    <th>Created By</th>
+                    <th>Time</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {newWorkOrders.map((wo) => (
+                    <tr key={wo.id}>
+                      <td><strong>{wo.details?.wo_number || '-'}</strong></td>
+                      <td>{wo.details?.title || '-'}</td>
+                      <td>{wo.user_name}</td>
+                      <td className="text-muted"><RelativeTime date={wo.created_at} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {newWorkOrdersTotalPages > 1 && (
+                <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
+                  <span className="text-muted" style={{ fontSize: 13 }}>
+                    Page {newWoPage} of {newWorkOrdersTotalPages}
+                  </span>
+                  <div className="flex gap-8">
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setNewWoPage(newWoPage - 1)}
+                      disabled={newWoPage <= 1}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setNewWoPage(newWoPage + 1)}
+                      disabled={newWoPage >= newWorkOrdersTotalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS production_tasks (
     work_order_item_id  INT NOT NULL UNIQUE REFERENCES work_order_items(id) ON DELETE CASCADE,
     title               VARCHAR(300) NOT NULL,
     description         TEXT,
-    status              VARCHAR(30) NOT NULL DEFAULT 'OPEN',
+    completed           BOOLEAN NOT NULL DEFAULT FALSE,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

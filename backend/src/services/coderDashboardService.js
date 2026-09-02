@@ -1,12 +1,14 @@
 const coderDashboardRepository = require('../repositories/coderDashboardRepository');
 
-const getCoderDashboard = async (userId) => {
-  const [kpis, reviewQueue, workQueue, coderActivity, newWorkOrders, trend] = await Promise.all([
+const getCoderDashboard = async (userId, { activityPage = 1, newWoPage = 1, limit = 15 } = {}) => {
+  const [kpis, reviewQueue, workQueue, coderActivity, coderActivityTotal, newWorkOrders, newWorkOrdersTotal, trend] = await Promise.all([
     coderDashboardRepository.findKpis(userId),
     coderDashboardRepository.findReviewQueue(),
     coderDashboardRepository.findWorkQueue(userId),
-    coderDashboardRepository.findCoderActivity(),
-    coderDashboardRepository.findNewWorkOrders(),
+    coderDashboardRepository.findCoderActivity(activityPage, limit),
+    coderDashboardRepository.countCoderActivity(),
+    coderDashboardRepository.findNewWorkOrders(newWoPage, limit),
+    coderDashboardRepository.countNewWorkOrders(),
     coderDashboardRepository.findWeeklyTrend(8),
   ]);
 
@@ -66,21 +68,31 @@ const getCoderDashboard = async (userId) => {
         .reduce((sum, r) => sum + (Number(r.estimated_hours) || 0), 0),
       completed_hours: Number(kpis.completed_hours) || 0,
     },
-    coder_activity: coderActivity.map((r) => ({
-      id: r.id,
-      action: r.action,
-      entity_type: r.entity_type,
-      entity_id: r.entity_id,
-      details: r.details,
-      user_name: r.user_name || 'System',
-      created_at: r.created_at,
-    })),
-    new_work_orders: newWorkOrders.map((r) => ({
-      id: r.id,
-      details: r.details,
-      user_name: r.user_name || 'System',
-      created_at: r.created_at,
-    })),
+    coder_activity: {
+      items: coderActivity.map((r) => ({
+        id: r.id,
+        action: r.action,
+        entity_type: r.entity_type,
+        entity_id: r.entity_id,
+        details: r.details,
+        user_name: r.user_name || 'System',
+        created_at: r.created_at,
+      })),
+      page: activityPage,
+      limit,
+      total: Number(coderActivityTotal) || 0,
+    },
+    new_work_orders: {
+      items: newWorkOrders.map((r) => ({
+        id: r.id,
+        details: r.details,
+        user_name: r.user_name || 'System',
+        created_at: r.created_at,
+      })),
+      page: newWoPage,
+      limit,
+      total: Number(newWorkOrdersTotal) || 0,
+    },
     trend: trend.map((r) => ({
       week: r.week_start,
       items_queued: r.items_queued,

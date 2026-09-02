@@ -88,6 +88,17 @@ const findByItemId = async (itemId) => {
   return result.rows[0] || null;
 };
 
+const countReviewItemsByWorkOrderId = async (workOrderId) => {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS count
+     FROM classifications c
+     JOIN work_order_items woi ON woi.id = c.work_order_item_id
+     WHERE woi.work_order_id = $1 AND c.status = 'CODER_REVIEW'`,
+    [workOrderId]
+  );
+  return result.rows[0].count;
+};
+
 const reviewClassification = async ({
   work_order_item_id,
   fw_related,
@@ -120,5 +131,6 @@ module.exports = {
   upsertClassification,
   createMatch,
   findByItemId,
+  countReviewItemsByWorkOrderId,
   reviewClassification,
 };

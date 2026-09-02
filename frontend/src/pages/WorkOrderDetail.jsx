@@ -55,10 +55,10 @@ function DocumentUpload({ uploading, onUpload }) {
 export default function WorkOrderDetail() {
   const { hasRole } = useAuth();
   const isCoder = hasRole('CODER');
-  const { wo, error, loading, analyzing, finalizing, startingProduction, completing, uploading, analysis, message, itemForm,
+  const { wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, uploading, analysis, message, itemForm,
     editingItemId, handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
     showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
-    handleStartProduction, handleCompleteProduction, documents, handleUploadDocuments, handleDeleteDocument,
+    handleStartProduction, handleCompleteProduction, handleCompleteTask, documents, handleUploadDocuments, handleDeleteDocument,
     groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
     access, accessBusy, users, canEdit, canManageAccess, isOwner, isAdmin,
@@ -67,6 +67,12 @@ export default function WorkOrderDetail() {
   if (loading) return <div>Loading...</div>;
   if (error && !wo) return <div className="alert alert-error">{error}</div>;
   if (!wo) return <div className="alert alert-error">Work order not found</div>;
+
+  const productionTasks = wo.production_tasks || [];
+  const openTaskCount = productionTasks.filter((t) => !t.completed).length;
+  const completeAllLabel = openTaskCount > 0
+    ? `Complete (${openTaskCount} item${openTaskCount === 1 ? '' : 's'} left)`
+    : 'Complete Production';
 
   const items = wo.items || [];
   const groups = wo.groups || [];
@@ -96,8 +102,8 @@ export default function WorkOrderDetail() {
             </button>
           )}
           {isCoder && wo.status === 'PRODUCTION' && (
-            <button className="btn" onClick={handleCompleteProduction} disabled={completing}>
-              {completing ? 'Completing...' : 'Complete Production'}
+            <button className="btn" onClick={handleCompleteProduction} disabled={completing || openTaskCount > 0}>
+              {completing ? 'Completing...' : completeAllLabel}
             </button>
           )}
         </div>
@@ -178,14 +184,14 @@ export default function WorkOrderDetail() {
         </div>
       )}
 
-      {/* Groups & Items */}
+      {/* models & Items */}
       <div className="panel">
         <div className="flex justify-between align-center mb-8">
-          <h3>Groups & Custom Items</h3>
+          <h3>Models and Custom Items</h3>
           {canEdit && (
             <div className="item-actions">
               <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || (wo.status !== 'DRAFT' && wo.status !== 'ANALYZED')}>
-                {analyzing ? 'Analyzing...' : 'Analyze / Estimate'}
+                {analyzing ? 'Analyzing...' : 'Estimate Work Order'}
               </button>
               {groupsEditable && (
                 <button className="btn btn-secondary" type="button" onClick={openAddGroup}>
@@ -214,27 +220,29 @@ export default function WorkOrderDetail() {
                   disabled={wo.status === 'FINALIZED'}
                 />
               </div>
+              {!editingItemId && (
+              <div className="form-row">
+                <label>Model/Ver/SN</label>
+                <select className="wo-input-text" name="work_order_group_id" value={itemForm.work_order_group_id} onChange={handleItemChange} required>
+                  {groups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.machine_model_code || '—'}{g.machine_model_version ? ` / ${g.machine_model_version}` : ''}{g.serial_number ? ` / SN: ${g.serial_number}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              )}
+              <div className="form-row">
+                <label>Title</label>
+                <input className='custom-item-text' name="title" value={itemForm.title} onChange={handleItemChange} required disabled={wo.status === 'FINALIZED'} />
+              </div>
             </div>
-            {!editingItemId && (
-            <div className="form-row">
-              <label>Model/Ver/SN</label>
-              <select className="wo-input-text" name="work_order_group_id" value={itemForm.work_order_group_id} onChange={handleItemChange} required>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.machine_model_code || '—'}{g.machine_model_version ? ` / ${g.machine_model_version}` : ''}{g.serial_number ? ` / SN: ${g.serial_number}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            )}
-            <div className="form-row">
-              <label>Title</label>
-              <input className='custom-item-text' name="title" value={itemForm.title} onChange={handleItemChange} required disabled={wo.status === 'FINALIZED'} />
-            </div>
-            <div className="form-row">
-              <label>Description</label>
-              <textarea className="custom-item-text" name="description" value={itemForm.description} onChange={handleItemChange} disabled={wo.status === 'FINALIZED'} />
-            </div>
+              <div className="form-row">
+                <label>Description</label>
+                <textarea className="custom-item-text" name="description" value={itemForm.description} onChange={handleItemChange} disabled={wo.status === 'FINALIZED'} />
+              </div> 
+         
+            
             <div className="flex gap-8">
                 <button className="btn" type="submit" disabled={wo.status === 'FINALIZED'}>{editingItemId ? 'Update Item' : 'Add Item'}</button>
                 <button
@@ -249,7 +257,7 @@ export default function WorkOrderDetail() {
           </div>
         )}
 
-        {/* Add / Edit Group */}
+        {/* Add / Edit Model */}
         {canEdit && showAddGroup && (
           <div className="panel" style={{ marginTop: 12, marginBottom: 12 }}>
             <h3>{editingGroupId ? 'Edit Model' : 'Add Model'}</h3>
@@ -273,7 +281,7 @@ export default function WorkOrderDetail() {
                 <button className="btn btn-secondary" type="button" onClick={cancelGroupForm}>Cancel</button>
               </div>
             </form>
-          </div>
+            </div>
         )}
 
         {groups.length === 0 ? (
@@ -412,9 +420,14 @@ export default function WorkOrderDetail() {
         </div>
       )}
 
-      {wo.production_tasks?.length > 0 && (
+      {productionTasks.length > 0 && ['FINALIZED', 'PRODUCTION', 'COMPLETED'].includes(wo.status) && (
         <div className="panel">
-          <h3>Production Tasks</h3>
+          <h3 className="mb-16">
+            Production Tasks
+            <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+              {productionTasks.filter((t) => t.completed).length} of {productionTasks.length} completed
+            </span>
+          </h3>
           <table>
             <thead>
               <tr>
@@ -422,15 +435,31 @@ export default function WorkOrderDetail() {
                 <th>Item</th>
                 <th>Title</th>
                 <th>Status</th>
+                {isCoder && wo.status === 'PRODUCTION' && <th></th>}
               </tr>
             </thead>
             <tbody>
-              {wo.production_tasks.map((task) => (
+              {productionTasks.map((task) => (
                 <tr key={task.id}>
                   <td>{task.task_code}</td>
                   <td>{task.work_order_item_id}</td>
                   <td>{task.title}</td>
-                  <td>{task.status}</td>
+                  <td>
+                    {task.completed
+                      ? <span className="badge badge-success">Done</span>
+                      : <span className="badge badge-muted">Open</span>}
+                  </td>
+                  {isCoder && wo.status === 'PRODUCTION' && (
+                    <td>
+                      <button
+                        className={`btn btn-sm ${task.completed ? 'btn-secondary' : ''}`}
+                        onClick={() => handleCompleteTask(task.id, !task.completed)}
+                        disabled={savingTaskId === task.id}
+                      >
+                        {savingTaskId === task.id ? 'Saving...' : task.completed ? 'Reopen' : 'Mark Done'}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

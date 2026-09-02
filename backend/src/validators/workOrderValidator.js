@@ -88,7 +88,7 @@ const validateGroupCreate = (req, res, next) => {
 const validateGroupUpdate = validateGroupCreate;
 
 const validateItemCreate = (req, res, next) => {
-  const { title, work_order_group_id } = req.body || {};
+  const { title, work_order_group_id, quantity } = req.body || {};
   const errors = [];
 
   if (!Number.isInteger(work_order_group_id) || work_order_group_id < 1) {
@@ -96,6 +96,9 @@ const validateItemCreate = (req, res, next) => {
   }
   if (!title || typeof title !== 'string' || !title.trim()) {
     errors.push('title is required');
+  }
+  if (quantity !== undefined && (!Number.isInteger(quantity) || quantity < 1)) {
+    errors.push('quantity must be a positive integer');
   }
 
   if (errors.length > 0) {
@@ -141,6 +144,20 @@ const validateReview = (req, res, next) => {
   next();
 };
 
+const validateAccessGrant = (req, res, next) => {
+  const { user_id } = req.body || {};
+  const errors = [];
+
+  if (!Number.isInteger(user_id) || user_id < 1) {
+    errors.push('user_id is required (positive integer)');
+  }
+
+  if (errors.length > 0) {
+    return next(new ApiError(400, 'Validation failed', errors));
+  }
+  next();
+};
+
 module.exports = {
   validateWorkOrderCreate,
   validateWorkOrderUpdate,
@@ -149,4 +166,5 @@ module.exports = {
   validateItemCreate,
   validateItemUpdate,
   validateReview,
+  validateAccessGrant,
 };

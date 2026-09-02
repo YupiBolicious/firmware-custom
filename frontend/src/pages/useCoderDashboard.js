@@ -16,6 +16,9 @@ const CLASSIFICATION_STATUS_LABELS = {
   PENDING: 'Pending',
 };
 
+const ACTIVITY_PAGE_SIZE = 15;
+const NEW_WO_PAGE_SIZE = 15;
+
 const WORK_ORDER_STATUS_LABELS = {
   DRAFT: 'Draft',
   ANALYZED: 'Analyzed',
@@ -65,11 +68,15 @@ export default function useCoderDashboard() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(initialFilters);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activityPage, setActivityPage] = useState(1);
+  const [newWoPage, setNewWoPage] = useState(1);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get('/coder-dashboard');
+        const res = await api.get('/coder-dashboard', {
+          params: { activity_page: activityPage, new_wo_page: newWoPage, limit: ACTIVITY_PAGE_SIZE },
+        });
         setData(res.data.data);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load dashboard');
@@ -78,7 +85,7 @@ export default function useCoderDashboard() {
       }
     };
     load();
-  }, []);
+  }, [activityPage, newWoPage]);
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -90,6 +97,13 @@ export default function useCoderDashboard() {
 
   const reviewQueue = data?.review_queue || [];
   const workQueue = data?.work_queue || [];
+
+  const coderActivity = data?.coder_activity?.items || [];
+  const newWorkOrders = data?.new_work_orders?.items || [];
+  const coderActivityTotal = data?.coder_activity?.total || 0;
+  const newWorkOrdersTotal = data?.new_work_orders?.total || 0;
+  const coderActivityTotalPages = Math.max(1, Math.ceil(coderActivityTotal / ACTIVITY_PAGE_SIZE));
+  const newWorkOrdersTotalPages = Math.max(1, Math.ceil(newWorkOrdersTotal / NEW_WO_PAGE_SIZE));
 
   const uniqueComplexities = useMemo(() => {
     const set = new Set(
@@ -209,6 +223,14 @@ export default function useCoderDashboard() {
     totalCount,
     hasActiveFilters,
     uniqueComplexities,
+    coderActivity,
+    newWorkOrders,
+    activityPage,
+    setActivityPage,
+    newWoPage,
+    setNewWoPage,
+    coderActivityTotalPages,
+    newWorkOrdersTotalPages,
     CLASSIFICATION_STATUS_LABELS,
     WORK_ORDER_STATUS_LABELS,
   };

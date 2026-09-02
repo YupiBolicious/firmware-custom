@@ -46,6 +46,14 @@ const findById = async (id) => {
   return result.rows[0] || null;
 };
 
+const findByWoNumber = async (woNumber) => {
+  const result = await pool.query(
+    `SELECT id FROM work_orders WHERE wo_number = $1`,
+    [woNumber]
+  );
+  return result.rows[0] || null;
+};
+
 const findCoderReviewQueue = async () => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title,
@@ -67,7 +75,7 @@ const findCoderReviewQueue = async () => {
 
 const findProductionTasksByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
-    `SELECT id, task_code, work_order_id, work_order_item_id, title, description, status,
+    `SELECT id, task_code, work_order_id, work_order_item_id, title, description, completed,
             created_at, updated_at
      FROM production_tasks
      WHERE work_order_id = $1
@@ -75,6 +83,45 @@ const findProductionTasksByWorkOrderId = async (workOrderId) => {
     [workOrderId]
   );
   return result.rows;
+};
+
+const findProductionTaskById = async (taskId) => {
+  const result = await pool.query(
+    `SELECT id, task_code, work_order_id, work_order_item_id, title, description, completed,
+            created_at, updated_at
+     FROM production_tasks
+     WHERE id = $1`,
+    [taskId]
+  );
+  return result.rows[0] || null;
+};
+
+const completeProductionTask = async (taskId, completed) => {
+  const result = await pool.query(
+    `UPDATE production_tasks
+     SET completed = $2, updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, task_code, work_order_id, work_order_item_id, title, description, completed,
+               created_at, updated_at`,
+    [taskId, completed]
+  );
+  return result.rows[0] || null;
+};
+
+const countProductionTasksByWorkOrderId = async (workOrderId) => {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE completed = FALSE)::int AS open
+     FROM production_tasks
+     WHERE work_order_id = $1`,
+    [workOrderId]
+  );
+  return { total: result.rows[0].total, open: result.rows[0].open };
+};
+
+const deleteProductionTasksByWorkOrderId = async (workOrderId) => {
+  const result = await pool.query('DELETE FROM production_tasks WHERE work_order_id = $1 RETURNING id', [workOrderId]);
+  return result.rows.length;
 };
 
 const finalizeWithProductionTasks = async (workOrderId) => {
@@ -110,7 +157,7 @@ const finalizeWithProductionTasks = async (workOrderId) => {
          title = EXCLUDED.title,
          description = EXCLUDED.description,
          updated_at = NOW()
-       RETURNING id, task_code, work_order_id, work_order_item_id, title, description, status,
+       RETURNING id, task_code, work_order_id, work_order_item_id, title, description, completed,
                  created_at, updated_at`,
       [workOrderId]
     );
@@ -353,8 +400,13 @@ const updateStatus = async (id, status) => {
 module.exports = {
   findAll,
   findById,
+  findByWoNumber,
   findCoderReviewQueue,
   findProductionTasksByWorkOrderId,
+  findProductionTaskById,
+  completeProductionTask,
+  countProductionTasksByWorkOrderId,
+  deleteProductionTasksByWorkOrderId,
   finalizeWithProductionTasks,
   createWithGroups,
   update,
