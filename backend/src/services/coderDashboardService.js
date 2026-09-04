@@ -1,10 +1,13 @@
 const coderDashboardRepository = require('../repositories/coderDashboardRepository');
 
-const getCoderDashboard = async (userId, { activityPage = 1, newWoPage = 1, limit = 15 } = {}) => {
-  const [kpis, reviewQueue, workQueue, coderActivity, coderActivityTotal, newWorkOrders, newWorkOrdersTotal, trend] = await Promise.all([
+const getCoderDashboard = async (userId, { activityPage = 1, newWoPage = 1, limit = 15, workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL' } = {}) => {
+  const WORK_ORDER_LIMIT = 10;
+  const [kpis, reviewQueue, workQueue, workOrderQueue, workOrderQueueTotal, coderActivity, coderActivityTotal, newWorkOrders, newWorkOrdersTotal, trend] = await Promise.all([
     coderDashboardRepository.findKpis(userId),
     coderDashboardRepository.findReviewQueue(),
-    coderDashboardRepository.findWorkQueue(userId),
+    coderDashboardRepository.findWorkQueue(),
+    coderDashboardRepository.findWorkOrderQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus }),
+    coderDashboardRepository.countWorkOrderQueue({ search: workOrderSearch, woStatus: workOrderStatus }),
     coderDashboardRepository.findCoderActivity(activityPage, limit),
     coderDashboardRepository.countCoderActivity(),
     coderDashboardRepository.findNewWorkOrders(newWoPage, limit),
@@ -61,6 +64,23 @@ const getCoderDashboard = async (userId, { activityPage = 1, newWoPage = 1, limi
       estimated_hours: Number(r.estimated_hours) || 0,
       created_at: r.classification_created_at,
     })),
+    work_order_queue: {
+      items: workOrderQueue.map((r) => ({
+        id: r.id,
+        wo_number: r.wo_number,
+        title: r.title || '',
+        customer: r.customer || '',
+        status: r.status,
+        item_count: Number(r.item_count) || 0,
+        open_count: Number(r.open_count) || 0,
+        done_count: Number(r.done_count) || 0,
+        total_hours: Number(r.total_hours) || 0,
+        last_activity: r.last_activity,
+      })),
+      page: workOrderPage,
+      limit: WORK_ORDER_LIMIT,
+      total: Number(workOrderQueueTotal) || 0,
+    },
     workload: {
       queued_hours: Number(kpis.pending_hours) || 0,
       in_progress_hours: workQueue

@@ -48,8 +48,10 @@ export default function Dashboard() {
       </div>
       <div className="panel">
         <h3>Quick Actions</h3>
+        <div className="flex gap-8" style={{ flexWrap: 'wrap' }}>
         <Link className="btn" to="/work-orders/new">Create Work Order</Link>
-        <Link className="btn btn-secondary" to="/work-orders" style={{ marginLeft: 8 }}>View Work Orders</Link>
+        <Link className="btn btn-secondary" to="/work-orders">View Work Orders</Link>
+        </div>
       </div>
     </div>
   );

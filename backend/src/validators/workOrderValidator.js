@@ -5,6 +5,12 @@ const isModelValue = (value) => {
   return typeof value === 'string' && value.trim().length >= 1 && value.trim().length <= 50;
 };
 
+const isOptionalModelValue = (value) => {
+  if (value === undefined || value === null) return true;
+  if (typeof value === 'string' && value.trim() === '') return true;
+  return isModelValue(value);
+};
+
 const validateWorkOrderCreate = (req, res, next) => {
   const { wo_number, title, customer, groups } = req.body || {};
   const errors = [];
@@ -25,8 +31,8 @@ const validateWorkOrderCreate = (req, res, next) => {
       if (!group || !isModelValue(group.machine_model_id)) {
         errors.push(`groups[${index}].machine_model_id is required (id or model code)`);
       }
-      if (!group || !isModelValue(group.machine_model_version_id)) {
-        errors.push(`groups[${index}].machine_model_version_id is required (id or version code)`);
+      if (group && !isOptionalModelValue(group.machine_model_version_id)) {
+        errors.push(`groups[${index}].machine_model_version_id must be an id or version code`);
       }
       if (group && group.serial_number !== undefined && group.serial_number !== null
           && (typeof group.serial_number !== 'string' || group.serial_number.length > 100)) {
@@ -71,8 +77,8 @@ const validateGroupCreate = (req, res, next) => {
   if (!isModelValue(machine_model_id)) {
     errors.push('machine_model_id is required (id or model code)');
   }
-  if (!isModelValue(machine_model_version_id)) {
-    errors.push('machine_model_version_id is required (id or version code)');
+  if (!isOptionalModelValue(machine_model_version_id)) {
+    errors.push('machine_model_version_id must be an id or version code');
   }
   if (serial_number !== undefined && serial_number !== null
       && (typeof serial_number !== 'string' || serial_number.length > 100)) {

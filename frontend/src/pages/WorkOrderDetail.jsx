@@ -77,6 +77,7 @@ export default function WorkOrderDetail() {
   const items = wo.items || [];
   const groups = wo.groups || [];
   const groupsEditable = wo.status === 'DRAFT' || wo.status === 'ANALYZED';
+  const staleVerdicts = wo.status === 'DRAFT' && items.some((i) => i.verdict_stale === true);
   const itemsByGroup = groups.map((group) => ({ ...group, items: items.filter((i) => i.work_order_group_id === group.id) }));
   const summary = analysis?.summary || null;
 
@@ -85,9 +86,9 @@ export default function WorkOrderDetail() {
       <div className="flex justify-between align-center mb-16">
         <h1>{wo.wo_number}</h1>
         <div className="flex gap-8">
-          <Link className="btn btn-secondary" to={isCoder ? '/review-queue' : '/work-orders'}>
+          {/* <Link className="btn btn-secondary" to={isCoder ? '/review-queue' : '/work-orders'}>
             {isCoder ? 'Back to Review Queue' : 'Back to List'}
-          </Link>
+          </Link> */}
           {canEdit && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED' && (
             <Link className="btn btn-secondary" to={`/work-orders/${wo.id}/edit`}>Edit Work Order</Link>
           )}
@@ -115,7 +116,19 @@ export default function WorkOrderDetail() {
       <div className="panel">
         <h3>Work Order Details</h3>
         <div className="form-grid">
-          <div><span className="text-muted">Status:</span> <StatusBadge status={wo.status} /></div>
+          <div><span className="text-muted">Status:</span> <StatusBadge status={wo.status} />
+            {staleVerdicts && canEdit && (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ marginLeft: 8 }}
+                onClick={handleAnalyze}
+                disabled={analyzing}
+                title="Item text changed after the last analysis"
+              >
+                {analyzing ? 'Analyzing…' : 'Re-analyze'}
+              </button>
+            )}
+          </div>
           <div><span className="text-muted">Customer:</span> {wo.customer || '-'}</div>
           <div><span className="text-muted">Title:</span> {wo.title || '-'}</div>
           <div><span className="text-muted">Created By:</span> {wo.created_by_name || '-'}</div>
@@ -268,8 +281,8 @@ export default function WorkOrderDetail() {
                   <input className="wo-input-text sn-input" name="machine_model_id" value={groupForm.machine_model_id} onChange={handleGroupFormChange} placeholder="e.g. FWX-100" required />
                 </div>
                 <div className="form-row">
-                  <label>Version</label>
-                  <input className="wo-input-text sn-input" name="machine_model_version_id" value={groupForm.machine_model_version_id} onChange={handleGroupFormChange} placeholder="e.g. v1.0" required />
+                  <label>Version (optional)</label>
+                  <input className="wo-input-text sn-input" name="machine_model_version_id" value={groupForm.machine_model_version_id} onChange={handleGroupFormChange} placeholder="e.g. v1.0" />
                 </div>
               </div>
               <div className="form-row">
@@ -335,7 +348,7 @@ export default function WorkOrderDetail() {
                         <td>{item.complexity_code || '-'}</td>
                         <td>{item.confidence_score != null ? `${item.confidence_score}%` : '-'}</td>
                         <td>{item.estimated_hours != null ? `${item.estimated_hours}h` : 'N/A'}</td>
-                        <td><StatusBadge status={item.classification_status} /></td>
+                        <td><StatusBadge status={item.classification_status} stale={item.verdict_stale === true} /></td>
                         {canEdit && <td>
                           <button className="btn btn-secondary btn-sm" onClick={() => handleEditItem(item)} disabled={wo.status !== 'DRAFT' && wo.status !== 'ANALYZED'}>Edit</button>{' '}
                           <button className="btn btn-danger btn-sm" onClick={() => handleDeleteItem(item.id)} disabled={wo.status !== 'DRAFT' && wo.status !== 'ANALYZED'}>Delete</button>

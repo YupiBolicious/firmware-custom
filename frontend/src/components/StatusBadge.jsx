@@ -1,5 +1,5 @@
 // Maps classification status to a badge
-export default function StatusBadge({ status }) {
+export default function StatusBadge({ status, stale }) {
   const map = {
     CLASSIFIED: { label: 'Classified', cls: 'badge-success' },
     NON_FIRMWARE: { label: 'Non-Firmware', cls: 'badge-muted' },
@@ -12,5 +12,12 @@ export default function StatusBadge({ status }) {
     COMPLETED: { label: 'Completed', cls: 'badge-success' },
   };
   const item = map[status] || { label: status || 'Unknown', cls: 'badge-muted' };
-  return <span className={`badge ${item.cls}`}>{item.label}</span>;
+  return (
+    <span
+      className={`badge ${item.cls}${stale ? ' badge-stale' : ''}`}
+      title={stale ? 'Stale — item text changed after last analysis' : undefined}
+    >
+      {item.label}{stale ? ' · stale' : ''}
+    </span>
+  );
 }

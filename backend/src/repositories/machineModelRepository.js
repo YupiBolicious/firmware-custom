@@ -79,8 +79,7 @@ const updateModel = async (id, { model_code, name, description }) => {
     `UPDATE machine_model
      SET model_code = COALESCE($2, model_code),
          name = COALESCE($3, name),
-         description = COALESCE($4, description),
-         updated_at = NOW()
+         description = COALESCE($4, description)
      WHERE id = $1
      RETURNING *`,
     [id, model_code, name, description]

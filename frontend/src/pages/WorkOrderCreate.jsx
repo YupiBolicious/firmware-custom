@@ -36,7 +36,7 @@ export default function WorkOrderCreate() {
               <div>
                 {form.groups.length > 0 ? form.groups.map((group, index) => (
                   <div key={index} className="text-muted" style={{ marginBottom: 4 }}>
-                    {group.machine_model_id ? `${group.machine_model_id} / ${group.machine_model_version_id}` : '—'}
+                    {group.machine_model_id ? `${group.machine_model_id}${group.machine_model_version_id ? ` / ${group.machine_model_version_id}` : ''}` : '—'}
                     {group.serial_number ? ` / SN: ${group.serial_number}` : ''}
                   </div>
                 )) : <span className="text-muted">No groups (manage groups from the work order page).</span>}
@@ -57,8 +57,7 @@ export default function WorkOrderCreate() {
                   </input>
                   <input className='wo-input-text sn-input' value={group.machine_model_version_id}
                   onChange={(e) => handleGroupFieldChange(index, 'machine_model_version_id', e.target.value )}
-                  placeholder='Machine Model Version'
-                  required>
+                  placeholder='Machine Model Version (optional)'>
                   </input>
                   <input
                     className="wo-input-text sn-input"

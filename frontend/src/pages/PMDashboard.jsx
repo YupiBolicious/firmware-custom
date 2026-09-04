@@ -14,10 +14,10 @@ const STATUS_BADGE = {
 function TrendTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#2a2a2a', border: '1px solid #3a3a3a', borderRadius: 4, padding: '8px 12px', fontSize: 12 }}>
-      <div style={{ marginBottom: 4, fontWeight: 600 }}>{label}</div>
+    <div className="chart-tip">
+      <div className="chart-tip-title">{label}</div>
       {payload.map((entry) => (
-        <div key={entry.dataKey} style={{ color: entry.color }}>
+        <div key={entry.dataKey} style={{ color: entry.color || entry.payload?.fill }}>
           {entry.name}: {entry.value}h
         </div>
       ))}
@@ -43,7 +43,7 @@ export default function PMDashboard() {
       <h1>PM Dashboard</h1>
 
       {/* 1. KPI Summary */}
-      <div className="stats-grid mb-16">
+      <div className="stats-grid">
         <div className="stat">
           <div className="label">Active WOs</div>
           <div className="value">{filteredKpis.active_wos}</div>
@@ -75,9 +75,9 @@ export default function PMDashboard() {
       </div>
 
       {/* 2. Work Queue + Filters */}
-      <div className="panel mb-16">
+      <div className="panel">
         <div className="flex justify-between align-center mb-8">
-          <h3>
+          <h3 style={{ margin: 0 }}>
             Work Queue
             {hasActiveFilters && (
               <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
@@ -93,7 +93,7 @@ export default function PMDashboard() {
         </div>
 
         {/* Search Bar */}
-        <div className="flex gap-8 mb-8">
+        <div className="toolbar mb-8">
           <input
             style={{ flex: 1, padding: '6px 10px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 4, color: '#e0e0e0', fontSize: 13 }}
             placeholder="Search WO number, title, customer, or item..."
@@ -202,6 +202,7 @@ export default function PMDashboard() {
         {filteredQueue.length === 0 ? (
           <div className="text-muted">No work orders match the current filters.</div>
         ) : (
+          <div className="table-scroll">
           <table>
             <thead>
               <tr>
@@ -219,37 +220,40 @@ export default function PMDashboard() {
             <tbody>
               {filteredQueue.map((w) => (
                 <tr key={w.id}>
-                  <td><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
-                  <td className="text-muted">{w.group_summary || '-'}</td>
-                  <td>{w.title || '-'}</td>
-                  <td className="text-muted">{w.customer || '-'}</td>
-                  <td>{w.item_count}</td>
+                  <td className="num"><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
+                  <td className="meta text-muted">{w.group_summary || '-'}</td>
+                  <td className="title-cell">{w.title || '-'}</td>
+                  <td className="meta text-muted">{w.customer || '-'}</td>
+                  <td className="num">{w.item_count}</td>
                   <td>
                     <span className={`badge ${STATUS_BADGE[w.status] || 'badge-muted'}`}>
                       {formatStatus(w.status)}
                     </span>
                   </td>
-                  <td>{w.total_estimated_hours > 0 ? `${w.total_estimated_hours}h` : '-'}</td>
+                  <td className="num">{w.total_estimated_hours > 0 ? `${w.total_estimated_hours}h` : '-'}</td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
                       <div style={{ flex: 1, height: 6, background: '#333', borderRadius: 3 }}>
                         <div style={{ width: `${w.progress}%`, height: '100%', background: w.progress === 100 ? 'var(--success)' : 'var(--info)', borderRadius: 3 }} />
                       </div>
                       <span style={{ fontSize: 12, color: '#aaa', minWidth: 32 }}>{w.progress}%</span>
                     </div>
                   </td>
-                  <td className="text-muted">
+                  <td className="meta text-muted">
                     <RelativeTime date={w.last_activity || w.updated_at} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
+      {/* 3 + 4. Secondary insights share one row on wide screens */}
+      <div className="split-2">
       {/* 3. Progress Overview */}
-      <div className="panel mb-16">
+      <div className="panel">
         <h3 className="mb-16">Progress Overview</h3>
         {filteredStatusDistribution.length === 0 ? (
           <div className="text-muted">No status data available.</div>
@@ -282,7 +286,7 @@ export default function PMDashboard() {
       </div>
 
       {/* 4. Workload / Estimation Overview */}
-      <div className="panel mb-16">
+      <div className="panel">
         <h3 className="mb-16">Workload Overview</h3>
         <div className="stats-grid">
           <div className="stat">
@@ -303,38 +307,55 @@ export default function PMDashboard() {
           </div>
         </div>
       </div>
+      </div>
 
       {/* 5. Workload & Status Trend */}
-      <div className="panel mb-16">
+      <div className="panel">
         <h3 className="mb-16">Workload & Status Chart</h3>
         {filteredTrend.length === 0 ? (
           <div className="text-muted">No trend data available.</div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={filteredTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
+            <BarChart data={filteredTrend} margin={{ top: 12, right: 20, left: 0, bottom: 5 }} barCategoryGap="28%" barGap={3}>
+              <defs>
+                <linearGradient id="pmQueued" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" className="chart-stop-queued-top" />
+                  <stop offset="100%" className="chart-stop-queued-bot" />
+                </linearGradient>
+                <linearGradient id="pmProg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" className="chart-stop-prog-top" />
+                  <stop offset="100%" className="chart-stop-prog-bot" />
+                </linearGradient>
+                <linearGradient id="pmDone" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" className="chart-stop-done-top" />
+                  <stop offset="100%" className="chart-stop-done-bot" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 6" stroke="var(--chart-grid)" vertical={false} />
               <XAxis
                 dataKey="week"
                 tickFormatter={(d) => {
                   const [, m, day] = d.split('-');
                   return `${Number(m)}/${Number(day)}`;
                 }}
-                stroke="#9a9a9a"
+                stroke="var(--chart-axis)"
+                tickLine={false}
+                axisLine={{ stroke: 'var(--chart-grid)' }}
                 fontSize={12}
               />
-              <YAxis stroke="#9a9a9a" fontSize={12} allowDecimals={false} />
-              <Tooltip content={<TrendTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="hours_queued" name="Queued" fill="#666" stackId="workload" />
-              <Bar dataKey="hours_in_progress" name="In Progress" fill="#2196f3" stackId="workload" />
-              <Bar dataKey="hours_completed" name="Completed" fill="#4caf50" stackId="workload" />
+              <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
+              <Tooltip content={<TrendTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
+              <Bar dataKey="hours_queued" name="Queued" fill="url(#pmQueued)" stackId="workload" radius={[6, 6, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="hours_in_progress" name="In Progress" fill="url(#pmProg)" stackId="workload" radius={[6, 6, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="hours_completed" name="Completed" fill="url(#pmDone)" stackId="workload" radius={[6, 6, 0, 0]} maxBarSize={28} />
             </BarChart>
           </ResponsiveContainer>
         )}
       </div>
 
       {/* 6. Attention Required */}
-      <div className="panel mb-16">
+      <div className="panel">
         <div className="flex justify-between align-center mb-16">
           <h3 style={{ margin: 0 }}>
             Attention Required

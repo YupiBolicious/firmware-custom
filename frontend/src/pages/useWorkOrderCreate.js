@@ -81,7 +81,7 @@ export default function useWorkOrderCreate() {
 
     const formattedGroups = form.groups.map((g) => ({
       machine_model_id: g.machine_model_id.trim(),
-      machine_model_version_id: g.machine_model_version_id.trim(),
+      machine_model_version_id: g.machine_model_version_id && g.machine_model_version_id.trim() ? g.machine_model_version_id.trim() : undefined,
       serial_number: g.serial_number && g.serial_number.trim() ? g.serial_number.trim() : undefined,
     }));
 

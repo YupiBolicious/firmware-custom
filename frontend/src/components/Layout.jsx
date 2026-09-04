@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -8,7 +8,7 @@ import {Menu, LayoutDashboard,
   BarChart3,
   Settings,
   BookOpen,
-  List, Lock, LogOut, Users} from 'lucide-react';
+  List, Lock, LogOut, Users, Sun, Moon} from 'lucide-react';
 
 const NAV_ITEMS = [
   {
@@ -72,6 +72,21 @@ export default function Layout() {
   const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem('theme') || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {
+    }
+  }, [theme]);
 
   const handleLogout = () => {
     logout();
@@ -124,6 +139,14 @@ export default function Layout() {
       </aside>
       <main className="main">
         <header className="app-header">
+          <button
+            className="notif-bell"
+            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+          >
+            {theme === 'dark' ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
+          </button>
           <NotificationBell />
         </header>
         <Outlet />

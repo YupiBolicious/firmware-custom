@@ -1,0 +1,28 @@
+{
+  "decisions": [
+    {
+      "title": "set point alarm changes",
+      "fw_related": null,
+      "complexity_code": null,
+      "confidence": 95,
+      "canonical_kb_code": null,
+      "retire_kb_codes": []
+    },
+    {
+      "title": "air flow direction",
+      "fw_related": null,
+      "complexity_code": null,
+      "confidence": 95,
+      "canonical_kb_code": null,
+      "retire_kb_codes": []
+    },
+    {
+      "title": "Mergepoint",
+      "fw_related": null,
+      "complexity_code": null,
+      "confidence": 95,
+      "canonical_kb_code": null,
+      "retire_kb_codes": []
+    }
+  ]
+}

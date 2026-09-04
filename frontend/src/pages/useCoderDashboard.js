@@ -70,12 +70,24 @@ export default function useCoderDashboard() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activityPage, setActivityPage] = useState(1);
   const [newWoPage, setNewWoPage] = useState(1);
+  const [workOrderPage, setWorkOrderPage] = useState(1);
+
+  useEffect(() => {
+    setWorkOrderPage(1);
+  }, [filters.search, filters.workOrderStatusFilter]);
 
   useEffect(() => {
     const load = async () => {
       try {
         const res = await api.get('/coder-dashboard', {
-          params: { activity_page: activityPage, new_wo_page: newWoPage, limit: ACTIVITY_PAGE_SIZE },
+          params: {
+            activity_page: activityPage,
+            new_wo_page: newWoPage,
+            limit: ACTIVITY_PAGE_SIZE,
+            work_order_page: workOrderPage,
+            work_order_search: filters.search,
+            work_order_status: filters.workOrderStatusFilter,
+          },
         });
         setData(res.data.data);
       } catch (err) {
@@ -85,7 +97,7 @@ export default function useCoderDashboard() {
       }
     };
     load();
-  }, [activityPage, newWoPage]);
+  }, [activityPage, newWoPage, workOrderPage, filters.search, filters.workOrderStatusFilter]);
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -104,6 +116,9 @@ export default function useCoderDashboard() {
   const newWorkOrdersTotal = data?.new_work_orders?.total || 0;
   const coderActivityTotalPages = Math.max(1, Math.ceil(coderActivityTotal / ACTIVITY_PAGE_SIZE));
   const newWorkOrdersTotalPages = Math.max(1, Math.ceil(newWorkOrdersTotal / NEW_WO_PAGE_SIZE));
+  const workOrderQueue = data?.work_order_queue?.items || [];
+  const workOrderQueueTotal = data?.work_order_queue?.total || 0;
+  const workOrderQueueTotalPages = Math.max(1, Math.ceil(workOrderQueueTotal / 10));
 
   const uniqueComplexities = useMemo(() => {
     const set = new Set(
@@ -229,6 +244,11 @@ export default function useCoderDashboard() {
     setActivityPage,
     newWoPage,
     setNewWoPage,
+    workOrderQueue,
+    workOrderQueueTotal,
+    workOrderQueueTotalPages,
+    workOrderPage,
+    setWorkOrderPage,
     coderActivityTotalPages,
     newWorkOrdersTotalPages,
     CLASSIFICATION_STATUS_LABELS,

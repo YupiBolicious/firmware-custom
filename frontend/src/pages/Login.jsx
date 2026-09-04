@@ -13,12 +13,24 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    const id = identifier.trim();
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id);
+    const isUsername = /^[a-zA-Z0-9@._-]{3,100}$/.test(id);
+    if (!isEmail && !isUsername) {
+      setError('Enter a valid email address or username');
+      return;
+    }
     setLoading(true);
     try {
       await login(identifier, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      const errors = err.response?.data?.errors;
+      setError(
+        Array.isArray(errors) && errors.length
+          ? errors.join('; ')
+          : err.response?.data?.message || 'Login failed'
+      );
     } finally {
       setLoading(false);
     }
@@ -27,14 +39,21 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <div className="login-box">
-        <h1>Firmware Custom</h1>
-        <div className="subtitle">Item Classification & Estimation</div>
-        {error && <div className="alert alert-error">{error}</div>}
+        <div className="login-brand">
+          <div className="login-mark" aria-hidden="true">FC</div>
+          <div>
+            <h1>Firmware Custom</h1>
+            <div className="subtitle">Item Classification & Estimation</div>
+          </div>
+        </div>
+        {error && <div className="alert alert-error" role="alert">{error}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-row">
-            <label>Email or Username</label>
+            <label htmlFor="login-identifier">Email or Username</label>
             <input
+              id="login-identifier"
               type="text"
+              autoComplete="username"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               placeholder="you@company.com or username"
@@ -42,22 +61,29 @@ export default function Login() {
             />
           </div>
           <div className="form-row">
-            <label>Password</label>
+            <label htmlFor="login-password">Password</label>
             <input
+              id="login-password"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="password123"
+              placeholder="Your password"
               required
             />
           </div>
-          <button className="btn" type="submit" disabled={loading} style={{ width: '100%' }}>
+          <button className="btn login-btn" type="submit" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <div className="text-muted mt-16" style={{ fontSize: 12 }}>
-          Demo: pm@demo.com / coder@demo.com / admin@demo.com — password: password123
+        <div className="login-demo">
+          <div className="login-demo-title">Demo accounts</div>
+          <div className="login-demo-row"><span>pm@demo.com</span><span>PM</span></div>
+          <div className="login-demo-row"><span>coder@demo.com</span><span>Coder</span></div>
+          <div className="login-demo-row"><span>admin@demo.com</span><span>Admin</span></div>
+          <div className="login-demo-row"><span>Password for all</span><span>password123</span></div>
         </div>
+        <div className="login-foot">Authorized use only</div>
       </div>
     </div>
   );

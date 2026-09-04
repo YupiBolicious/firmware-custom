@@ -6,10 +6,10 @@ import useCoderDashboard from './useCoderDashboard';
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#2a2a2a', border: '1px solid #3a3a3a', borderRadius: 4, padding: '8px 12px', fontSize: 12 }}>
-      <div style={{ marginBottom: 4, fontWeight: 600 }}>{label}</div>
+    <div className="chart-tip">
+      <div className="chart-tip-title">{label}</div>
       {payload.map((entry) => (
-        <div key={entry.dataKey} style={{ color: entry.color }}>
+        <div key={entry.dataKey} style={{ color: entry.color || entry.payload?.fill }}>
           {entry.name}: {entry.value} items ({entry.dataKey.includes('queued') ? entry.payload.hours_queued : entry.payload.hours_completed}h)
         </div>
       ))}
@@ -26,6 +26,8 @@ export default function CoderDashboard() {
     uniqueComplexities,
     coderActivity, newWorkOrders,
     activityPage, setActivityPage, newWoPage, setNewWoPage,
+    workOrderQueue, workOrderQueueTotal, workOrderQueueTotalPages,
+    workOrderPage, setWorkOrderPage,
     coderActivityTotalPages, newWorkOrdersTotalPages,
     CLASSIFICATION_STATUS_LABELS, WORK_ORDER_STATUS_LABELS,
   } = useCoderDashboard();
@@ -239,57 +241,80 @@ export default function CoderDashboard() {
         )}
       </div>
 
-      {/* 3. Work Queue + Workload */}
+      {/* 3. Work Orders + Workload */}
       <div className="panel mb-16">
         <h3 className="mb-16">
-          Work Queue
-          {hasActiveFilters && (
+          Work Orders
+          {workOrderQueueTotal > 0 && (
             <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
-              {filteredWorkQueue.length} shown
+              {workOrderQueueTotal} total
             </span>
           )}
         </h3>
-        {filteredWorkQueue.length === 0 ? (
-          <div className="text-muted">{hasActiveFilters ? 'No work items match the current filters.' : 'No active work items.'}</div>
+        {workOrderQueue.length === 0 ? (
+          <div className="text-muted">{hasActiveFilters ? 'No work orders match the current filters.' : 'No work orders yet.'}</div>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Work Orders</th>
-                <th>Custom Item</th>
-                <th>Model / Ver</th>
-                <th>Serial Number</th>
-                <th>Qty</th>
-                <th>Complexity</th>
-                <th>Hours</th>
-                <th>Work Order Status</th>
-                <th>Classification Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredWorkQueue.map((r) => (
-                <tr key={r.item_id}>
-                  <td><Link to={`/work-orders/${r.work_order_id || ''}`}>{r.wo_number}</Link></td>
-                  <td>{r.title}</td>
-                  <td>{[r.machine_model_code, r.machine_model_version].filter(Boolean).join(' / ') || '-'}</td>
-                  <td>{[r.serial_number ? `SN: ${r.serial_number}` : '-'].filter(Boolean).join(' ')}</td>
-                  <td>{r.quantity}</td>
-                  <td>{r.complexity_code || '-'}</td>
-                  <td>{r.estimated_hours > 0 ? `${r.estimated_hours}h` : '-'}</td>
-                  <td>
-                    <span className={`badge ${r.work_order_status === 'FINALIZED' ? 'badge-success' : r.work_order_status === 'ANALYZED' ? 'badge-info' : 'badge-muted'}`}>
-                      {r.work_order_status}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${r.classification_status === 'CLASSIFIED' ? 'badge-success' : r.classification_status === 'NON_FIRMWARE' ? 'badge-muted' : 'badge-warning'}`}>
-                      {r.classification_status}
-                    </span>
-                  </td>
+          <>
+            <table>
+              <thead>
+                <tr>
+                  <th>Work Order</th>
+                  <th>Title</th>
+                  <th>Customer</th>
+                  <th>Status</th>
+                  <th>Open Items</th>
+                  <th>Hours</th>
+                  <th>Updated</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {workOrderQueue.map((w) => (
+                  <tr key={w.id}>
+                    <td><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
+                    <td>{w.title || '-'}</td>
+                    <td className="text-muted">{w.customer || '-'}</td>
+                    <td>
+                      <span className={`badge ${w.status === 'COMPLETED' ? 'badge-success' : w.status === 'FINALIZED' ? 'badge-warning' : w.status === 'ANALYZED' ? 'badge-info' : 'badge-muted'}`}>
+                        {WORK_ORDER_STATUS_LABELS[w.status] || w.status}
+                      </span>
+                    </td>
+                    <td>
+                      {w.open_count > 0 ? (
+                        <span className="badge badge-warning">{w.open_count} of {w.item_count}</span>
+                      ) : (
+                        <span className="text-muted">{w.done_count}/{w.item_count}</span>
+                      )}
+                    </td>
+                    <td>{w.total_hours > 0 ? `${Number(w.total_hours).toFixed(1)}h` : '-'}</td>
+                    <td className="text-muted">{w.last_activity ? <RelativeTime date={w.last_activity} /> : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {workOrderQueueTotalPages > 1 && (
+              <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
+                <span className="text-muted" style={{ fontSize: 13 }}>
+                  Page {workOrderPage} of {workOrderQueueTotalPages}
+                </span>
+                <div className="flex gap-8">
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setWorkOrderPage(workOrderPage - 1)}
+                    disabled={workOrderPage <= 1}
+                  >
+                    Prev
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setWorkOrderPage(workOrderPage + 1)}
+                    disabled={workOrderPage >= workOrderQueueTotalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         <div className="stats-grid mt-16">
@@ -321,22 +346,34 @@ export default function CoderDashboard() {
           <div className="text-muted">No trend data available.</div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={filteredTrend} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
+            <BarChart data={filteredTrend} margin={{ top: 12, right: 20, left: 0, bottom: 5 }} barCategoryGap="28%" barGap={3}>
+              <defs>
+                <linearGradient id="coderQueued" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" className="chart-stop-queued-top" />
+                  <stop offset="100%" className="chart-stop-queued-bot" />
+                </linearGradient>
+                <linearGradient id="coderDone" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" className="chart-stop-done-top" />
+                  <stop offset="100%" className="chart-stop-done-bot" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 6" stroke="var(--chart-grid)" vertical={false} />
               <XAxis
                 dataKey="week"
                 tickFormatter={(d) => {
                   const date = new Date(d);
                   return `${date.getMonth() + 1}/${date.getDate()}`;
                 }}
-                stroke="#9a9a9a"
+                stroke="var(--chart-axis)"
+                tickLine={false}
+                axisLine={{ stroke: 'var(--chart-grid)' }}
                 fontSize={12}
               />
-              <YAxis stroke="#9a9a9a" fontSize={12} allowDecimals={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="items_queued" name="Queued" fill="#ff9800" stackId="workload" />
-              <Bar dataKey="items_completed" name="Completed" fill="#4caf50" stackId="workload" />
+              <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
+              <Bar dataKey="items_queued" name="Queued" fill="url(#coderQueued)" stackId="workload" radius={[6, 6, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="items_completed" name="Completed" fill="url(#coderDone)" stackId="workload" radius={[6, 6, 0, 0]} maxBarSize={28} />
             </BarChart>
           </ResponsiveContainer>
         )}

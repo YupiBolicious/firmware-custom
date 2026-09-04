@@ -168,6 +168,17 @@ const updateWithRoles = async (id, { username, full_name, is_active, roleCodes }
   }
 };
 
+const countActiveAdmins = async () => {
+  const result = await pool.query(
+    `SELECT COUNT(DISTINCT u.id)::int AS count
+     FROM users u
+     JOIN user_roles ur ON ur.user_id = u.id
+     JOIN roles r ON r.id = ur.role_id
+     WHERE r.code = 'ADMIN' AND u.is_active = TRUE`
+  );
+  return result.rows[0].count;
+};
+
 const updatePasswordHash = async (userId, hash) => {
   const result = await pool.query(
     `UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1 RETURNING id`,
@@ -183,6 +194,7 @@ module.exports = {
   findByEmailId,
   findByUsernameId,
   findRolesByUserId,
+  countActiveAdmins,
   create,
   update,
   createWithRoles,

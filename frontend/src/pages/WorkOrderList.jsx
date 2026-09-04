@@ -28,13 +28,14 @@ export default function WorkOrderList() {
 
   return (
     <div>
-      <div className="flex justify-between align-center mb-16">
+      <div className="page-head">
         <h1>Work Orders</h1>
         {hasRole('PM') && <Link className="btn" to="/work-orders/new">Create Work Order</Link>}
       </div>
       {workOrders.length === 0 ? (
         <div className="panel text-muted">No work orders yet.</div>
       ) : (
+        <div className="table-scroll">
         <table>
           <thead>
             <tr>
@@ -52,19 +53,20 @@ export default function WorkOrderList() {
           <tbody>
             {workOrders.map((wo) => (
               <tr key={wo.id}>
-                <td><Link to={`/work-orders/${wo.id}`}>{wo.wo_number}</Link></td>
-                <td>{wo.group_summary || '-'}</td>
-                <td>{wo.title || '-'}</td>
-                <td>{wo.customer || '-'}</td>
+                <td className="num"><Link to={`/work-orders/${wo.id}`}>{wo.wo_number}</Link></td>
+                <td className="meta">{wo.group_summary || '-'}</td>
+                <td className="title-cell">{wo.title || '-'}</td>
+                <td className="meta">{wo.customer || '-'}</td>
                 <td><span className="badge badge-info">{wo.status}</span></td>
-                <td>{wo.item_count}</td>
-                <td>{wo.total_estimated_hours}</td>
-                <td>{wo.created_by_name || '-'}</td>
-                <td>{new Date(wo.created_at).toLocaleString()}</td>
+                <td className="num">{wo.item_count}</td>
+                <td className="num">{wo.total_estimated_hours}</td>
+                <td className="meta">{wo.created_by_name || '-'}</td>
+                <td className="meta">{new Date(wo.created_at).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

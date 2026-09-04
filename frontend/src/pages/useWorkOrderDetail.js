@@ -202,7 +202,7 @@ export default function useWorkOrderDetail() {
     setMessage('');
     const payload = {
       machine_model_id: groupForm.machine_model_id.trim(),
-      machine_model_version_id: groupForm.machine_model_version_id.trim(),
+      machine_model_version_id: groupForm.machine_model_version_id && groupForm.machine_model_version_id.trim() ? groupForm.machine_model_version_id.trim() : undefined,
       serial_number: groupForm.serial_number && groupForm.serial_number.trim() ? groupForm.serial_number.trim() : undefined,
     };
     try {
@@ -348,11 +348,12 @@ export default function useWorkOrderDetail() {
   };
 
   const handleGrantAccess = async (targetUserId) => {
-    if (!targetUserId) return;
+    const targetId = parseInt(targetUserId, 10);
+    if (!Number.isInteger(targetId) || targetId < 1) return;
     setError('');
     setAccessBusy('grant');
     try {
-      await api.post(`/work-orders/${id}/access`, { user_id: targetUserId });
+      await api.post(`/work-orders/${id}/access`, { user_id: targetId });
       setMessage('Access granted');
       await loadAccess();
     } catch (err) {

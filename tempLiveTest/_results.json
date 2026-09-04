@@ -1,0 +1,68 @@
+{
+  "results": {
+    "A": {
+      "woId": 33,
+      "woNumber": "LIVETEST-A-1788402740033",
+      "status": "COMPLETED",
+      "items": [
+        58,
+        59,
+        60
+      ]
+    },
+    "B": {
+      "woId": 34,
+      "woNumber": "LIVETEST-B-1788402740033",
+      "status": "COMPLETED",
+      "items": [
+        61,
+        62
+      ]
+    }
+  },
+  "matrix": [
+    {
+      "user": 1,
+      "username": "pm@demo",
+      "byStatus": {
+        "ACCESS_GRANTED": 1,
+        "WO_FINALIZED": 2,
+        "WO_COMPLETED": 2,
+        "ITEM_REVIEWED": 1
+      }
+    },
+    {
+      "user": 2,
+      "username": "coder@demo",
+      "byStatus": {
+        "WO_FINALIZED": 2,
+        "WO_COMPLETED": 2,
+        "CODER_REVIEW": 1
+      }
+    },
+    {
+      "user": 3,
+      "username": "admin@demo",
+      "byStatus": {
+        "WO_FINALIZED": 2,
+        "WO_COMPLETED": 2,
+        "CODER_REVIEW": 1
+      }
+    },
+    {
+      "user": 16,
+      "username": "pm@test",
+      "byStatus": {
+        "ACCESS_GRANTED": 1,
+        "WO_FINALIZED": 1,
+        "WO_COMPLETED": 1
+      }
+    }
+  ],
+  "woIds": [
+    33,
+    34
+  ],
+  "pass": 68,
+  "fail": 0
+}

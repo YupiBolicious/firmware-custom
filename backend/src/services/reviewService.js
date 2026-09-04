@@ -3,11 +3,12 @@ const classificationRepository = require('../repositories/classificationReposito
 const estimationRepository = require('../repositories/estimationRepository');
 const estimationService = require('../services/estimationService');
 const kbRepository = require('../repositories/kbRepository');
+const { inputHash } = require('../services/classificationService');
 const auditService = require('../services/auditService');
 const notificationService = require('../services/notificationService');
 const workOrderAccessRepository = require('../repositories/workOrderAccessRepository');
 const { ApiError } = require('../middleware/errorHandler');
-const { buildKeywords } = require('../utils/textUtils');
+const { buildKeywords } = require('../utils/tokenPolicy');
 
 const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_id, ip_address }) => {
   const item = await workOrderRepository.findItemWithWorkOrder(itemId);
@@ -32,12 +33,21 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
   const reason = notes?.trim()
     ? `Coder review: ${notes.trim()}`
     : `Coder review confirmed ${level.code} (${level.name})`;
+  const group = await workOrderRepository.findGroupById(item.work_order_group_id, item.work_order_id);
   const saved = await classificationRepository.reviewClassification({
     work_order_item_id: itemId,
     fw_related: isFirmware,
     complexity_level_id: level.id,
     classification_reason: reason,
     reviewed_by: user_id,
+    input_hash: inputHash({
+      title: item.title,
+      description: item.description,
+      quantity: item.quantity,
+      machine_model_id: group ? group.machine_model_id : null,
+      machine_model_version_id: group ? group.machine_model_version_id : null,
+    }),
+    kb_version: await kbRepository.getCorpusVersion(),
   });
   if (!saved) {
     throw new ApiError(409, 'Item review was already completed; reload the queue');

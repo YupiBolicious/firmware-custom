@@ -1,0 +1,28 @@
+{
+  "decisions": [
+    {
+      "title": "set point alarm changes",
+      "fw_related": true,
+      "complexity_code": "L1",
+      "confidence": 95,
+      "canonical_kb_code": "KB-CODER-63",
+      "retire_kb_codes": ["KB-CODER-67"]
+    },
+    {
+      "title": "air flow direction",
+      "fw_related": false,
+      "complexity_code": "L0",
+      "confidence": 95,
+      "canonical_kb_code": "KB-CODER-65",
+      "retire_kb_codes": ["KB-CODER-69"]
+    },
+    {
+      "title": "Mergepoint",
+      "fw_related": true,
+      "complexity_code": "L2",
+      "confidence": 95,
+      "canonical_kb_code": "KB-CODER-70",
+      "retire_kb_codes": ["KB-CODER-56", "KB-CODER-61", "KB-CODER-66"]
+    }
+  ]
+}

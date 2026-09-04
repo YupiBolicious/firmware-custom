@@ -313,7 +313,7 @@ const findItemsByWorkOrderId = async (workOrderId) => {
             mmv.version_code AS machine_model_version,
             c.id AS classification_id, c.fw_related, c.complexity_level_id,
             c.classification_method, c.confidence_score, c.classification_reason, c.status AS classification_status,
-            c.reviewed_by,
+            c.reviewed_by, c.input_hash, c.kb_version,
             cl.code AS complexity_code, cl.name AS complexity_name,
             (ie.total_hours * woi.quantity) AS estimated_hours
      FROM work_order_items woi

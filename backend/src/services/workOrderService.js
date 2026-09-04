@@ -1,9 +1,11 @@
 const workOrderRepository = require('../repositories/workOrderRepository');
+const workOrderResetRepository = require('../repositories/workOrderResetRepository');
 const workOrderAccessRepository = require('../repositories/workOrderAccessRepository');
 const userRepository = require('../repositories/userRepository');
 const machineModelRepository = require('../repositories/machineModelRepository');
 const classificationRepository = require('../repositories/classificationRepository');
 const classificationService = require('../services/classificationService');
+const kbRepository = require('../repositories/kbRepository');
 const estimationRepository = require('../repositories/estimationRepository');
 const estimationService = require('../services/estimationService');
 const auditService = require('../services/auditService');
@@ -24,7 +26,10 @@ const resolveGroupTargets = async (machine_model_id, machine_model_version_id) =
     modelId = model.id;
   }
   let versionId;
-  if (Number.isInteger(machine_model_version_id)) {
+  if (machine_model_version_id === undefined || machine_model_version_id === null
+      || (typeof machine_model_version_id === 'string' && machine_model_version_id.trim() === '')) {
+    versionId = null;
+  } else if (Number.isInteger(machine_model_version_id)) {
     versionId = machine_model_version_id;
   } else {
     const version = await machineModelRepository.findOrCreateVersion(modelId, machine_model_version_id.trim());
@@ -49,7 +54,15 @@ const getWorkOrder = async (id) => {
   const productionTasks = await workOrderRepository.findProductionTasksByWorkOrderId(id);
   const groups = await workOrderRepository.findGroupsByWorkOrderId(id);
   const items = await workOrderRepository.findItemsByWorkOrderId(id);
-  return { ...wo, groups, items, production_tasks: productionTasks };
+  const kbVersion = await kbRepository.getCorpusVersion();
+  const stamped = items.map((item) => ({
+    ...item,
+    verdict_stale: item.classification_id != null && item.reviewed_by == null && (
+      item.input_hash !== classificationService.inputHash(item) ||
+      Number(item.kb_version) !== Number(kbVersion)
+    ),
+  }));
+  return { ...wo, groups, items: stamped, production_tasks: productionTasks };
 };
 
 const createWorkOrder = async ({ wo_number, title, description, customer, created_by, groups, ip_address }) => {
@@ -133,10 +146,30 @@ const updateWorkOrder = async (id, { title, description, customer, status, user_
     throw new ApiError(404, 'Work order not found');
   }
   await assertCanEditWorkOrder(existing, user_id, roles);
-  const wo = await workOrderRepository.update(id, { title, description, customer, status });
-  if (status === 'DRAFT' && existing.status !== 'DRAFT') {
-    await workOrderRepository.deleteProductionTasksByWorkOrderId(id);
+
+  if (status !== undefined && status !== existing.status) {
+    const isRollback = status === 'DRAFT' && existing.status === 'ANALYZED';
+    if (!isRollback) {
+      throw new ApiError(400, 'Status can only be rolled back from ANALYZED to DRAFT via update; use analyze/finalize for other transitions');
+    }
   }
+
+  const wo = await workOrderRepository.update(id, { title, description, customer, status });
+
+  if (status === 'DRAFT' && existing.status === 'ANALYZED') {
+    await workOrderResetRepository.clearAnalysisByWorkOrderId(id);
+    await workOrderRepository.deleteProductionTasksByWorkOrderId(id);
+    await notificationRepository.deleteByEntityAndStatus(id, 'CODER_REVIEW');
+    await auditService.log({
+      user_id,
+      action: 'WORK_ORDER_STATUS_ROLLED_BACK',
+      entity_type: 'WORK_ORDER',
+      entity_id: id,
+      details: { wo_number: existing.wo_number, from: 'ANALYZED', to: 'DRAFT' },
+      ip_address,
+    });
+  }
+
   await auditService.log({
     user_id,
     action: 'WORK_ORDER_UPDATED',
@@ -247,18 +280,24 @@ const generateItemNumber = async (work_order_group_id) => {
   return next > 99 ? String(next) : String(next).padStart(2, '0');
 };
 
+//block server side if status not draft or analyzed 
+const assertItemsEditable = (wo) => {
+  if (['FINALIZED', 'PRODUCTION', 'COMPLETED'].includes(wo.status)) {
+    throw new ApiError(400, 'Work order items cannot be modified after finalization');
+  }
+};
+
 const addItem = async (work_order_id, { work_order_group_id, item_number, title, description, quantity, user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
   await assertCanEditWorkOrder(wo, user_id, roles);
+  assertItemsEditable(wo);
+
   const group = await workOrderRepository.findGroupById(work_order_group_id, work_order_id);
   if (!group) {
     throw new ApiError(404, 'Work order group not found');
-  }
-  if (wo.status === 'FINALIZED') {
-    throw new ApiError(400, 'Finalized work orders cannot accept new items');
   }
   const item = await workOrderRepository.createItem({
     work_order_id,
@@ -268,6 +307,7 @@ const addItem = async (work_order_id, { work_order_group_id, item_number, title,
     description,
     quantity,
   });
+
   if (wo.status === 'ANALYZED') {
     await workOrderRepository.update(work_order_id, { status: 'DRAFT' });
   }
@@ -287,9 +327,18 @@ const updateItem = async (id, { title, description, quantity, user_id, roles, ip
   if (!existing) {
     throw new ApiError(404, 'Work order item not found');
   }
+
   const parent = await workOrderRepository.findById(existing.work_order_id);
   await assertCanEditWorkOrder(parent || { id: existing.work_order_id, created_by: null }, user_id, roles);
+  assertItemsEditable(parent);
+  const textChanged = (title !== undefined && title !== existing.title)
+    || (description !== undefined && (description || null) !== (existing.description || null));
   const item = await workOrderRepository.updateItem(id, { title, description, quantity });
+  let workOrderStatus = parent ? parent.status : null;
+  if (textChanged && parent && parent.status === 'ANALYZED') {
+    await workOrderRepository.update(existing.work_order_id, { status: 'DRAFT' });
+    workOrderStatus = 'DRAFT';
+  }
   await auditService.log({
     user_id,
     action: 'ITEM_UPDATED',
@@ -298,7 +347,7 @@ const updateItem = async (id, { title, description, quantity, user_id, roles, ip
     details: { work_order_id: item.work_order_id, item_number: item.item_number, changes: { title, description, quantity } },
     ip_address,
   });
-  return item;
+  return { ...item, work_order_status: workOrderStatus, text_changed: textChanged };
 };
 
 const deleteItem = async (id, { user_id, roles, ip_address }) => {
@@ -308,9 +357,7 @@ const deleteItem = async (id, { user_id, roles, ip_address }) => {
   }
   const parent = await workOrderRepository.findById(existing.work_order_id);
   await assertCanEditWorkOrder(parent || { id: existing.work_order_id, created_by: null }, user_id, roles);
-  if (parent?.status === 'FINALIZED') {
-    throw new ApiError(400, 'Finalized work orders cannot delete items');
-  }
+  assertItemsEditable(parent);
   await workOrderRepository.deleteItem(id);
   const remainingItems = await workOrderRepository.countItemsByWorkOrderId(existing.work_order_id);
   if (remainingItems === 0) {
@@ -354,11 +401,50 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
   if (items.length === 0) {
     throw new ApiError(400, 'Work order has no items to analyze');
   }
+  //blocker button analyzed
+  if (['FINALIZED', 'PRODUCTION', 'COMPLETED'].includes(wo.status)) {
+  throw new ApiError(400, 'Only draft or analyzed work orders can be analyzed');
+}
 
   const results = [];
   const newlyInReview = [];
+  const refs = {
+    kbItems: await classificationRepository.findAllKbItems(),
+    rules: await classificationRepository.findAllRules(),
+  };
+  const kbVersion = await kbRepository.getCorpusVersion();
+  const levels = await estimationRepository.findAllLevels?.() ?? [];
+  const levelById = new Map(levels.map((l) => [l.id, l]));
+  const levelOf = async (id) => {
+    if (id == null) return null;
+    if (!levelById.has(id)) {
+      levelById.set(id, await estimationRepository.findComplexityLevelById(id));
+    }
+    return levelById.get(id);
+  };
   for (const item of items) {
-    const classification = item.reviewed_by
+    if (item.reviewed_by) {
+      results.push({
+        item_id: item.id,
+        item_number: item.item_number,
+        title: item.title,
+        fw_related: item.fw_related,
+        complexity_level_id: item.complexity_level_id,
+        complexity_code: item.complexity_code,
+        classification_method: item.classification_method,
+        confidence_score: item.confidence_score,
+        classification_reason: item.classification_reason,
+        status: item.classification_status,
+        estimated_hours: item.estimated_hours != null ? Number(item.estimated_hours) : null,
+        quantity: item.quantity,
+      });
+      continue;
+    }
+    const hash = classificationService.inputHash(item);
+    const reusable = item.classification_id != null
+      && item.input_hash === hash
+      && Number(item.kb_version) === Number(kbVersion);
+    const classification = reusable
       ? {
         fw_related: item.fw_related,
         complexity_level_id: item.complexity_level_id,
@@ -369,7 +455,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         kb_item_id: null,
         rule_id: null,
       }
-      : await classificationService.classifyItem(item);
+      : await classificationService.classifyItem(item, refs);
 
     if (classification.status === 'CODER_REVIEW' && item.classification_status !== 'CODER_REVIEW') {
       newlyInReview.push(item);
@@ -383,8 +469,11 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       confidence_score: classification.confidence_score,
       classification_reason: classification.classification_reason,
       status: classification.status,
+      input_hash: hash,
+      kb_version: kbVersion,
     });
 
+    await classificationRepository.deleteMatchesByClassificationId(saved.id);
     if (classification.kb_item_id || classification.rule_id) {
       const matchType =
         classification.classification_method === 'EXACT_MATCH' ? 'EXACT'
@@ -406,7 +495,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         work_order_item_id: item.id,
         complexity_level_id: classification.complexity_level_id,
       });
-      const level = await estimationRepository.findComplexityLevelById(classification.complexity_level_id);
+      const level = await levelOf(classification.complexity_level_id);
       complexityCode = level ? level.code : null;
     } else if (classification.fw_related === false) {
       await estimationService.createOrUpdateEstimation({
@@ -607,6 +696,7 @@ const listWorkOrderAccess = async (work_order_id, { user_id, roles }) => {
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
+  await assertCanEditWorkOrder(wo, user_id, roles);
   return workOrderAccessRepository.findGrantedByWorkOrderId(work_order_id);
 };
 

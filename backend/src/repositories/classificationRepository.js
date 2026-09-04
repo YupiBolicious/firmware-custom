@@ -3,7 +3,8 @@ const pool = require('../config/db');
 // Fetch all active KB items for matching
 const findAllKbItems = async () => {
   const result = await pool.query(
-    `SELECT id, kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score
+    `SELECT id, kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score,
+            machine_model_id, machine_model_version_id
      FROM kb_items
      WHERE is_active = TRUE`
   );
@@ -40,12 +41,14 @@ const upsertClassification = async ({
   confidence_score,
   classification_reason,
   status,
+  input_hash,
+  kb_version,
 }) => {
   const result = await pool.query(
     `INSERT INTO classifications
        (work_order_item_id, fw_related, complexity_level_id, classification_method,
-        confidence_score, classification_reason, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+        confidence_score, classification_reason, status, input_hash, kb_version)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      ON CONFLICT (work_order_item_id)
      DO UPDATE SET
        fw_related = EXCLUDED.fw_related,
@@ -54,6 +57,8 @@ const upsertClassification = async ({
        confidence_score = EXCLUDED.confidence_score,
        classification_reason = EXCLUDED.classification_reason,
        status = EXCLUDED.status,
+       input_hash = EXCLUDED.input_hash,
+       kb_version = EXCLUDED.kb_version,
        updated_at = NOW()
      RETURNING *`,
     [
@@ -64,6 +69,8 @@ const upsertClassification = async ({
       confidence_score,
       classification_reason,
       status,
+      input_hash || null,
+      kb_version == null ? null : kb_version,
     ]
   );
   return result.rows[0];
@@ -88,6 +95,10 @@ const findByItemId = async (itemId) => {
   return result.rows[0] || null;
 };
 
+const deleteMatchesByClassificationId = async (classificationId) => {
+  await pool.query(`DELETE FROM classification_matches WHERE classification_id = $1`, [classificationId]);
+};
+
 const countReviewItemsByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
     `SELECT COUNT(*)::int AS count
@@ -105,6 +116,8 @@ const reviewClassification = async ({
   complexity_level_id,
   classification_reason,
   reviewed_by,
+  input_hash,
+  kb_version,
 }) => {
   const result = await pool.query(
     `UPDATE classifications
@@ -116,10 +129,12 @@ const reviewClassification = async ({
          status = CASE WHEN $2 THEN 'CLASSIFIED' ELSE 'NON_FIRMWARE' END,
          reviewed_by = $5,
          reviewed_at = NOW(),
+         input_hash = $6,
+         kb_version = $7,
          updated_at = NOW()
      WHERE work_order_item_id = $1 AND status = 'CODER_REVIEW'
      RETURNING *`,
-    [work_order_item_id, fw_related, complexity_level_id, classification_reason, reviewed_by]
+    [work_order_item_id, fw_related, complexity_level_id, classification_reason, reviewed_by, input_hash || null, kb_version == null ? null : kb_version]
   );
   return result.rows[0] || null;
 };
@@ -130,6 +145,7 @@ module.exports = {
   findConfidenceThresholds,
   upsertClassification,
   createMatch,
+  deleteMatchesByClassificationId,
   findByItemId,
   countReviewItemsByWorkOrderId,
   reviewClassification,

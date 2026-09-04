@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import useAdminDashboard, { RANGE_PRESETS } from './useAdminDashboard';
 
 const HEALTH_COLORS = { online: 'var(--success)', warning: 'var(--warning)', offline: 'var(--danger)' };
@@ -18,10 +18,10 @@ function formatBucketFull(date) {
 function TrendTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '#2a2a2a', border: '1px solid #3a3a3a', borderRadius: 4, padding: '8px 12px', fontSize: 12 }}>
-      <div style={{ marginBottom: 4, fontWeight: 600 }}>{label}</div>
+    <div className="chart-tip">
+      <div className="chart-tip-title">{label}</div>
       {payload.map((entry) => (
-        <div key={entry.dataKey} style={{ color: entry.color }}>
+        <div key={entry.dataKey} style={{ color: entry.color || entry.payload?.fill }}>
           {entry.name}: {entry.value}
         </div>
       ))}
@@ -210,29 +210,86 @@ export default function AdminDashboard() {
           <div className="text-muted">No activity data for the selected period.</div>
         ) : (
           <>
-            <h4 className="mb-8" style={{ fontWeight: 600, fontSize: 14 }}>Work Orders &amp; KB Entries</h4>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={buckets} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
-                <XAxis dataKey="date" tickFormatter={(d) => formatBucketLabel(d, granularity)} stroke="#9a9a9a" fontSize={12} />
-                <YAxis stroke="#9a9a9a" fontSize={12} allowDecimals={false} />
-                <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="work_orders" name="Work Orders Created" fill="#2196f3" />
-                <Bar dataKey="kb_added" name="KB Entries Added" fill="#9c27b0" />
+          <div className="split-2">
+          <div style={{ minWidth: 0 }}>
+            <h4 className="mb-8" style={{ fontWeight: 600, fontSize: 14 }}>
+              Work Orders Created
+              <span className="text-muted" style={{ fontWeight: 400, marginLeft: 8 }}>
+                total {buckets.reduce((s, b) => s + Number(b.work_orders || 0), 0)}
+              </span>
+            </h4>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={buckets} margin={{ top: 12, right: 20, left: 0, bottom: 5 }} barCategoryGap="32%">
+                <defs>
+                  <linearGradient id="adminWo" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" className="chart-stop-prog-top" />
+                    <stop offset="100%" className="chart-stop-prog-bot" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 6" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="date" tickFormatter={(d) => formatBucketLabel(d, granularity)} stroke="var(--chart-axis)" tickLine={false} axisLine={{ stroke: 'var(--chart-grid)' }} fontSize={12} />
+                <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
+                <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} cursor={{ fill: 'var(--chart-cursor)' }} />
+                <ReferenceLine
+                  y={buckets.length ? buckets.reduce((s, b) => s + Number(b.work_orders || 0), 0) / buckets.length : 0}
+                  stroke="var(--chart-axis)" strokeDasharray="4 4"
+                  label={{ value: 'avg', fontSize: 10, fill: 'var(--chart-axis)' }}
+                />
+                <Bar dataKey="work_orders" name="Work Orders Created" fill="url(#adminWo)" radius={[6, 6, 0, 0]} maxBarSize={32} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+
+          <div style={{ minWidth: 0 }}>
+            <h4 className="mb-8" style={{ fontWeight: 600, fontSize: 14 }}>
+              KB Entries Added
+              <span className="text-muted" style={{ fontWeight: 400, marginLeft: 8 }}>
+                total {buckets.reduce((s, b) => s + Number(b.kb_added || 0), 0)}
+              </span>
+            </h4>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={buckets} margin={{ top: 12, right: 20, left: 0, bottom: 5 }} barCategoryGap="32%">
+                <defs>
+                  <linearGradient id="adminKb" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" className="chart-stop-kb-top" />
+                    <stop offset="100%" className="chart-stop-kb-bot" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 6" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="date" tickFormatter={(d) => formatBucketLabel(d, granularity)} stroke="var(--chart-axis)" tickLine={false} axisLine={{ stroke: 'var(--chart-grid)' }} fontSize={12} />
+                <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
+                <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} cursor={{ fill: 'var(--chart-cursor)' }} />
+                <ReferenceLine
+                  y={buckets.length ? buckets.reduce((s, b) => s + Number(b.kb_added || 0), 0) / buckets.length : 0}
+                  stroke="var(--chart-axis)" strokeDasharray="4 4"
+                  label={{ value: 'avg', fontSize: 10, fill: 'var(--chart-axis)' }}
+                />
+                <Bar dataKey="kb_added" name="KB Entries Added" fill="url(#adminKb)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          </div>
 
             <h4 className="mt-16 mb-8" style={{ fontWeight: 600, fontSize: 14 }}>Classification &amp; Review Activity</h4>
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={buckets} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3a3a3a" />
-                <XAxis dataKey="date" tickFormatter={(d) => formatBucketLabel(d, granularity)} stroke="#9a9a9a" fontSize={12} />
-                <YAxis stroke="#9a9a9a" fontSize={12} allowDecimals={false} />
-                <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="items_classified" name="Items Classified" fill="#4caf50" />
-                <Bar dataKey="coder_resolved" name="Coder Resolved" fill="#ff9800" />
+              <BarChart data={buckets} margin={{ top: 12, right: 20, left: 0, bottom: 5 }} barCategoryGap="28%" barGap={3}>
+                <defs>
+                  <linearGradient id="adminClassified" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" className="chart-stop-done-top" />
+                    <stop offset="100%" className="chart-stop-done-bot" />
+                  </linearGradient>
+                  <linearGradient id="adminResolved" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" className="chart-stop-amber-top" />
+                    <stop offset="100%" className="chart-stop-amber-bot" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 6" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="date" tickFormatter={(d) => formatBucketLabel(d, granularity)} stroke="var(--chart-axis)" tickLine={false} axisLine={{ stroke: 'var(--chart-grid)' }} fontSize={12} />
+                <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
+                <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} cursor={{ fill: 'var(--chart-cursor)' }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
+                <Bar dataKey="items_classified" name="Items Classified" fill="url(#adminClassified)" radius={[6, 6, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="coder_resolved" name="Coder Resolved" fill="url(#adminResolved)" radius={[6, 6, 0, 0]} maxBarSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </>

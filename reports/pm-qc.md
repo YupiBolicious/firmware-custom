@@ -75,7 +75,27 @@ All P1 defects fixed and re-verified live (23 + 9 assertions PASS, zero data res
 
 Regression checks (still PASS): coder -> dashboard/users/pm 403; pm -> startProduction/task/complete 403; coder -> analyze 403; pm dashboard/users/pm/WO detail 200; group edits on finalization 400; residue=0.
 
-Phase 2 wrong-flow gaps (analyze status guard, item add/delete during PRODUCTION/COMPLETED, writable `status`, model-typo auto-create, customer UI mismatch) remain open — see "Code-verified wrong-flow gaps".
+## P2 wrong-flow guards — implemented (2026-09-03)
+
+Status-transition integrity hardened on the PM side to match the existing analyze guard. All verified live (15 asserts PASS, plus FINALIZED->DRAFT blocked; zero residue).
+
+| Guard | Location | Behavior |
+|---|---|---|
+| Analyze status guard | `workOrderService.js` `analyzeWorkOrder` | blocks `FINALIZED/PRODUCTION/COMPLETED` -> 400 "Only draft or analyzed work orders can be analyzed" |
+| Item edit lock | `assertItemsEditable` called in `addItem`/`updateItem`/`deleteItem` (before any DB write) | items cannot be modified when status `FINALIZED/PRODUCTION/COMPLETED` -> 400 |
+| PUT `status` transition rule | `updateWorkOrder` | `status` via PUT only allows the quick rollback `ANALYZED -> DRAFT`; everything else -> 400 "Status can only be rolled back from ANALYZED to DRAFT via update; use analyze/finalize for other transitions" |
+| Clean rollback | new `workOrderResetRepository.clearAnalysisByWorkOrderId` wired into the rollback path | `ANALYZED -> DRAFT` also clears item classifications + classification_matches + item_estimations, purges production tasks, deletes unread `CODER_REVIEW` notifications for that WO, and writes a distinct `WORK_ORDER_STATUS_ROLLED_BACK` audit entry |
+
+Verified live on a scratch WO: analyze -> ANALYZED with classifications; `PUT {status:'FINALIZED'}` blocked (400); same-status PUT idempotent; `PUT {status:'DRAFT'}` rolled back, cleared all 3 analysis tables, wrote audit entry; `FINALIZED WO -> DRAFT` blocked (400). Notification system untouched (rollback only removes scoped unread `CODER_REVIEW` for that WO).
+
+Resulting transition model (no bypasses):
+```
+DRAFT ─analyze▶ ANALYZED ─finalize▶ FINALIZED ─production▶ PRODUCTION ─complete▶ COMPLETED
+  ▲                │
+  └─ PUT rollback only: ANALYZED → DRAFT (clears analysis + audit)
+```
+
+Phase 1 items remain done. Remaining open/out-of-scope: model-typo auto-create (`resolveGroupTargets` findOrCreateByCode), customer field not `required` in create UI, 9-week trend off-by-one.
 
 ## Manual verification checklist (PM)
 

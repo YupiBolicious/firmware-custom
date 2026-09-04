@@ -64,6 +64,17 @@ const updateUser = async ({ actorId, id, body, ip_address }) => {
     }
   }
 
+  if (Number(id) === Number(actorId)
+    && body.is_active === false
+    && existing.is_active === true
+    && Array.isArray(existing.roles)
+    && existing.roles.includes('ADMIN')) {
+    const activeAdmins = await userRepository.countActiveAdmins();
+    if (activeAdmins <= 1) {
+      throw new ApiError(400, 'Cannot deactivate your own account while you are the only active ADMIN');
+    }
+  }
+
   const updated = await userRepository.updateWithRoles(id, {
     username: body.username !== undefined ? String(body.username).trim().toLowerCase() : undefined,
     full_name: body.full_name !== undefined ? String(body.full_name).trim() : undefined,
