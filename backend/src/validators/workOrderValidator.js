@@ -94,7 +94,7 @@ const validateGroupCreate = (req, res, next) => {
 const validateGroupUpdate = validateGroupCreate;
 
 const validateItemCreate = (req, res, next) => {
-  const { title, work_order_group_id, quantity } = req.body || {};
+  const { title, work_order_group_id, quantity, documentation_readiness } = req.body || {};
   const errors = [];
 
   if (!Number.isInteger(work_order_group_id) || work_order_group_id < 1) {
@@ -106,6 +106,10 @@ const validateItemCreate = (req, res, next) => {
   if (quantity !== undefined && (!Number.isInteger(quantity) || quantity < 1)) {
     errors.push('quantity must be a positive integer');
   }
+  if (documentation_readiness !== undefined && documentation_readiness !== null
+      && !['READY', 'MISSING'].includes(documentation_readiness)) {
+    errors.push('documentation_readiness must be READY or MISSING');
+  }
 
   if (errors.length > 0) {
     return next(new ApiError(400, 'Validation failed', errors));
@@ -114,7 +118,7 @@ const validateItemCreate = (req, res, next) => {
 };
 
 const validateItemUpdate = (req, res, next) => {
-  const { title, description, quantity } = req.body || {};
+  const { title, description, quantity, documentation_readiness } = req.body || {};
   const errors = [];
 
   if (title !== undefined && (typeof title !== 'string' || !title.trim())) {
@@ -125,6 +129,10 @@ const validateItemUpdate = (req, res, next) => {
   }
   if (quantity !== undefined && (!Number.isInteger(quantity) || quantity < 1)) {
     errors.push('quantity must be a positive integer');
+  }
+  if (documentation_readiness !== undefined && documentation_readiness !== null
+      && !['READY', 'MISSING'].includes(documentation_readiness)) {
+    errors.push('documentation_readiness must be READY or MISSING');
   }
 
   if (errors.length > 0) {

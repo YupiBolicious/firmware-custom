@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const classificationRepository = require('../repositories/classificationRepository');
+const kbCache = require('../services/kbCache');
 const { normalize, tokenize, contextBonus, diceBigram } = require('../utils/tokenPolicy');
 
 // Jaccard similarity between two token sets
@@ -15,8 +16,13 @@ const jaccard = (setA, setB) => {
 
 // Two-stage score: text retrieval first, structured model/version context
 // re-ranks after. Serial numbers never participate in matching.
+const selectCandidates = (preparedRows) => preparedRows;
+
 const scorePair = (itemTitle, itemDesc, kb, itemCtx) => {
-  const kbTokens = tokenize(`${kb.title} ${kb.description || ''} ${kb.keywords || ''}`);
+  const kbTokens = kb.tokens instanceof Set
+    ? kb.tokens
+    : tokenize(`${kb.title} ${kb.description || ''} ${kb.keywords || ''}`);
+  const kbTitle = typeof kb.normTitle === 'string' ? kb.normTitle : (kb.title || '');
   const fullTokens = tokenize(`${itemTitle} ${itemDesc || ''}`);
   const titleTokens = tokenize(itemTitle);
   const fullScore = Math.max(
@@ -45,6 +51,7 @@ const inputHash = (item) => {
     String(item.quantity || 1),
     item.machine_model_id == null ? '' : String(item.machine_model_id),
     item.machine_model_version_id == null ? '' : String(item.machine_model_version_id),
+    item.documentation_readiness || '',
   ];
   return crypto.createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 64);
 };
@@ -62,10 +69,11 @@ const classifyItem = async (item, refs) => {
   };
 
   // Reference data loads once per analyze call when refs are passed in.
+  // Cache-backed prepared rows are preferred; raw rows still work.
   const [kbItems, rules] = refs
-    ? [refs.kbItems, refs.rules]
+    ? [selectCandidates(refs.kbItems), refs.rules]
     : await Promise.all([
-      classificationRepository.findAllKbItems(),
+      selectCandidates((await kbCache.getPreparedKb()).rows),
       classificationRepository.findAllRules(),
     ]);
 
@@ -151,8 +159,8 @@ const classifyItem = async (item, refs) => {
  * Returns { score, tokens_a, tokens_b, intersection, union, verdict }
  */
 const testKbItem = async (kbItemId, sampleText) => {
-  const kbItems = await classificationRepository.findAllKbItems();
-  const kb = kbItems.find((k) => k.id === Number(kbItemId));
+  const prepared = await kbCache.getPreparedKb();
+  const kb = prepared.rows.find((k) => k.id === Number(kbItemId));
   if (!kb) return null;
 
   const itemTokens = tokenize(sampleText);
@@ -180,4 +188,4 @@ const testKbItem = async (kbItemId, sampleText) => {
   };
 };
 
-module.exports = { classifyItem, testKbItem, scorePair, jaccard, inputHash };
+module.exports = { classifyItem, testKbItem, scorePair, jaccard, inputHash, selectCandidates };

@@ -9,7 +9,7 @@ const findAll = async () => {
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
             COUNT(woi.id)::int AS item_count,
-            COALESCE(SUM(ie.total_hours * woi.quantity), 0) AS total_estimated_hours,
+            COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0) AS total_estimated_hours,
             (SELECT string_agg(g.label, '; ')
              FROM (
                SELECT DISTINCT CONCAT_WS(' ', mm.model_code, mmv.version_code, NULLIF(g.serial_number, '')) AS label
@@ -34,7 +34,7 @@ const findById = async (id) => {
     `SELECT wo.id, wo.wo_number, wo.title, wo.description, wo.customer, wo.status,
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
-            COALESCE((SELECT SUM(ie.total_hours * woi.quantity)
+            COALESCE((SELECT SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1))
                       FROM work_order_items woi
                       JOIN item_estimations ie ON ie.work_order_item_id = woi.id
                       WHERE woi.work_order_id = wo.id), 0) AS total_estimated_hours
@@ -307,7 +307,7 @@ const findItemNumbersByGroupId = async (groupId) => {
 const findItemsByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
     `SELECT woi.id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title, woi.description,
-            woi.quantity, woi.created_at, woi.updated_at,
+            woi.quantity, woi.documentation_readiness, woi.created_at, woi.updated_at,
             g.machine_model_id, g.machine_model_version_id, g.serial_number,
             mm.model_code AS machine_model_code,
             mmv.version_code AS machine_model_version,
@@ -315,7 +315,8 @@ const findItemsByWorkOrderId = async (workOrderId) => {
             c.classification_method, c.confidence_score, c.classification_reason, c.status AS classification_status,
             c.reviewed_by, c.input_hash, c.kb_version,
             cl.code AS complexity_code, cl.name AS complexity_name,
-            (ie.total_hours * woi.quantity) AS estimated_hours
+            (COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)) AS estimated_hours,
+            ie.verification_mh, ie.total_hours AS estimation_total_hours
      FROM work_order_items woi
      LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
      LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
@@ -349,26 +350,27 @@ const findItemWithWorkOrder = async (id) => {
   return result.rows[0] || null;
 };
 
-const createItem = async ({ work_order_id, work_order_group_id, item_number, title, description, quantity }) => {
+const createItem = async ({ work_order_id, work_order_group_id, item_number, title, description, quantity, documentation_readiness }) => {
   const result = await pool.query(
-    `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, description, quantity)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, description, quantity, documentation_readiness)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [work_order_id, work_order_group_id, item_number, title, description || null, quantity || 1]
+    [work_order_id, work_order_group_id, item_number, title, description || null, quantity || 1, documentation_readiness || null]
   );
   return result.rows[0];
 };
 
-const updateItem = async (id, { title, description, quantity }) => {
+const updateItem = async (id, { title, description, quantity, documentation_readiness }) => {
   const result = await pool.query(
     `UPDATE work_order_items
      SET title = COALESCE($2, title),
          description = COALESCE($3, description),
          quantity = COALESCE($4, quantity),
+         documentation_readiness = COALESCE($5, documentation_readiness),
          updated_at = NOW()
      WHERE id = $1
      RETURNING *`,
-    [id, title, description, quantity]
+    [id, title, description, quantity, documentation_readiness]
   );
   return result.rows[0] || null;
 };

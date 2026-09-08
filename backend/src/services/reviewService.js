@@ -53,7 +53,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
     throw new ApiError(409, 'Item review was already completed; reload the queue');
   }
 
-  await estimationService.createOrUpdateEstimation({
+  const estimation = await estimationService.createOrUpdateEstimation({
     work_order_item_id: itemId,
     complexity_level_id: isFirmware ? level.id : null,
   });
@@ -91,7 +91,10 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
     ...saved,
     complexity_code: level.code,
     complexity_name: level.name,
-    estimated_hours: isFirmware ? Number(level.total_hours) * (item.quantity || 1) : null,
+    estimated_hours: isFirmware && estimation && estimation.breakdown
+      ? Number(estimation.breakdown.verification_mh)
+        + Number(estimation.breakdown.other_mh) * (item.quantity || 1)
+      : null,
     learned_kb_code: learnedKbItem.kb_code,
   };
 };

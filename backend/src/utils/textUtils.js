@@ -24,4 +24,11 @@ const buildKeywords = (title, description, extra) => {
   return [...new Set([...words, ...extras])].join(',');
 };
 
-module.exports = { normalize, tokenize, buildKeywords };
+const capitalizeWords = (value = '') => {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+};
+
+module.exports = { normalize, tokenize, buildKeywords, capitalizeWords };

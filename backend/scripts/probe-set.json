@@ -1,0 +1,27 @@
+{
+  "model_id": 1,
+  "version_id": 1,
+  "probes": [
+    { "id": 1, "title": "Mergepoint", "desc": "", "tier": "NEW", "kb": null, "note": "REBASELINED 2026-09-07: KB-CODER-70 deleted in fresh start; no row claims this text" },
+    { "id": 2, "title": "Merge Point", "desc": "", "tier": "SUGGEST", "kb": null, "note": "TRIAGED 2026-09-08: KB-1011 shares 'point/setpoint' bigrams (0.38-0.39); weak hint but same CODER_REVIEW routing either way" },
+    { "id": 3, "title": "mergepoints", "desc": "", "tier": "NEW", "kb": null, "note": "REBASELINED 2026-09-07: same as #1" },
+    { "id": 4, "title": "Merge Points", "desc": "Add mergepoints operational", "tier": "SUGGEST", "kb": null, "note": "TRIAGED 2026-09-08: same bigram overlap as #2; review routing unchanged" },
+    { "id": 5, "title": "IP65 LED Lighting Fixture", "desc": "", "tier": "AUTO", "kb": "KB-1002" },
+    { "id": 6, "title": "IP65 LED light fixture", "desc": "", "tier": "AUTO", "kb": "KB-1002" },
+    { "id": 7, "title": "LED panel light", "desc": "", "tier": "SUGGEST", "kb": "KB-1003", "note": "TRIAGED: genuinely ambiguous between two L0 rows (KB-1002/KB-1003); SUGGEST is the safe correct tier, AUTO was an optimistic guess" },
+    { "id": 8, "title": "Halogen floodlight", "desc": "", "tier": "NEW", "kb": null },
+    { "id": 9, "title": "Impact resistant glass panel for light", "desc": "", "tier": "AUTO", "kb": "KB-1003" },
+    { "id": 10, "title": "Impact-resistant glass panels", "desc": "", "tier": "AUTO", "kb": "KB-1003" },
+    { "id": 11, "title": "glass panel", "desc": "", "tier": "SUGGEST", "kb": null, "note": "TRIAGED: 2-word probe cannot reach 0.6 on 4-6 token rows; SUGGEST correctly refuses auto-claim on thin evidence" },
+    { "id": 12, "title": "fiber glass custom unit", "desc": "", "tier": "NEW", "kb": null, "note": "REBASELINED 2026-09-07: fiber-glass learned rows deleted; best is KB-1003@0.27, below review line" },
+    { "id": 13, "title": "Emergency stop button", "desc": "", "tier": "AUTO", "kb": "KB-1004" },
+    { "id": 14, "title": "Emergency stop buttons", "desc": "", "tier": "AUTO", "kb": "KB-1004" },
+    { "id": 15, "title": "E-stop pushbutton", "desc": "", "tier": "SUGGEST", "kb": null },
+    { "id": 16, "title": "emergency stop customization", "desc": "", "tier": "AUTO", "kb": "KB-1004", "note": "TRIAGED: contested alternative KB-CODER-28 no longer exists in corpus (sourceless cleanup); 0.68 AUTO to canonical e-stop row follows existing rules" },
+    { "id": 17, "title": "Motorized Sash Window", "desc": "", "tier": "AUTO", "kb": "KB-1005" },
+    { "id": 18, "title": "Motorised sash windows", "desc": "", "tier": "AUTO", "kb": "KB-1005" },
+    { "id": 19, "title": "sliding window frame", "desc": "", "tier": "NEW", "kb": null },
+    { "id": 20, "title": "Quantum flux deflector calibration", "desc": "", "tier": "NEW", "kb": null, "note": "REBASELINED 2026-09-07: KB-CODER-90 deleted in fresh start; back to unclaimed" },
+    { "id": 21, "title": "Change alarm setpoint configuration", "desc": "", "tier": "SUGGEST", "kb": null, "note": "TRIAGED 2026-09-08: KB-1011 (inflow setpoint) is genuinely related but a different item; 0.55 correctly refuses AUTO" }
+  ]
+}

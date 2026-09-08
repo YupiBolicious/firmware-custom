@@ -22,13 +22,15 @@ const upsertEstimation = async ({
   peer_review_fixing_h,
   bench_testing_h,
   unit_testing_h,
+  verification_mh,
   total_hours,
 }) => {
   const result = await pool.query(
     `INSERT INTO item_estimations
        (work_order_item_id, complexity_level_id, requirement_review_h, code_development_h,
-        peer_review_fixing_h, bench_testing_h, unit_testing_h, total_hours, is_current)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
+        peer_review_fixing_h, bench_testing_h, unit_testing_h, verification_mh,
+        total_hours, is_current)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)
      ON CONFLICT (work_order_item_id)
      DO UPDATE SET
        complexity_level_id = EXCLUDED.complexity_level_id,
@@ -37,6 +39,7 @@ const upsertEstimation = async ({
        peer_review_fixing_h = EXCLUDED.peer_review_fixing_h,
        bench_testing_h = EXCLUDED.bench_testing_h,
        unit_testing_h = EXCLUDED.unit_testing_h,
+       verification_mh = EXCLUDED.verification_mh,
        total_hours = EXCLUDED.total_hours,
        is_current = TRUE
      RETURNING *`,
@@ -48,6 +51,7 @@ const upsertEstimation = async ({
       peer_review_fixing_h,
       bench_testing_h,
       unit_testing_h,
+      verification_mh || 0,
       total_hours,
     ]
   );
@@ -63,8 +67,31 @@ const deleteByItemId = async (work_order_item_id) => {
   return result.rows[0] || null;
 };
 
+const findVerificationByComplexityId = async (complexityLevelId) => {
+  const result = await pool.query(
+    `SELECT v.id, v.code, v.name, v.verification_mh
+     FROM complexity_verification_map m
+     JOIN verification_levels v ON v.id = m.verification_level_id
+     WHERE m.complexity_level_id = $1 AND v.is_active = TRUE`,
+    [complexityLevelId]
+  );
+  return result.rows[0] || null;
+};
+
+const findVerificationByCode = async (code) => {
+  const result = await pool.query(
+    `SELECT id, code, name, verification_mh
+     FROM verification_levels WHERE code = $1 AND is_active = TRUE
+     ORDER BY id LIMIT 1`,
+    [code]
+  );
+  return result.rows[0] || null;
+};
+
 module.exports = {
   findComplexityLevelById,
+  findVerificationByComplexityId,
+  findVerificationByCode,
   upsertEstimation,
   deleteByItemId,
 };

@@ -5,6 +5,7 @@ const userRepository = require('../repositories/userRepository');
 const machineModelRepository = require('../repositories/machineModelRepository');
 const classificationRepository = require('../repositories/classificationRepository');
 const classificationService = require('../services/classificationService');
+const kbCache = require('../services/kbCache');
 const kbRepository = require('../repositories/kbRepository');
 const estimationRepository = require('../repositories/estimationRepository');
 const estimationService = require('../services/estimationService');
@@ -15,6 +16,8 @@ const { ApiError } = require('../middleware/errorHandler');
 
 const { reviewItem } = require('./reviewService');
 const { uploadDocuments, listDocuments, deleteDocument } = require('./documentService');
+const documentRepository = require('../repositories/documentRepository');
+const { capitalizeWords } = require('../utils/textUtils');
 
 // ---------- Work Orders ----------
 const resolveGroupTargets = async (machine_model_id, machine_model_version_id) => {
@@ -32,7 +35,7 @@ const resolveGroupTargets = async (machine_model_id, machine_model_version_id) =
   } else if (Number.isInteger(machine_model_version_id)) {
     versionId = machine_model_version_id;
   } else {
-    const version = await machineModelRepository.findOrCreateVersion(modelId, machine_model_version_id.trim());
+    const version = await machineModelRepository.findOrCreateVersion(modelId, machine_model_version_id.trim().toUpperCase());
     versionId = version.id;
   }
   return { machine_model_id: modelId, machine_model_version_id: versionId };
@@ -287,7 +290,7 @@ const assertItemsEditable = (wo) => {
   }
 };
 
-const addItem = async (work_order_id, { work_order_group_id, item_number, title, description, quantity, user_id, roles, ip_address }) => {
+const addItem = async (work_order_id, { work_order_group_id, item_number, title, description, quantity, documentation_readiness, user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
@@ -303,9 +306,10 @@ const addItem = async (work_order_id, { work_order_group_id, item_number, title,
     work_order_id,
     work_order_group_id,
     item_number: await generateItemNumber(work_order_group_id),
-    title,
-    description,
+    title: capitalizeWords(title),
+    description: description ? capitalizeWords(description) : description,
     quantity,
+    documentation_readiness,
   });
 
   if (wo.status === 'ANALYZED') {
@@ -322,7 +326,7 @@ const addItem = async (work_order_id, { work_order_group_id, item_number, title,
   return item;
 };
 
-const updateItem = async (id, { title, description, quantity, user_id, roles, ip_address }) => {
+const updateItem = async (id, { title, description, quantity, documentation_readiness, user_id, roles, ip_address }) => {
   const existing = await workOrderRepository.findItemById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order item not found');
@@ -332,8 +336,15 @@ const updateItem = async (id, { title, description, quantity, user_id, roles, ip
   await assertCanEditWorkOrder(parent || { id: existing.work_order_id, created_by: null }, user_id, roles);
   assertItemsEditable(parent);
   const textChanged = (title !== undefined && title !== existing.title)
-    || (description !== undefined && (description || null) !== (existing.description || null));
-  const item = await workOrderRepository.updateItem(id, { title, description, quantity });
+    || (description !== undefined && (description || null) !== (existing.description || null))
+    || (documentation_readiness !== undefined && documentation_readiness !== null
+        && documentation_readiness !== existing.documentation_readiness);
+  const item = await workOrderRepository.updateItem(id, {
+    title: title !== undefined ? capitalizeWords(title) : title,
+    description: description !== undefined && description !== null ? capitalizeWords(description) : description,
+    quantity,
+    documentation_readiness,
+  });
   let workOrderStatus = parent ? parent.status : null;
   if (textChanged && parent && parent.status === 'ANALYZED') {
     await workOrderRepository.update(existing.work_order_id, { status: 'DRAFT' });
@@ -344,7 +355,7 @@ const updateItem = async (id, { title, description, quantity, user_id, roles, ip
     action: 'ITEM_UPDATED',
     entity_type: 'WORK_ORDER_ITEM',
     entity_id: item.id,
-    details: { work_order_id: item.work_order_id, item_number: item.item_number, changes: { title, description, quantity } },
+    details: { work_order_id: item.work_order_id, item_number: item.item_number, changes: { title, description, quantity, documentation_readiness } },
     ip_address,
   });
   return { ...item, work_order_status: workOrderStatus, text_changed: textChanged };
@@ -397,7 +408,9 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
   }
   await assertCanEditWorkOrder(wo, user_id, roles);
 
+  const tItemsQuery = Date.now();
   const items = await workOrderRepository.findItemsByWorkOrderId(work_order_id);
+  const itemsQueryMs = Date.now() - tItemsQuery;
   if (items.length === 0) {
     throw new ApiError(400, 'Work order has no items to analyze');
   }
@@ -408,11 +421,25 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
 
   const results = [];
   const newlyInReview = [];
+  const tAnalyze = Date.now();
+  const prepared = await kbCache.getPreparedKb();
   const refs = {
-    kbItems: await classificationRepository.findAllKbItems(),
+    kbItems: prepared.rows,
     rules: await classificationRepository.findAllRules(),
   };
-  const kbVersion = await kbRepository.getCorpusVersion();
+  const kbVersion = prepared.version;
+  const perf = {
+    kbRows: prepared.rowCount,
+    kbCandidates: prepared.rows.length,
+    kbCacheHit: prepared.cacheHit,
+    kbQueryMs: prepared.queryMs,
+    kbPrepMs: prepared.prepMs,
+    itemsQueryMs,
+    itemsTotal: items.length,
+    itemsScored: 0,
+    scoreMs: 0,
+    writeMs: 0,
+  };
   const levels = await estimationRepository.findAllLevels?.() ?? [];
   const levelById = new Map(levels.map((l) => [l.id, l]));
   const levelOf = async (id) => {
@@ -428,14 +455,23 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         item_id: item.id,
         item_number: item.item_number,
         title: item.title,
+        machine_model_code: item.machine_model_code || null,
+        machine_model_version: item.machine_model_version || null,
+        serial_number: item.serial_number || null,
         fw_related: item.fw_related,
         complexity_level_id: item.complexity_level_id,
         complexity_code: item.complexity_code,
         classification_method: item.classification_method,
-        confidence_score: item.confidence_score,
+        confidence_score: item.confidence_score != null ? Number(item.confidence_score) : null,
         classification_reason: item.classification_reason,
         status: item.classification_status,
         estimated_hours: item.estimated_hours != null ? Number(item.estimated_hours) : null,
+        estimation_breakdown: item.estimation_total_hours != null ? {
+          verification_mh: Number(item.verification_mh) || 0,
+          other_mh: Number(item.estimation_total_hours)
+            - (Number(item.verification_mh) || 0),
+          total_hours: Number(item.estimation_total_hours),
+        } : null,
         quantity: item.quantity,
       });
       continue;
@@ -444,23 +480,30 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     const reusable = item.classification_id != null
       && item.input_hash === hash
       && Number(item.kb_version) === Number(kbVersion);
-    const classification = reusable
-      ? {
+    let classification;
+    if (reusable) {
+      classification = {
         fw_related: item.fw_related,
         complexity_level_id: item.complexity_level_id,
         classification_method: item.classification_method,
-        confidence_score: item.confidence_score,
+        confidence_score: item.confidence_score != null ? Number(item.confidence_score) : null,
         classification_reason: item.classification_reason,
         status: item.classification_status,
         kb_item_id: null,
         rule_id: null,
-      }
-      : await classificationService.classifyItem(item, refs);
+      };
+    } else {
+      const tScore = Date.now();
+      classification = await classificationService.classifyItem(item, refs);
+      perf.scoreMs += Date.now() - tScore;
+      perf.itemsScored++;
+    }
 
     if (classification.status === 'CODER_REVIEW' && item.classification_status !== 'CODER_REVIEW') {
       newlyInReview.push(item);
     }
 
+    const tWrite = Date.now();
     const saved = await classificationRepository.upsertClassification({
       work_order_item_id: item.id,
       fw_related: classification.fw_related,
@@ -503,11 +546,15 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         complexity_level_id: null,
       });
     }
+    perf.writeMs += Date.now() - tWrite;
 
     results.push({
       item_id: item.id,
       item_number: item.item_number,
       title: item.title,
+      machine_model_code: item.machine_model_code || null,
+      machine_model_version: item.machine_model_version || null,
+      serial_number: item.serial_number || null,
       fw_related: classification.fw_related,
       complexity_level_id: classification.complexity_level_id,
       complexity_code: complexityCode,
@@ -515,7 +562,15 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       confidence_score: classification.confidence_score,
       classification_reason: classification.classification_reason,
       status: classification.status,
-      estimated_hours: estimation ? Number(estimation.total_hours) * (item.quantity || 1) : null,
+      estimated_hours: estimation && estimation.breakdown
+        ? Number(estimation.breakdown.verification_mh)
+          + Number(estimation.breakdown.other_mh) * (item.quantity || 1)
+        : null,
+      estimation_breakdown: estimation && estimation.breakdown ? {
+        verification_mh: Number(estimation.breakdown.verification_mh),
+        other_mh: Number(estimation.breakdown.other_mh),
+        total_hours: Number(estimation.breakdown.total_hours),
+      } : null,
       quantity: item.quantity,
     });
   }
@@ -541,7 +596,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     });
   }
 
-  return { work_order: { ...wo, status: 'ANALYZED' }, results, summary };
+  return { work_order: { ...wo, status: 'ANALYZED' }, results, summary, perf: { ...perf, totalMs: Date.now() - tAnalyze } };
 };
 
 const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) => {
@@ -670,6 +725,14 @@ const completeProduction = async (id, { ip_address }) => {
   const { total, open } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
   if (open > 0) {
     throw new ApiError(400, `All production items must be completed first (${open} of ${total} still open)`);
+  }
+  const items = await workOrderRepository.findItemsByWorkOrderId(id);
+  const needsDocs = items.some((item) => item.complexity_level_id != null);
+  if (needsDocs) {
+    const docCount = await documentRepository.countByWorkOrderId(id);
+    if (docCount === 0) {
+      throw new ApiError(400, 'Documentation files are required before completing (firmware items present, no documents attached)');
+    }
   }
   const updated = await workOrderRepository.updateStatus(id, 'COMPLETED');
   await auditService.log({

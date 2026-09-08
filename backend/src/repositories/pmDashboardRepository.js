@@ -7,7 +7,7 @@ const findKpis = async () => {
       (SELECT COUNT(*)::int FROM classifications WHERE status = 'CODER_REVIEW') AS pending_review,
       (SELECT COUNT(*)::int FROM work_orders WHERE status = 'ANALYZED') AS in_progress,
       (SELECT COUNT(*)::int FROM work_orders WHERE status IN ('PRODUCTION', 'COMPLETED')) AS completed,
-      (SELECT COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric
+      (SELECT COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric
        FROM item_estimations ie
        JOIN work_order_items woi ON woi.id = ie.work_order_item_id) AS total_estimated_hours,
       (SELECT COUNT(*)::int FROM classifications
@@ -42,7 +42,7 @@ const findWorkQueue = async () => {
             ) jg
            ) AS groups,
            COUNT(woi.id)::int AS item_count,
-           COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric AS total_estimated_hours,
+           COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS total_estimated_hours,
            COUNT(DISTINCT woi.id) FILTER (
              WHERE c.status IN ('CLASSIFIED', 'NON_FIRMWARE')
            )::int AS items_classified,
@@ -159,7 +159,7 @@ const findStatusDistribution = async () => {
 const findWorkloadByStatus = async () => {
   const result = await pool.query(`
     SELECT wo.status,
-           COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric AS total_hours,
+           COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS total_hours,
            COUNT(DISTINCT wo.id)::int AS wo_count
     FROM work_orders wo
     LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
@@ -190,7 +190,7 @@ const findWeeklyTrend = async (weeks = 8) => {
     LEFT JOIN (
       SELECT date_trunc('week', wo.created_at)::date AS week_start,
              COUNT(*)::int AS cnt,
-             COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric AS hrs
+             COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS hrs
       FROM work_orders wo
       JOIN work_order_items woi ON woi.work_order_id = wo.id
       JOIN item_estimations ie ON ie.work_order_item_id = woi.id
@@ -200,7 +200,7 @@ const findWeeklyTrend = async (weeks = 8) => {
     LEFT JOIN (
       SELECT date_trunc('week', wo.updated_at)::date AS week_start,
              COUNT(*)::int AS cnt,
-             COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric AS hrs
+             COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS hrs
       FROM work_orders wo
       JOIN work_order_items woi ON woi.work_order_id = wo.id
       JOIN item_estimations ie ON ie.work_order_item_id = woi.id
@@ -210,7 +210,7 @@ const findWeeklyTrend = async (weeks = 8) => {
     LEFT JOIN (
       SELECT date_trunc('week', wo.updated_at)::date AS week_start,
              COUNT(*)::int AS cnt,
-             COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric AS hrs
+             COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS hrs
       FROM work_orders wo
       JOIN work_order_items woi ON woi.work_order_id = wo.id
       JOIN item_estimations ie ON ie.work_order_item_id = woi.id

@@ -9,7 +9,7 @@ const findKpis = async (userId) => {
         JOIN work_orders wo ON wo.id = woi.work_order_id
         WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
        ) AS pending_count,
-       (SELECT COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric
+       (SELECT COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric
         FROM classifications c
         JOIN work_order_items woi ON woi.id = c.work_order_item_id
         JOIN work_orders wo ON wo.id = woi.work_order_id
@@ -23,7 +23,7 @@ const findKpis = async (userId) => {
         WHERE c.reviewed_by = $1
           AND c.status IN ('CLASSIFIED', 'NON_FIRMWARE')
        ) AS completed_count,
-       (SELECT COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric
+       (SELECT COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric
         FROM classifications c
         JOIN work_order_items woi ON woi.id = c.work_order_item_id
         JOIN work_orders wo ON wo.id = woi.work_order_id
@@ -54,7 +54,7 @@ const findReviewQueue = async () => {
             c.classification_reason, c.confidence_score, c.status,
             c.created_at,
             cl.code AS complexity_code, cl.name AS complexity_name,
-            COALESCE(ie.total_hours * woi.quantity, 0)::numeric AS estimated_hours
+            COALESCE(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1), 0)::numeric AS estimated_hours
      FROM work_order_items woi
      JOIN work_order_groups g ON g.id = woi.work_order_group_id
      JOIN work_orders wo ON wo.id = woi.work_order_id
@@ -79,7 +79,7 @@ const findWorkQueue = async () => {
             cl.code AS complexity_code, cl.name AS complexity_name,
             c.status AS classification_status, c.confidence_score,
             c.reviewed_by, c.created_at AS classification_created_at,
-            COALESCE(ie.total_hours * woi.quantity, 0)::numeric AS estimated_hours
+            COALESCE(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1), 0)::numeric AS estimated_hours
      FROM work_order_items woi
      JOIN work_order_groups g ON g.id = woi.work_order_group_id
      JOIN work_orders wo ON wo.id = woi.work_order_id
@@ -131,7 +131,7 @@ const findWorkOrderQueue = async ({ page = 1, limit = 10, search, woStatus } = {
             COUNT(woi.id)::int AS item_count,
             COUNT(*) FILTER (WHERE c.status = 'CODER_REVIEW')::int AS open_count,
             COUNT(*) FILTER (WHERE c.status IN ('CLASSIFIED', 'NON_FIRMWARE'))::int AS done_count,
-            COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric AS total_hours,
+            COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS total_hours,
             MAX(c.updated_at) AS last_activity
      FROM work_orders wo
      LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
@@ -217,7 +217,7 @@ const findWeeklyTrend = async (weeks = 8) => {
      LEFT JOIN (
        SELECT date_trunc('week', c.created_at)::date AS week_start,
               COUNT(*)::int AS cnt,
-              COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric AS hrs
+              COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS hrs
        FROM classifications c
        JOIN work_order_items woi ON woi.id = c.work_order_item_id
        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
@@ -227,7 +227,7 @@ const findWeeklyTrend = async (weeks = 8) => {
      LEFT JOIN (
        SELECT date_trunc('week', c.reviewed_at)::date AS week_start,
               COUNT(*)::int AS cnt,
-              COALESCE(SUM(ie.total_hours * woi.quantity), 0)::numeric AS hrs
+              COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS hrs
        FROM classifications c
        JOIN work_order_items woi ON woi.id = c.work_order_item_id
        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id

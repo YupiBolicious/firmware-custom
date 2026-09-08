@@ -136,8 +136,8 @@ export default function useWorkOrderDetail() {
     setError('');
     try {
       await api.put(`/work-orders/items/${editingItemId}`, {
-        title: itemForm.title,
-        description: itemForm.description,
+        title: capitalizeWords(itemForm.title),
+        description: capitalizeWords(itemForm.description),
         quantity: parseInt(itemForm.quantity, 10) || 1,
       });
       setEditingItemId(null);
@@ -201,8 +201,8 @@ export default function useWorkOrderDetail() {
     setError('');
     setMessage('');
     const payload = {
-      machine_model_id: groupForm.machine_model_id.trim(),
-      machine_model_version_id: groupForm.machine_model_version_id && groupForm.machine_model_version_id.trim() ? groupForm.machine_model_version_id.trim() : undefined,
+      machine_model_id: groupForm.machine_model_id.trim().toUpperCase(),
+      machine_model_version_id: groupForm.machine_model_version_id && groupForm.machine_model_version_id.trim() ? groupForm.machine_model_version_id.trim().toUpperCase() : undefined,
       serial_number: groupForm.serial_number && groupForm.serial_number.trim() ? groupForm.serial_number.trim() : undefined,
     };
     try {

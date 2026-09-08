@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "notes": "PLACEHOLDER STARTER SET - no scored cases yet. Zero reviewed classifications exist in the database, so no ground truth can be derived automatically. Each entry below has expected_* = null and needs_pm_review = true. A PM/domain expert must fill expected_complexity_code (and optionally expected_status); the script scores only completed entries and reports the rest as pending. Do NOT fill expectations from classifier output.",
+  "cases": [
+    {
+      "id": "EVAL-001",
+      "title": "Emergency stop button",
+      "description": "Replace faulty emergency stop button on panel",
+      "quantity": 1,
+      "machine_model_id": 1,
+      "machine_model_version_id": 1,
+      "expected_complexity_code": null,
+      "expected_status": null,
+      "source": "placeholder",
+      "needs_pm_review": true,
+      "category_hint": "exact/similar wording"
+    },
+    {
+      "id": "EVAL-002",
+      "title": "Emergency stop buttons",
+      "description": "",
+      "quantity": 2,
+      "machine_model_id": 1,
+      "machine_model_version_id": 1,
+      "expected_complexity_code": null,
+      "expected_status": null,
+      "source": "placeholder",
+      "needs_pm_review": true,
+      "category_hint": "singular/plural variation"
+    },
+    {
+      "id": "EVAL-003",
+      "title": "E-stop pushbutton",
+      "description": "Install E-stop pushbutton",
+      "quantity": 1,
+      "machine_model_id": 1,
+      "machine_model_version_id": 1,
+      "expected_complexity_code": null,
+      "expected_status": null,
+      "source": "placeholder",
+      "needs_pm_review": true,
+      "category_hint": "abbreviation / technical terminology"
+    },
+    {
+      "id": "EVAL-004",
+      "title": "Replace cracked display glass on operator panel",
+      "description": "Operator panel glass is cracked, needs replacement unit",
+      "quantity": 1,
+      "machine_model_id": 1,
+      "machine_model_version_id": 1,
+      "expected_complexity_code": null,
+      "expected_status": null,
+      "source": "placeholder",
+      "needs_pm_review": true,
+      "category_hint": "paraphrase / different wording same meaning"
+    },
+    {
+      "id": "EVAL-005",
+      "title": "Alarm setpoint change for FWX-100",
+      "description": "",
+      "quantity": 1,
+      "machine_model_id": 1,
+      "machine_model_version_id": 1,
+      "expected_complexity_code": null,
+      "expected_status": null,
+      "source": "placeholder",
+      "needs_pm_review": true,
+      "category_hint": "model/version-specific"
+    },
+    {
+      "id": "EVAL-006",
+      "title": "Quantum flux deflector calibration",
+      "description": "First-time custom request, no prior art",
+      "quantity": 1,
+      "machine_model_id": 1,
+      "machine_model_version_id": 1,
+      "expected_complexity_code": null,
+      "expected_status": "CODER_REVIEW",
+      "source": "placeholder",
+      "needs_pm_review": true,
+      "category_hint": "no suitable KB match (novel item)"
+    },
+    {
+      "id": "EVAL-007",
+      "title": "Update UI text",
+      "description": "",
+      "quantity": 1,
+      "machine_model_id": null,
+      "machine_model_version_id": null,
+      "expected_complexity_code": null,
+      "expected_status": null,
+      "source": "placeholder",
+      "needs_pm_review": true,
+      "category_hint": "short description"
+    },
+    {
+      "id": "EVAL-008",
+      "title": "Add custom stainless steel enclosure with hinged door, ventilation louvers, and powder-coat finish for outdoor installation",
+      "description": "Customer requests weatherproof custom enclosure, dimensions per attached drawing, cable glands included",
+      "quantity": 1,
+      "machine_model_id": 1,
+      "machine_model_version_id": 1,
+      "expected_complexity_code": null,
+      "expected_status": null,
+      "source": "placeholder",
+      "needs_pm_review": true,
+      "category_hint": "long description"
+    }
+  ]
+}

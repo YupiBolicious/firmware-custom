@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import useWorkOrderDetail from './useWorkOrderDetail';
+import { Pencil, Trash2 } from 'lucide-react';
 
 const ALLOWED_EXTENSIONS = '.pdf,.doc,.docx,.zip,.7z';
 
@@ -78,6 +79,7 @@ export default function WorkOrderDetail() {
   const groups = wo.groups || [];
   const groupsEditable = wo.status === 'DRAFT' || wo.status === 'ANALYZED';
   const staleVerdicts = wo.status === 'DRAFT' && items.some((i) => i.verdict_stale === true);
+  const needsDocs = items.some((i) => i.complexity_level_id != null);
   const itemsByGroup = groups.map((group) => ({ ...group, items: items.filter((i) => i.work_order_group_id === group.id) }));
   const summary = analysis?.summary || null;
 
@@ -90,7 +92,7 @@ export default function WorkOrderDetail() {
             {isCoder ? 'Back to Review Queue' : 'Back to List'}
           </Link> */}
           {canEdit && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED' && (
-            <Link className="btn btn-secondary" to={`/work-orders/${wo.id}/edit`}>Edit Work Order</Link>
+            <Link className="icon-btn" to={`/work-orders/${wo.id}/edit`} title="Edit Work Order" aria-label="Edit Work Order"><Pencil size={16} strokeWidth={1.5} /></Link>
           )}
           {canEdit && wo.status === 'ANALYZED' && (
             <button className="btn" onClick={handleFinalize} disabled={finalizing}>
@@ -103,7 +105,7 @@ export default function WorkOrderDetail() {
             </button>
           )}
           {isCoder && wo.status === 'PRODUCTION' && (
-            <button className="btn" onClick={handleCompleteProduction} disabled={completing || openTaskCount > 0}>
+            <button className="btn" onClick={handleCompleteProduction} disabled={completing || openTaskCount > 0 || (needsDocs && documents.length === 0)} title={needsDocs && documents.length === 0 ? 'Documentation files are required before completing' : undefined}>
               {completing ? 'Completing...' : completeAllLabel}
             </button>
           )}
@@ -311,8 +313,8 @@ export default function WorkOrderDetail() {
                 </strong>
                 {canEdit && groupsEditable && (
                   <div>
-                    <button className="btn btn-secondary btn-sm" onClick={() => openEditGroup(group)}>Edit</button>{' '}
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteGroup(group.id)} disabled={group.items.length > 0}>Delete</button>
+                    <button className="icon-btn" onClick={() => openEditGroup(group)} title="Edit model" aria-label="Edit model"><Pencil size={16} strokeWidth={1.5} /></button>
+                    <button className="icon-btn icon-btn-danger" onClick={() => handleDeleteGroup(group.id)} disabled={group.items.length > 0} title="Delete model" aria-label="Delete model"><Trash2 size={16} strokeWidth={1.5} /></button>
                   </div>
                 )}
               </div>
@@ -350,8 +352,8 @@ export default function WorkOrderDetail() {
                         <td>{item.estimated_hours != null ? `${item.estimated_hours}h` : 'N/A'}</td>
                         <td><StatusBadge status={item.classification_status} stale={item.verdict_stale === true} /></td>
                         {canEdit && <td>
-                          <button className="btn btn-secondary btn-sm" onClick={() => handleEditItem(item)} disabled={wo.status !== 'DRAFT' && wo.status !== 'ANALYZED'}>Edit</button>{' '}
-                          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteItem(item.id)} disabled={wo.status !== 'DRAFT' && wo.status !== 'ANALYZED'}>Delete</button>
+                          <button className="icon-btn" onClick={() => handleEditItem(item)} disabled={wo.status !== 'DRAFT' && wo.status !== 'ANALYZED'} title="Edit item" aria-label="Edit item"><Pencil size={16} strokeWidth={1.5} /></button>
+                          <button className="icon-btn icon-btn-danger" onClick={() => handleDeleteItem(item.id)} disabled={wo.status !== 'DRAFT' && wo.status !== 'ANALYZED'} title="Delete item" aria-label="Delete item"><Trash2 size={16} strokeWidth={1.5} /></button>
                         </td>}
                       </tr>
                     ))}
@@ -373,26 +375,26 @@ export default function WorkOrderDetail() {
       {analysis && (
         <div className="panel">
           <h3>Estimation Preview</h3>
-          <div className="stats-grid">
+          <div className="stats-grid compact">
             <div className="stat">
               <div className="label">Total Items</div>
-              <div className="value">{summary.total_items}</div>
+              <div className="value">{summary.total_items} items</div>
             </div>
             <div className="stat">
               <div className="label">Firmware Items</div>
-              <div className="value">{summary.firmware_items}</div>
+              <div className="value">{summary.firmware_items} items</div>
             </div>
             <div className="stat">
               <div className="label">Non-Firmware Items</div>
-              <div className="value">{summary.non_firmware_items}</div>
+              <div className="value">{summary.non_firmware_items} items</div>
             </div>
             <div className="stat">
               <div className="label">Waiting for Review</div>
-              <div className="value">{summary.waiting_review}</div>
+              <div className="value">{summary.waiting_review} items</div>
             </div>
             <div className="stat">
               <div className="label">Total Estimated Hours</div>
-              <div className="value">{summary.total_estimated_hours}</div>
+              <div className="value">{summary.total_estimated_hours} hours</div>
             </div>
           </div>
 
@@ -421,7 +423,7 @@ export default function WorkOrderDetail() {
                   <td>{r.title}</td>
                   <td>{r.fw_related === true ? 'YES' : r.fw_related === false ? 'NO' : 'Pending'}</td>
                   <td>{r.complexity_code || '-'}</td>
-                  <td>{r.confidence_score != null ? `${r.confidence_score}%` : '-'}</td>
+                  <td>{r.confidence_score != null ? `${Number(r.confidence_score).toFixed(1)}%` : '-'}</td>
                   <td>{r.estimated_hours != null ? `${r.estimated_hours}h` : 'N/A'}</td>
                   <td>{r.quantity || '-'}</td>
                   <td><StatusBadge status={r.status} /></td>
@@ -445,7 +447,7 @@ export default function WorkOrderDetail() {
             <thead>
               <tr>
                 <th>Task Code</th>
-                <th>Item</th>
+                {/* <th>Item</th> */}
                 <th>Title</th>
                 <th>Status</th>
                 {isCoder && wo.status === 'PRODUCTION' && <th></th>}
@@ -455,7 +457,7 @@ export default function WorkOrderDetail() {
               {productionTasks.map((task) => (
                 <tr key={task.id}>
                   <td>{task.task_code}</td>
-                  <td>{task.work_order_item_id}</td>
+                  {/* <td>{task.work_order_item_id}</td> */}
                   <td>{task.title}</td>
                   <td>
                     {task.completed
@@ -510,7 +512,7 @@ export default function WorkOrderDetail() {
                     <td>
                       <a className="btn btn-secondary btn-sm" href={`/api/work-orders/${wo.id}/documents/${doc.id}/download?token=${localStorage.getItem('token')}`} target="_blank" rel="noreferrer">Download</a>
                       {isCoder && wo.status === 'PRODUCTION' && (
-                        <>{' '}<button className="btn btn-danger btn-sm" onClick={() => handleDeleteDocument(doc.id)}>Delete</button></>
+                        <>{' '}<button className="icon-btn icon-btn-danger" onClick={() => handleDeleteDocument(doc.id)} title="Delete document" aria-label="Delete document"><Trash2 size={16} strokeWidth={1.5} /></button></>
                       )}
                     </td>
                   </tr>

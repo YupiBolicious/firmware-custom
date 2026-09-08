@@ -57,11 +57,15 @@ const pool = new Pool({
     console.log(`item=${it.id} old=${oldBest.score.toFixed(2)}/${oldTier}/${agree(oldBest) ? 'ok' : 'miss'} new=${newBest.score.toFixed(2)}/bonus=${newBest.bonus >= 0 ? '+' : ''}${newBest.bonus.toFixed(2)}/${newTier}/${agree(newBest) ? 'ok' : 'miss'}${flip ? (expected ? ' EXPECTED-OVERRULED' : ' !!!UNEXPECTED-FLIP') : ''}`);
   }
 
-  const kbMerge = kb.find((k) => k.kb_code === 'KB-CODER-70');
-  const soup61 = legacy.tokenize('Mergepoint lt B');
-  const oldJ1 = jaccard(soup61, legacy.tokenize(`${kbMerge.title} ${kbMerge.keywords || ''}`));
-  const newJ1 = scorePair('Mergepoint', null, kbMerge, { machine_model_id: 1, machine_model_version_id: 1 });
-  console.log(`J1_REGRESSION [item61-SN-lt-B vs KB-CODER-70]: old_soup=${oldJ1.toFixed(2)} new_text=${newJ1.textScore.toFixed(2)} new_final=${newJ1.score.toFixed(2)}`);
+  const kbMerge = kb.find((k) => k.kb_code === 'KB-CODER-70') || kb[0];
+  if (!kbMerge) {
+    console.log('J1_REGRESSION: SKIP (empty KB)');
+  } else {
+    const soup61 = legacy.tokenize(`${kbMerge.title} lt B`);
+    const oldJ1 = jaccard(soup61, legacy.tokenize(`${kbMerge.title} ${kbMerge.keywords || ''}`));
+    const newJ1 = scorePair(kbMerge.title, null, kbMerge, { machine_model_id: 1, machine_model_version_id: 1 });
+    console.log(`J1_REGRESSION [SN-polluted vs ${kbMerge.kb_code}]: old_soup=${oldJ1.toFixed(2)} new_text=${newJ1.textScore.toFixed(2)} new_final=${newJ1.score.toFixed(2)}`);
+  }
 
   console.log(unexpected === 0 ? 'NOFLIP_CHECK: PASS (0 unexpected flips)' : `NOFLIP_CHECK: FAIL (${unexpected} unexpected flips)`);
   await pool.end();

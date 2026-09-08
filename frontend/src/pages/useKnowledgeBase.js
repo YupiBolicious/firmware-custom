@@ -119,6 +119,7 @@ export default function useKnowledgeBase() {
       setShowForm(false);
       setEditingId(null);
       setForm(emptyForm);
+      setPage(1);
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save knowledge base item');
@@ -134,6 +135,7 @@ export default function useKnowledgeBase() {
     try {
       await api.delete(`/kb/${item.id}`);
       setMessage('Knowledge base item deleted');
+      setPage(1);
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete knowledge base item');
@@ -178,6 +180,10 @@ export default function useKnowledgeBase() {
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const paginatedItems = filteredItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const resetPage = (setter) => (value) => {
     setter(value);

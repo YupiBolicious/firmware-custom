@@ -36,11 +36,15 @@ export default function CoderDashboard() {
   if (error) return <div className="alert alert-error">{error}</div>;
   if (!data) return null;
 
+  const allQueue = data?.work_queue || [];
+  const globalDone = allQueue.filter((r) => ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)).length;
+  const globalOpen = allQueue.filter((r) => r.classification_status === 'CODER_REVIEW').length;
+
   return (
     <div>
       <h1>Firmware Engineer Dashboard</h1>
 
-      {/* 1. KPI Summary */}
+      {/* 1. Personal KPI Summary */}
       <div className="stats-grid mb-16">
         <div className="stat">
           <div className="label">Items Pending Review</div>
@@ -190,58 +194,41 @@ export default function CoderDashboard() {
         )}
       </div>
 
-      {/* 2. Review Queue */}
+      {/* 3. Workload + Overall Progress */}
       <div className="panel mb-16">
-        <div className="flex justify-between align-center mb-16">
-          <h3>
-            Review Queue
-            {hasActiveFilters && (
-              <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
-                {filteredReviewQueue.length} shown
-              </span>
-            )}
-          </h3>
-          {data.review_queue.length > 0 && (
-            <Link to="/review-queue" className="btn btn-sm">Review</Link>
-          )}
+        <h3 className="mb-16">Workload</h3>
+        <div className="stats-grid">
+          <div className="stat">
+            <div className="label">Queued Hours</div>
+            <div className="value">{filteredWorkload.queued_hours.toFixed(1)}h</div>
+          </div>
+          <div className="stat">
+            <div className="label">In Progress Hours</div>
+            <div className="value">{filteredWorkload.in_progress_hours.toFixed(1)}h</div>
+          </div>
+          <div className="stat">
+            <div className="label">Completed Hours</div>
+            <div className="value" style={{ color: 'var(--success)' }}>{filteredWorkload.completed_hours.toFixed(1)}h</div>
+          </div>
+          <div className="stat">
+            <div className="label">Total Hours</div>
+            <div className="value">{(filteredWorkload.queued_hours + filteredWorkload.in_progress_hours + filteredWorkload.completed_hours).toFixed(1)}h</div>
+          </div>
         </div>
-        {filteredReviewQueue.length === 0 ? (
-          <div className="text-muted">{hasActiveFilters ? 'No review items match the current filters.' : 'No items awaiting review.'}</div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Work Orders</th>
-                <th>Custom Item</th>
-                <th>Model / Unit</th>
-                <th>Qty</th>
-                <th>Confidence</th>
-                <th>Complexity</th>
-                <th>Hours</th>
-                <th>Waiting</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredReviewQueue.map((r) => (
-                <tr key={r.item_id}>
-                  <td><Link to={`/work-orders/${r.work_order_id}`}>{r.wo_number}</Link></td>
-                  <td>{r.title}</td>
-                  <td>
-                    {[r.machine_model_code, r.machine_model_version, r.serial_number ? `SN: ${r.serial_number}` : null].filter(Boolean).join(' / ') || '-'}
-                  </td>
-                  <td>{r.quantity}</td>
-                  <td>{r.confidence_score != null ? `${r.confidence_score}%` : '-'}</td>
-                  <td>{r.complexity_code || <span className="badge badge-warning">Unassigned</span>}</td>
-                  <td>{r.estimated_hours > 0 ? `${r.estimated_hours}h` : '-'}</td>
-                  <td><RelativeTime date={r.created_at} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <h3 className="mt-16 mb-16">Overall Progress</h3>
+        <div className="stats-grid">
+          <div className="stat">
+            <div className="label">Items Completed</div>
+            <div className="value" style={{ color: 'var(--success)' }}>{globalDone}</div>
+          </div>
+          <div className="stat">
+            <div className="label">Items Open</div>
+            <div className="value" style={{ color: globalOpen > 0 ? 'var(--warning)' : undefined }}>{globalOpen}</div>
+          </div>
+        </div>
       </div>
 
-      {/* 3. Work Orders + Workload */}
+      {/* 4. Work Orders */}
       <div className="panel mb-16">
         <h3 className="mb-16">
           Work Orders
@@ -316,28 +303,59 @@ export default function CoderDashboard() {
             )}
           </>
         )}
-
-        <div className="stats-grid mt-16">
-          <div className="stat">
-            <div className="label">Queued Hours</div>
-            <div className="value">{filteredWorkload.queued_hours.toFixed(1)}h</div>
-          </div>
-          <div className="stat">
-            <div className="label">In Progress Hours</div>
-            <div className="value">{filteredWorkload.in_progress_hours.toFixed(1)}h</div>
-          </div>
-          <div className="stat">
-            <div className="label">Completed Hours</div>
-            <div className="value" style={{ color: 'var(--success)' }}>{filteredWorkload.completed_hours.toFixed(1)}h</div>
-          </div>
-          <div className="stat">
-            <div className="label">Total Hours</div>
-            <div className="value">{(filteredWorkload.queued_hours + filteredWorkload.in_progress_hours + filteredWorkload.completed_hours).toFixed(1)}h</div>
-          </div>
-        </div>
       </div>
 
-      
+      {/* 5. Review Queue */}
+      <div className="panel mb-16">
+        <div className="flex justify-between align-center mb-16">
+          <h3>
+            Review Queue
+            {hasActiveFilters && (
+              <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+                {filteredReviewQueue.length} shown
+              </span>
+            )}
+          </h3>
+          {data.review_queue.length > 0 && (
+            <Link to="/review-queue" className="btn btn-sm">Review</Link>
+          )}
+        </div>
+        {filteredReviewQueue.length === 0 ? (
+          <div className="text-muted">{hasActiveFilters ? 'No review items match the current filters.' : 'No items awaiting review.'}</div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Work Orders</th>
+                <th>Custom Item</th>
+                <th>Model / Unit</th>
+                <th>Qty</th>
+                <th>Confidence</th>
+                <th>Complexity</th>
+                <th>Hours</th>
+                <th>Waiting</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredReviewQueue.map((r) => (
+                <tr key={r.item_id}>
+                  <td><Link to={`/work-orders/${r.work_order_id}`}>{r.wo_number}</Link></td>
+                  <td>{r.title}</td>
+                  <td>
+                    {[r.machine_model_code, r.machine_model_version, r.serial_number ? `SN: ${r.serial_number}` : null].filter(Boolean).join(' / ') || '-'}
+                  </td>
+                  <td>{r.quantity}</td>
+                  <td>{r.confidence_score != null ? `${r.confidence_score}%` : '-'}</td>
+                  <td>{r.complexity_code || <span className="badge badge-warning">Unassigned</span>}</td>
+                  <td>{r.estimated_hours > 0 ? `${r.estimated_hours}h` : '-'}</td>
+                  <td><RelativeTime date={r.created_at} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
 
       {/* 6. Workload Trend */}
       <div className="panel mb-16">
@@ -379,7 +397,7 @@ export default function CoderDashboard() {
         )}
       </div>
 
-      {/* 4+5. Recent Activity & New Work Orders — side by side */}
+      {/* 7. Recent Activity & New Work Orders — side by side */}
       <div className="split-2">
         <div className="panel panel-accent-amber">
           <h3 className="mb-16">Recent Activity</h3>
