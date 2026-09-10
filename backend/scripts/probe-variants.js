@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 const { scorePair } = require('../src/services/classificationService');
+const { AUTO_FLOOR, SIM_FLOOR } = require('./scoring-tiers');
 const policy = require('../src/utils/tokenPolicy');
 
 const pool = new Pool({
@@ -23,7 +24,7 @@ const pool = new Pool({
       const r = scorePair(sample, '', k, ctx);
       if (!best || r.score > best.score) best = { kb: k.kb_code, ...r };
     }
-    const tier = best.score >= 0.6 ? 'AUTO' : (best.score >= 0.35 ? 'REVIEW-SUGGEST' : 'REVIEW-NEW');
+    const tier = best.score >= AUTO_FLOOR ? 'AUTO' : (best.score >= SIM_FLOOR ? 'REVIEW-SUGGEST' : 'REVIEW-NEW');
     console.log(`"${sample}" -> ${best.kb} full=${best.fullScore.toFixed(2)} title=${best.titleScore.toFixed(2)} final=${best.score.toFixed(2)} ${tier}`);
   }
   for (const sample of [['Merge Points', 'Add mergepoints operational']]) {
@@ -33,7 +34,7 @@ const pool = new Pool({
       const r = scorePair(sample[0], sample[1], k, ctx);
       if (!best || r.score > best.score) best = { kb: k.kb_code, ...r };
     }
-    const tier = best.score >= 0.6 ? 'AUTO' : (best.score >= 0.35 ? 'REVIEW-SUGGEST' : 'REVIEW-NEW');
+    const tier = best.score >= AUTO_FLOOR ? 'AUTO' : (best.score >= SIM_FLOOR ? 'REVIEW-SUGGEST' : 'REVIEW-NEW');
     console.log(`"${sample[0]}" + desc "${sample[1]}" -> ${best.kb} full=${best.fullScore.toFixed(2)} title=${best.titleScore.toFixed(2)} final=${best.score.toFixed(2)} ${tier}`);
   }
   await pool.end();

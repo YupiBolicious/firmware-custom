@@ -62,4 +62,27 @@ ok(policy.diceBigram('Merge Points', 'Mergepoint') > 0.6, 'dice plural compound 
 ok(policy.diceBigram('add', 'aid') === 0, 'dice short strings guarded');
 ok(policy.diceBigram('Quantum flux deflector', 'Mergepoint') < 0.35, 'dice unrelated stays low');
 
+const codesOf = (s) => [...policy.extractCodeTokens(s)];
+eq(codesOf('AX-200 controller'), ['ax200'], 'code: hyphenated model');
+eq(codesOf('SS304'), ['ss304'], 'code: letter-digit combo');
+eq(codesOf('v1.0'), ['v10'], 'code: version format');
+eq(codesOf('75mm'), ['75mm'], 'code: measurement with unit');
+eq(codesOf('0.55 m/s'), ['055', 'ms'], 'code: decimal value splits to value + unit');
+eq(codesOf('2'), [], 'not code: short pure digits (quantity)');
+eq(codesOf('861'), [], 'not code: 3-digit pure digits');
+eq(codesOf('a'), [], 'not code: single letter');
+eq(codesOf('controller'), [], 'not code: plain word');
+eq(codesOf('21334'), [], 'not code: pure digits even when long (documented exclusion)');
+
+const gate = (a, b) => policy.checkCodeAgreement(policy.extractCodeTokens(a), policy.extractCodeTokens(b));
+ok(gate('AX-200 controller', 'AX-200 controller').pass, 'gate: identical codes pass');
+ok(!gate('AX-200 controller', 'AX-201 controller').pass, 'gate: differing codes fail');
+eq(gate('AX-200 controller', 'AX-201 controller').reasons, ['MODEL_CODE_MISMATCH'], 'gate: model reason');
+eq(gate('v1.0 firmware', 'v2.0 firmware').reasons, ['VERSION_MISMATCH'], 'gate: version reason');
+eq(gate('SN21334 unit', 'SN99999 unit').reasons, ['SERIAL_MISMATCH'], 'gate: serial reason');
+eq(gate('75mm bracket', '80mm bracket').reasons, ['MEASUREMENT_MISMATCH'], 'gate: measurement reason');
+ok(gate('AX-200 controller', 'controller unit').pass, 'gate: generic KB row without codes stays allowed');
+ok(gate('plain text here', 'other plain text').pass, 'gate: codeless pairs unaffected');
+eq(policy.checkCodeAgreement(new Set(['ax200']), new Set(['ax200'])).failed, [], 'gate: no failures listed on pass');
+
 console.log(`token-policy-check: OK (${n} assertions)`);

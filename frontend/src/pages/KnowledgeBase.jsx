@@ -278,6 +278,7 @@ export default function KnowledgeBase() {
                   borderRadius: 4,
                   fontWeight: 600,
                   backgroundColor: testResult.verdict === 'EXACT_MATCH' ? '#166534'
+                    : testResult.verdict === 'LEXICAL_SIMILARITY' ? '#854d0e'
                     : testResult.verdict === 'SIMILARITY' ? '#854d0e'
                     : testResult.verdict === 'NON_FIRMWARE' ? '#6b21a8' : '#555',
                   color: '#fff',

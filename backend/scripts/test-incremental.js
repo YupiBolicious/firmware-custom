@@ -25,9 +25,12 @@ const item = (title, desc) => ({
 
   // Single-item classification through explicit refs (no DB in scorer)
   const refs = { kbItems: a.rows, rules: [] };
-  const single = await classifyItem(item('Emergency stop button', ''), refs);
-  ok(single.classification_method === 'EXACT_MATCH', 'single: exact match method');
+  const single = await classifyItem(item('Emergency stop button', 'Emergency stop button'), refs);
+  eq(single.classification_method, 'EXACT_MATCH', 'single: deterministic identity -> EXACT_MATCH');
   ok(single.kb_item_id != null, 'single: kb reference attached');
+  const nearDup = await classifyItem(item('Emergency stop button', ''), refs);
+  eq(nearDup.classification_method, 'LEXICAL_SIMILARITY', 'single: near-duplicate -> LEXICAL_SIMILARITY');
+  eq(nearDup.status, 'CLASSIFIED', 'single: routing unchanged (still auto-classified)');
 
   // Multiple dirty items share one prep (batch): builds counter must not move
   const s2 = kbCache.cacheStats();

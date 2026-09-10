@@ -15,7 +15,7 @@ const pool = new Pool({
 
 const parity = process.argv.includes('--parity');
 
-const tierOf = (score) => (score >= 0.6 ? 'AUTO' : (score >= 0.35 ? 'SUGGEST' : 'NEW'));
+const { tierOf } = require('./scoring-tiers');
 const tierOk = (expect, actual) => (expect === 'REVIEW' ? actual !== 'AUTO' : expect === actual);
 
 (async () => {

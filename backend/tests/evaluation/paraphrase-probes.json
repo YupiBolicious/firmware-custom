@@ -1,0 +1,16 @@
+[
+  { "id": "PP-01", "title": "Kill switch for crisis shutdown", "expectedKb": "KB-1004", "expectedLevel": "L2" },
+  { "id": "PP-02", "title": "E-stop with cable harness installed", "expectedKb": "KB-1008", "expectedLevel": "L2" },
+  { "id": "PP-03", "title": "Gas line electromagnetic shutoff valve", "expectedKb": "KB-1023", "expectedLevel": "L2" },
+  { "id": "PP-04", "title": "Potable water outlet point", "expectedKb": "KB-1024", "expectedLevel": "L2" },
+  { "id": "PP-05", "title": "Building management alarm hookup", "expectedKb": "KB-1006", "expectedLevel": "L3" },
+  { "id": "PP-06", "title": "Lone volt-free contact spanning every alarm", "expectedKb": "KB-1017", "expectedLevel": "L3" },
+  { "id": "PP-07", "title": "Volt-free contact pair", "expectedKb": "KB-1009", "expectedLevel": "L3" },
+  { "id": "PP-08", "title": "Power-driven sliding glass panel", "expectedKb": "KB-1005", "expectedLevel": "L4" },
+  { "id": "PP-09", "title": "Twin sensor hookup for dust monitor and atmosphere sampler", "expectedKb": "KB-1010", "expectedLevel": "L4" },
+  { "id": "PP-10", "title": "Adjust supply air volume target", "expectedKb": "KB-1011", "expectedLevel": "L4" },
+  { "id": "PP-11", "title": "Merging sample lines and dust counters into one assembly", "expectedKb": "KB-1012", "expectedLevel": "L4" },
+  { "id": "PP-12", "title": "Milliamp loop wiring", "expectedKb": "KB-1014", "expectedLevel": "L4" },
+  { "id": "PP-13", "title": "Shatterproof glazing sheet for luminaire", "expectedKb": "KB-1003", "expectedLevel": "L0" },
+  { "id": "PP-14", "title": "Waterproof luminaire housing", "expectedKb": "KB-1002", "expectedLevel": "L0" }
+]

@@ -1,0 +1,2076 @@
+{
+  "cases": 98,
+  "results": [
+    {
+      "id": "probe-1",
+      "input": {
+        "id": "probe-1",
+        "title": "Mergepoint",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "probe-2",
+      "input": {
+        "id": "probe-2",
+        "title": "Merge Point",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "SIMILARITY",
+        "confidence_score": null,
+        "classification_reason": "Similar to knowledge base item KB-1011 (similarity 39%). Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": 11,
+        "match_score": 0.3870967741935484
+      }
+    },
+    {
+      "id": "probe-3",
+      "input": {
+        "id": "probe-3",
+        "title": "mergepoints",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "probe-4",
+      "input": {
+        "id": "probe-4",
+        "title": "Merge Points",
+        "description": "Add mergepoints operational",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "SIMILARITY",
+        "confidence_score": null,
+        "classification_reason": "Similar to knowledge base item KB-1011 (similarity 38%). Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": 11,
+        "match_score": 0.375
+      }
+    },
+    {
+      "id": "probe-5",
+      "input": {
+        "id": "probe-5",
+        "title": "IP65 LED Lighting Fixture",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1002 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 2,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "probe-6",
+      "input": {
+        "id": "probe-6",
+        "title": "IP65 LED light fixture",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 88.88888888888889,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1002 (similarity 89%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 2,
+        "match_score": 0.8888888888888888
+      }
+    },
+    {
+      "id": "probe-7",
+      "input": {
+        "id": "probe-7",
+        "title": "LED panel light",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "SIMILARITY",
+        "confidence_score": null,
+        "classification_reason": "Similar to knowledge base item KB-1003 (similarity 43%). Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": 3,
+        "match_score": 0.43137254901960786
+      }
+    },
+    {
+      "id": "probe-8",
+      "input": {
+        "id": "probe-8",
+        "title": "Halogen floodlight",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "probe-9",
+      "input": {
+        "id": "probe-9",
+        "title": "Impact resistant glass panel for light",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1003 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 3,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "probe-10",
+      "input": {
+        "id": "probe-10",
+        "title": "Impact-resistant glass panels",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 83.07692307692308,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1003 (similarity 83%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 3,
+        "match_score": 0.8307692307692308
+      }
+    },
+    {
+      "id": "probe-11",
+      "input": {
+        "id": "probe-11",
+        "title": "glass panel",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 42.5531914893617,
+        "classification_reason": "Unique coverage: all item keywords found only in knowledge base item KB-1003 (similarity 43%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 3,
+        "match_score": 0.425531914893617
+      }
+    },
+    {
+      "id": "probe-12",
+      "input": {
+        "id": "probe-12",
+        "title": "fiber glass custom unit",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "probe-13",
+      "input": {
+        "id": "probe-13",
+        "title": "Emergency stop button",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1004 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 4,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "probe-14",
+      "input": {
+        "id": "probe-14",
+        "title": "Emergency stop buttons",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1004 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 4,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "probe-15",
+      "input": {
+        "id": "probe-15",
+        "title": "E-stop pushbutton",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "SIMILARITY",
+        "confidence_score": null,
+        "classification_reason": "Similar to knowledge base item KB-1004 (similarity 56%). Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": 4,
+        "match_score": 0.5555555555555556
+      }
+    },
+    {
+      "id": "probe-16",
+      "input": {
+        "id": "probe-16",
+        "title": "emergency stop customization",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 68.08510638297872,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1004 (similarity 68%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 4,
+        "match_score": 0.6808510638297872
+      }
+    },
+    {
+      "id": "probe-17",
+      "input": {
+        "id": "probe-17",
+        "title": "Motorized Sash Window",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1005 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 5,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "probe-18",
+      "input": {
+        "id": "probe-18",
+        "title": "Motorised sash windows",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 87.8048780487805,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1005 (similarity 88%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 5,
+        "match_score": 0.8780487804878049
+      }
+    },
+    {
+      "id": "probe-19",
+      "input": {
+        "id": "probe-19",
+        "title": "sliding window frame",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "probe-20",
+      "input": {
+        "id": "probe-20",
+        "title": "Quantum flux deflector calibration",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "probe-21",
+      "input": {
+        "id": "probe-21",
+        "title": "Change alarm setpoint configuration",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "SIMILARITY",
+        "confidence_score": null,
+        "classification_reason": "Similar to knowledge base item KB-1011 (similarity 55%). Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": 11,
+        "match_score": 0.5454545454545454
+      }
+    },
+    {
+      "id": "BIZ-001",
+      "input": {
+        "id": "BIZ-001",
+        "title": "TEL VAV Controller",
+        "description": "TEL VAV Controller",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1001 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 1,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-002",
+      "input": {
+        "id": "BIZ-002",
+        "title": "IP65 LED Lighting Fixture",
+        "description": "IP65 LED Lighting Fixture",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1002 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 2,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-003",
+      "input": {
+        "id": "BIZ-003",
+        "title": "Impact resistant glass panel for light",
+        "description": "Impact resistant glass panel for light",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 98,
+        "classification_reason": "Exact match with knowledge base item KB-1003 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 3,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-004",
+      "input": {
+        "id": "BIZ-004",
+        "title": "Emergency stop button",
+        "description": "Emergency stop button",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 98,
+        "classification_reason": "Exact match with knowledge base item KB-1004 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 4,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-005",
+      "input": {
+        "id": "BIZ-005",
+        "title": "Motorized Sash Window",
+        "description": "Motorized Sash Window",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 98,
+        "classification_reason": "Exact match with knowledge base item KB-1005 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 5,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-006",
+      "input": {
+        "id": "BIZ-006",
+        "title": "BMS alarm connection",
+        "description": "Connection to BMS alarm (zero volt relay).",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 4,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1006 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 6,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-007",
+      "input": {
+        "id": "BIZ-007",
+        "title": "UV Lamp Provision",
+        "description": "Remove UV lamp provision",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 4,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1007 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 7,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-008",
+      "input": {
+        "id": "BIZ-008",
+        "title": "Emergency stop button with wiring",
+        "description": "Emergency stop button with wiring",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1008 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 8,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-009",
+      "input": {
+        "id": "BIZ-009",
+        "title": "Dry contact",
+        "description": "zero vault relay for 3 PEMS lights and 1 buzzer",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 4,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1009 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 9,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-010",
+      "input": {
+        "id": "BIZ-010",
+        "title": "Probes integration for particle counter and air sampler",
+        "description": "integration of 2 probes for particle counter and air sampler",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1010 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 10,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-011",
+      "input": {
+        "id": "BIZ-011",
+        "title": "Change inflow setpoint",
+        "description": "change inflow setpoint to 0.55 m/s",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1011 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 11,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-012",
+      "input": {
+        "id": "BIZ-012",
+        "title": "Integration of air sampler and particle counter",
+        "description": "integration of air sampler and particle counter has a smooth bore per ISO/TR",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1012 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 12,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-013",
+      "input": {
+        "id": "BIZ-013",
+        "title": "Worktop upgrade",
+        "description": "customized worktop upgrade from SS304 to Epoxy Resin",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1013 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 13,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-014",
+      "input": {
+        "id": "BIZ-014",
+        "title": "4-20 mA connection",
+        "description": "4-20 mA connection",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1014 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 14,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-015",
+      "input": {
+        "id": "BIZ-015",
+        "title": "SS-304 Cabinet construction",
+        "description": "SS-304 cabinet construction",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1015 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 15,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-016",
+      "input": {
+        "id": "BIZ-016",
+        "title": "SS-304 support stand",
+        "description": "SS-304 support stand",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1016 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 16,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-017",
+      "input": {
+        "id": "BIZ-017",
+        "title": "Single dry contact for all sentinel alarm",
+        "description": "single dry contact for all sentinel alarm",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 4,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1017 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 17,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-018",
+      "input": {
+        "id": "BIZ-018",
+        "title": "SS361L Ceiling enclosure with removable front panel",
+        "description": "SS361L Ceiling enclosure with removable front panel",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1018 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 18,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-019",
+      "input": {
+        "id": "BIZ-019",
+        "title": "Ethernet Ports",
+        "description": "4 ethernet ports (2pcs on each side)",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1019 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 19,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-020",
+      "input": {
+        "id": "BIZ-020",
+        "title": "remove fan/blower switches",
+        "description": "remove fan/blower switches",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1020 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 20,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-021",
+      "input": {
+        "id": "BIZ-021",
+        "title": "manual damper SS316L",
+        "description": "manual damper SS316L",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1021 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 21,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-022",
+      "input": {
+        "id": "BIZ-022",
+        "title": "LED light minimum 861 LUX",
+        "description": "LED light minimum 861 LUX",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1022 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 22,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-023",
+      "input": {
+        "id": "BIZ-023",
+        "title": "Solenoid valve for the gas fixture",
+        "description": "solenoid valve for the gas fixture on the right side wall, back provision",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1023 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 23,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-024",
+      "input": {
+        "id": "BIZ-024",
+        "title": "Water service fixture",
+        "description": "water service fixture is on left side, back provision",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1024 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 24,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-025",
+      "input": {
+        "id": "BIZ-025",
+        "title": "RJ45",
+        "description": "RJ45",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1025 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 25,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-026",
+      "input": {
+        "id": "BIZ-026",
+        "title": "Cable port",
+        "description": "75mm diameter cable port (left and right)",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1026 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 26,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-027",
+      "input": {
+        "id": "BIZ-027",
+        "title": "USB port",
+        "description": "USB port",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1027 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 27,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-028",
+      "input": {
+        "id": "BIZ-028",
+        "title": "UV Lamp",
+        "description": "UV lamp",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1028 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 28,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-029",
+      "input": {
+        "id": "BIZ-029",
+        "title": "vav controller tel",
+        "description": "TEL VAV Controller",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1001 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 1,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-030",
+      "input": {
+        "id": "BIZ-030",
+        "title": "ip65 led lighting",
+        "description": "IP65 LED Lighting Fixture",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1002 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 2,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-031",
+      "input": {
+        "id": "BIZ-031",
+        "title": "resistant glass panel for light impact",
+        "description": "Impact resistant glass panel for light",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1003 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 3,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-032",
+      "input": {
+        "id": "BIZ-032",
+        "title": "emergency stop",
+        "description": "Emergency stop button",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1004 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 4,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-033",
+      "input": {
+        "id": "BIZ-033",
+        "title": "sash window motorized",
+        "description": "Motorized Sash Window",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1005 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 5,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-034",
+      "input": {
+        "id": "BIZ-034",
+        "title": "bms alarm",
+        "description": "Connection to BMS alarm (zero volt relay).",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 4,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1006 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 6,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-035",
+      "input": {
+        "id": "BIZ-035",
+        "title": "lamp provision uv",
+        "description": "Remove UV lamp provision",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 4,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1007 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 7,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-036",
+      "input": {
+        "id": "BIZ-036",
+        "title": "emergency stop button with",
+        "description": "Emergency stop button with wiring",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1004 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 4,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-037",
+      "input": {
+        "id": "BIZ-037",
+        "title": "contact dry",
+        "description": "zero vault relay for 3 PEMS lights and 1 buzzer",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 4,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1009 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 9,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-038",
+      "input": {
+        "id": "BIZ-038",
+        "title": "probes integration for particle counter and air",
+        "description": "integration of 2 probes for particle counter and air sampler",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1010 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 10,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-039",
+      "input": {
+        "id": "BIZ-039",
+        "title": "inflow setpoint change",
+        "description": "change inflow setpoint to 0.55 m/s",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1011 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 11,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-040",
+      "input": {
+        "id": "BIZ-040",
+        "title": "integration of air sampler and particle",
+        "description": "integration of air sampler and particle counter has a smooth bore per ISO/TR",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1012 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 12,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-041",
+      "input": {
+        "id": "BIZ-041",
+        "title": "upgrade worktop",
+        "description": "customized worktop upgrade from SS304 to Epoxy Resin",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1013 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 13,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-042",
+      "input": {
+        "id": "BIZ-042",
+        "title": "4 20 ma",
+        "description": "4-20 mA connection",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1014 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 14,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-043",
+      "input": {
+        "id": "BIZ-043",
+        "title": "304 cabinet construction ss",
+        "description": "SS-304 cabinet construction",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1015 (similarity 92%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 15,
+        "match_score": 0.9230769230769231
+      }
+    },
+    {
+      "id": "BIZ-044",
+      "input": {
+        "id": "BIZ-044",
+        "title": "ss 304 support",
+        "description": "SS-304 support stand",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 81.25,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1016 (similarity 81%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 16,
+        "match_score": 0.8125
+      }
+    },
+    {
+      "id": "BIZ-045",
+      "input": {
+        "id": "BIZ-045",
+        "title": "dry contact for all sentinel alarm single",
+        "description": "single dry contact for all sentinel alarm",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 4,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1017 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 17,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-046",
+      "input": {
+        "id": "BIZ-046",
+        "title": "ss361l ceiling enclosure with removable front",
+        "description": "SS361L Ceiling enclosure with removable front panel",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1018 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 18,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-047",
+      "input": {
+        "id": "BIZ-047",
+        "title": "ports ethernet",
+        "description": "4 ethernet ports (2pcs on each side)",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1019 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 19,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-048",
+      "input": {
+        "id": "BIZ-048",
+        "title": "remove fan blower",
+        "description": "remove fan/blower switches",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1020 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 20,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-049",
+      "input": {
+        "id": "BIZ-049",
+        "title": "damper ss316l manual",
+        "description": "manual damper SS316L",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1021 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 21,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-050",
+      "input": {
+        "id": "BIZ-050",
+        "title": "led light minimum 861",
+        "description": "LED light minimum 861 LUX",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1022 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 22,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-051",
+      "input": {
+        "id": "BIZ-051",
+        "title": "valve for the gas fixture solenoid",
+        "description": "solenoid valve for the gas fixture on the right side wall, back provision",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1023 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 23,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-052",
+      "input": {
+        "id": "BIZ-052",
+        "title": "water service",
+        "description": "water service fixture is on left side, back provision",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1024 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 24,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-053",
+      "input": {
+        "id": "BIZ-053",
+        "title": "RJ45",
+        "description": "RJ45",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1025 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 25,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-054",
+      "input": {
+        "id": "BIZ-054",
+        "title": "Cable port",
+        "description": "75mm diameter cable port (left and right)",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1026 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 26,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-055",
+      "input": {
+        "id": "BIZ-055",
+        "title": "port usb",
+        "description": "USB port",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1027 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 27,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-056",
+      "input": {
+        "id": "BIZ-056",
+        "title": "UV Lamp",
+        "description": "UV lamp",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1028 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 28,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-057",
+      "input": {
+        "id": "BIZ-057",
+        "title": "Display screen text update",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "BIZ-058",
+      "input": {
+        "id": "BIZ-058",
+        "title": "Boot loop failure on startup",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "BIZ-059",
+      "input": {
+        "id": "BIZ-059",
+        "title": "Fails to start, restarts repeatedly",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "BIZ-060",
+      "input": {
+        "id": "BIZ-060",
+        "title": "Quantum flux deflector calibration",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "BIZ-061",
+      "input": {
+        "id": "BIZ-061",
+        "title": "Halogen floodlight retrofit kit",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "BIZ-062",
+      "input": {
+        "id": "BIZ-062",
+        "title": "Sliding window frame replacement",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "SIMILARITY",
+        "confidence_score": null,
+        "classification_reason": "Similar to knowledge base item KB-1018 (similarity 37%). Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": 18,
+        "match_score": 0.37037037037037035
+      }
+    },
+    {
+      "id": "BIZ-063",
+      "input": {
+        "id": "BIZ-063",
+        "title": "Hydraulic lift cylinder reseal",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "BIZ-064",
+      "input": {
+        "id": "BIZ-064",
+        "title": "button emergency stop",
+        "description": "Overlaps KB-1004 and KB-1008",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1004 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 4,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-065",
+      "input": {
+        "id": "BIZ-065",
+        "title": "relay zero",
+        "description": "Overlaps KB-1006 and KB-1009",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "BIZ-066",
+      "input": {
+        "id": "BIZ-066",
+        "title": "counter integration particle sampler",
+        "description": "Overlaps KB-1010 and KB-1012",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 83.9506172839506,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1012 (similarity 84%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 12,
+        "match_score": 0.8395061728395061
+      }
+    },
+    {
+      "id": "BIZ-067",
+      "input": {
+        "id": "BIZ-067",
+        "title": "back fixture provision side",
+        "description": "Overlaps KB-1023 and KB-1024",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "SIMILARITY",
+        "confidence_score": null,
+        "classification_reason": "Similar to knowledge base item KB-1024 (similarity 57%). Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": 24,
+        "match_score": 0.5714285714285714
+      }
+    },
+    {
+      "id": "BIZ-068",
+      "input": {
+        "id": "BIZ-068",
+        "title": "TEL VAV Controller",
+        "description": "TEL VAV Controller",
+        "quantity": 1,
+        "machine_model_id": null,
+        "machine_model_version_id": null
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1001 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 1,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-069",
+      "input": {
+        "id": "BIZ-069",
+        "title": "IP65 LED Lighting Fixture",
+        "description": "IP65 LED Lighting Fixture",
+        "quantity": 1,
+        "machine_model_id": null,
+        "machine_model_version_id": null
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 90,
+        "classification_reason": "Exact match with knowledge base item KB-1002 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 2,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-070",
+      "input": {
+        "id": "BIZ-070",
+        "title": "Impact resistant glass panel for light",
+        "description": "Impact resistant glass panel for light",
+        "quantity": 1,
+        "machine_model_id": null,
+        "machine_model_version_id": null
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 98,
+        "classification_reason": "Exact match with knowledge base item KB-1003 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 3,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-071",
+      "input": {
+        "id": "BIZ-071",
+        "title": "Emergency stop button",
+        "description": "Emergency stop button",
+        "quantity": 1,
+        "machine_model_id": null,
+        "machine_model_version_id": null
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 98,
+        "classification_reason": "Exact match with knowledge base item KB-1004 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 4,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "BIZ-072",
+      "input": {
+        "id": "BIZ-072",
+        "title": "Motorized Sash Window",
+        "description": "Motorized Sash Window",
+        "quantity": 1,
+        "machine_model_id": null,
+        "machine_model_version_id": null
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 5,
+        "classification_method": "EXACT_MATCH",
+        "confidence_score": 98,
+        "classification_reason": "Exact match with knowledge base item KB-1005 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 5,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "edge-empty-title",
+      "input": {
+        "id": "edge-empty-title",
+        "title": "",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": null,
+        "machine_model_version_id": null
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "edge-null-desc",
+      "input": {
+        "id": "edge-null-desc",
+        "title": "Emergency stop button",
+        "description": null,
+        "quantity": 1,
+        "machine_model_id": null,
+        "machine_model_version_id": null
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 98,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1004 (similarity 100%)",
+        "status": "CLASSIFIED",
+        "kb_item_id": 4,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "edge-no-model",
+      "input": {
+        "id": "edge-no-model",
+        "title": "TEL VAV Controller",
+        "description": "",
+        "quantity": 1
+      },
+      "output": {
+        "fw_related": false,
+        "complexity_level_id": null,
+        "classification_method": "LEXICAL_SIMILARITY",
+        "confidence_score": 90,
+        "classification_reason": "Strong lexical match with knowledge base item KB-1001 (similarity 100%)",
+        "status": "NON_FIRMWARE",
+        "kb_item_id": 1,
+        "match_score": 1
+      }
+    },
+    {
+      "id": "edge-unicode",
+      "input": {
+        "id": "edge-unicode",
+        "title": "Δοκιμή контроллер テスト",
+        "description": "emoji 🔧 test",
+        "quantity": 3,
+        "machine_model_id": 2,
+        "machine_model_version_id": 5
+      },
+      "output": {
+        "fw_related": null,
+        "complexity_level_id": null,
+        "classification_method": "MANUAL",
+        "confidence_score": null,
+        "classification_reason": "No exact or rule match found. Requires coder review.",
+        "status": "CODER_REVIEW",
+        "kb_item_id": null,
+        "rule_id": null,
+        "match_score": 0
+      }
+    },
+    {
+      "id": "edge-long",
+      "input": {
+        "id": "edge-long",
+        "title": "alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change alarm setpoint configuration change",
+        "description": "",
+        "quantity": 1,
+        "machine_model_id": 1,
+        "machine_model_version_id": 1
+      },
+      "output": {
+        "fw_related": true,
+        "complexity_level_id": 3,
+        "classification_method": "RULE",
+        "confidence_score": 96,
+        "classification_reason": "Matched rule RULE-L2-ALARM (keyword: \"alarm setpoint\")",
+        "status": "CLASSIFIED",
+        "rule_id": 5,
+        "match_score": 0.96
+      }
+    }
+  ]
+}

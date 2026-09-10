@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 require('dotenv').config();
+const { AUTO_FLOOR, SIM_FLOOR } = require('./scoring-tiers');
 const legacy = require('../src/utils/textUtils');
 const { scorePair, jaccard } = require('../src/services/classificationService');
 const policy = require('../src/utils/tokenPolicy');
@@ -49,8 +50,8 @@ const pool = new Pool({
     }
     const agree = (b) => b.kb && b.kb.fw_related === it.true_fw &&
       ((b.kb.complexity_level_id || null) === (it.true_cx || null));
-    const oldTier = oldBest.score >= 0.6 ? 'AUTO' : (oldBest.score >= 0.35 ? 'SIM' : 'REVIEW');
-    const newTier = newBest.score >= 0.6 ? 'AUTO' : (newBest.score >= 0.35 ? 'SIM' : 'REVIEW');
+    const oldTier = oldBest.score >= AUTO_FLOOR ? 'AUTO' : (oldBest.score >= SIM_FLOOR ? 'SIM' : 'REVIEW');
+    const newTier = newBest.score >= AUTO_FLOOR ? 'AUTO' : (newBest.score >= SIM_FLOOR ? 'SIM' : 'REVIEW');
     const flip = agree(oldBest) && oldTier === 'AUTO' && !(agree(newBest) && newTier === 'AUTO');
     const expected = overruled.has(it.id);
     if (flip && !expected) unexpected++;

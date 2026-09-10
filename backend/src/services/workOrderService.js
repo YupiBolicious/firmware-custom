@@ -5,6 +5,7 @@ const userRepository = require('../repositories/userRepository');
 const machineModelRepository = require('../repositories/machineModelRepository');
 const classificationRepository = require('../repositories/classificationRepository');
 const classificationService = require('../services/classificationService');
+const classifyFlow = require('../services/classifyFlow');
 const kbCache = require('../services/kbCache');
 const kbRepository = require('../repositories/kbRepository');
 const estimationRepository = require('../repositories/estimationRepository');
@@ -438,6 +439,8 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     itemsTotal: items.length,
     itemsScored: 0,
     scoreMs: 0,
+    semanticMs: 0,
+    semanticHits: 0,
     writeMs: 0,
   };
   const levels = await estimationRepository.findAllLevels?.() ?? [];
@@ -481,6 +484,8 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       && item.input_hash === hash
       && Number(item.kb_version) === Number(kbVersion);
     let classification;
+    let itemSemantic = null;
+    let itemAssist = null;
     if (reusable) {
       classification = {
         fw_related: item.fw_related,
@@ -494,9 +499,16 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       };
     } else {
       const tScore = Date.now();
-      classification = await classificationService.classifyItem(item, refs);
+      const flowed = await classifyFlow.classifyFlow(item, refs);
+      classification = flowed.result;
+      itemSemantic = flowed.semantic;
+      itemAssist = flowed.assist || null;
       perf.scoreMs += Date.now() - tScore;
       perf.itemsScored++;
+      if (flowed.semantic) {
+        perf.semanticMs += flowed.semantic.totalMs || 0;
+        perf.semanticHits++;
+      }
     }
 
     if (classification.status === 'CODER_REVIEW' && item.classification_status !== 'CODER_REVIEW') {
@@ -520,6 +532,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     if (classification.kb_item_id || classification.rule_id) {
       const matchType =
         classification.classification_method === 'EXACT_MATCH' ? 'EXACT'
+        : classification.classification_method === 'LEXICAL_SIMILARITY' ? 'EXACT'
         : classification.classification_method === 'SIMILARITY' ? 'SIMILARITY'
         : 'RULE';
       await classificationRepository.createMatch({
@@ -566,6 +579,8 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         ? Number(estimation.breakdown.verification_mh)
           + Number(estimation.breakdown.other_mh) * (item.quantity || 1)
         : null,
+      semantic: itemSemantic,
+      semantic_suggestion: itemAssist,
       estimation_breakdown: estimation && estimation.breakdown ? {
         verification_mh: Number(estimation.breakdown.verification_mh),
         other_mh: Number(estimation.breakdown.other_mh),

@@ -1,0 +1,9 @@
+{
+  "notes": "Semantic code-identity probes. Separate from the 21-probe lexical gate (probe-set.json), which stays frozen. CF-01 asserts the gate mechanism fires; CF-02 documents the substring-containment case codes cannot cover (guardrail: fail if a future model scores it >= 0.90); CF-03/CF-04 are positive controls against over-blocking.",
+  "probes": [
+    { "id": "CF-01", "a": "AX-200 controller", "b": "AX-201 controller", "expect": "reject", "note": "near-identical codes must never be auto-acceptable" },
+    { "id": "CF-02", "a": "glass panel", "b": "Add Glassdoor Panel", "expect": "monitor", "max_score": 0.9, "note": "no code tokens involved; protection is the margin gate + this alert line, not the code gate" },
+    { "id": "CF-03", "a": "Emergency stop buttons", "b": "Emergency stop button", "expect": "allow", "note": "legitimate variant must pass the gate" },
+    { "id": "CF-04", "a": "Motorised sash windows", "b": "Motorized Sash Window", "expect": "allow", "note": "legitimate variant must pass the gate" }
+  ]
+}

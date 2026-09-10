@@ -1,5 +1,6 @@
 const { Pool } = require('pg');
 require('dotenv').config();
+const { AUTO_FLOOR } = require('./scoring-tiers');
 const legacy = require('../src/utils/textUtils');
 const policy = require('../src/utils/tokenPolicy');
 
@@ -54,8 +55,8 @@ const jaccard = (a, b) => {
     }
     const d = bestNew - bestOld;
     if (Math.abs(d) < 1e-9) same++;
-    else if (d > 0) { up++; if (bestOld < 0.6 && bestNew >= 0.6) crossUp++; }
-    else { down++; if (bestOld >= 0.6 && bestNew < 0.6) crossDown++; }
+    else if (d > 0) { up++; if (bestOld < AUTO_FLOOR && bestNew >= AUTO_FLOOR) crossUp++; }
+    else { down++; if (bestOld >= AUTO_FLOOR && bestNew < AUTO_FLOOR) crossDown++; }
   }
   console.log(`ITEMS_SCORED: ${items.length} (KB size: ${kb.length})`);
   console.log(`BEST_SCORE_SHIFT: up=${up} down=${down} same=${same}`);

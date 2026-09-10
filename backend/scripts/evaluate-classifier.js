@@ -14,12 +14,12 @@ const pool = new Pool({
   password: process.env.PGPASSWORD,
 });
 
-const tierOf = (score) => (score >= 0.6 ? 'AUTO' : (score >= 0.35 ? 'SUGGEST' : 'NEW'));
+const { tierOf, AUTO_FLOOR, SIM_FLOOR } = require('./scoring-tiers');
 
 const suggestCategory = (pred, expectedCode) => {
   const score = Number(pred.match_score) || 0;
   if (pred.status === 'CODER_REVIEW' && score <= 0) return 'missing_kb_entry (auto-suggested)';
-  if (Math.abs(score - 0.6) < 0.05 || Math.abs(score - 0.35) < 0.05) return 'threshold_issue (auto-suggested)';
+  if (Math.abs(score - AUTO_FLOOR) < 0.05 || Math.abs(score - SIM_FLOOR) < 0.05) return 'threshold_issue (auto-suggested)';
   if (pred.status !== 'CODER_REVIEW' && expectedCode) return 'incorrect_kb_entry (auto-suggested)';
   return 'UNREVIEWED';
 };

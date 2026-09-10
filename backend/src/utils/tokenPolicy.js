@@ -1,18 +1,5 @@
 /**
- * Domain-aware token policy (single source of truth for all matching text).
- *
- * Replaces the old flat STOPWORDS concept with tiered handling:
- *  - Tier 0 PROTECTED  : domain verbs / firmware nouns / codes — never dropped.
- *  - Tier 1 FUNCTIONAL : pure English function words — always dropped.
- *  - Tier 2 CANONICAL  : explicit synonym map to a canonical form (precise,
- *                        hand-picked; NOT a generic stemmer, so part/model
- *                        codes are never mangled).
- *  - Tier 3 NOISE      : digit/serial artifacts dropped (long pure numbers,
- *                        single-letter fragments from punctuation stripping).
- *
- * `normalize` is byte-identical to the legacy one so RULE substring matching
- * (which relies on it) is unaffected. Only token selection changes.
- */
+ * Domain-aware token policy (single source of truth for all matching text).*/
 
 const FUNCTIONAL = new Set([
   'the', 'a', 'an', 'and', 'or', 'of', 'to', 'for', 'with', 'in', 'on',
@@ -119,9 +106,60 @@ const contextBonus = (kb, item) => {
   return CTX_SAME_MODEL;
 };
 
+const CODE_GATE_STRENGTH = {
+  MODEL_CODE_MISMATCH: 'block',
+  VERSION_MISMATCH: 'block',
+  SERIAL_MISMATCH: 'block',
+  MEASUREMENT_MISMATCH: 'block',
+};
+
+const MEASUREMENT_SUFFIX = /(mm|cm|ma|lux|volt|volts|pcs|hz|khz|sn|m\/s)$/;
+
+const canonicalCode = (token) => token.toLowerCase().replace(/[-./]/g, '');
+
+const isCodeToken = (raw) => {
+  if (!raw || raw.length < 2) return false;
+  if (/^\d{1,3}$/.test(raw)) return false;
+  if (/^\d+$/.test(raw)) return false;
+  const t = raw.toLowerCase();
+  if (/[a-z]\d|\d[a-z]/i.test(t)) return true;
+  if (/[-./]/.test(t) && /[a-z0-9].*[a-z0-9]/i.test(t)) return true;
+  return false;
+};
+
+const extractCodeTokens = (text) => {
+  const out = new Set();
+  for (const raw of String(text || '').split(/[\s,;]+/).filter(Boolean)) {
+    if (isCodeToken(raw)) out.add(canonicalCode(raw));
+  }
+  return out;
+};
+
+const classifyCodeReason = (code) => {
+  if (/^sn/i.test(code) || /\d{6,}/.test(code)) return 'SERIAL_MISMATCH';
+  if (/^v\d/.test(code) || /\d+\.\d+/.test(code)) return 'VERSION_MISMATCH';
+  if (MEASUREMENT_SUFFIX.test(code)) return 'MEASUREMENT_MISMATCH';
+  return 'MODEL_CODE_MISMATCH';
+};
+
+const checkCodeAgreement = (itemCodes, kbCodes, strength = CODE_GATE_STRENGTH) => {
+  const item = itemCodes instanceof Set ? itemCodes : new Set(itemCodes || []);
+  const kb = kbCodes instanceof Set ? kbCodes : new Set(kbCodes || []);
+  const failed = [];
+  for (const token of kb) {
+    if (!item.has(token)) {
+      const reason = classifyCodeReason(token);
+      failed.push({ token, reason, strength: (strength && strength[reason]) || 'block' });
+    }
+  }
+  const blocking = failed.filter((f) => f.strength === 'block');
+  return { pass: blocking.length === 0, failed, reasons: [...new Set(failed.map((f) => f.reason))] };
+};
+
 module.exports = {
   FUNCTIONAL, PROTECTED, CANONICAL,
   normalize, tokenize, buildKeywords, canonicalize, isNoise, singularize,
   diceBigram,
   CTX_SAME_MODEL_VERSION, CTX_SAME_MODEL, CTX_CROSS_MODEL, contextBonus,
+  CODE_GATE_STRENGTH, extractCodeTokens, checkCodeAgreement, classifyCodeReason,
 };

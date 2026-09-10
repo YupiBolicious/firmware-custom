@@ -24,8 +24,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1001",
         "rule_id": null,
-        "latency_ms": 21,
-        "scored_at": "2026-09-08T04:56:22.883Z"
+        "latency_ms": 14,
+        "scored_at": "2026-09-10T03:37:27.822Z"
       },
       "reviewed_note": "approved as predicted; re-labeled after KB-1001 correction confirmed"
     },
@@ -40,21 +40,21 @@
       "generated_by": "mechanical-verbatim",
       "source_row": "KB-1002",
       "expected_complexity_code": "L0",
-      "expected_status": "CLASSIFIED",
+      "expected_status": "NON_FIRMWARE",
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
         "method": "EXACT_MATCH",
-        "status": "CLASSIFIED",
-        "complexity_code": "L0",
+        "status": "NON_FIRMWARE",
+        "complexity_code": null,
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1002",
         "rule_id": null,
-        "latency_ms": 5,
-        "scored_at": "2026-09-08T04:56:22.897Z"
+        "latency_ms": 4,
+        "scored_at": "2026-09-10T03:37:27.830Z"
       },
-      "reviewed_note": "approved as predicted"
+      "reviewed_note": "approved as predicted; re-labeled after KB-1002/1003 hygiene fix confirmed"
     },
     {
       "id": "BIZ-003",
@@ -67,21 +67,21 @@
       "generated_by": "mechanical-verbatim",
       "source_row": "KB-1003",
       "expected_complexity_code": "L0",
-      "expected_status": "CLASSIFIED",
+      "expected_status": "NON_FIRMWARE",
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
         "method": "EXACT_MATCH",
-        "status": "CLASSIFIED",
-        "complexity_code": "L0",
+        "status": "NON_FIRMWARE",
+        "complexity_code": null,
         "match_score": 1,
         "confidence_score": 98,
         "kb_code": "KB-1003",
         "rule_id": null,
-        "latency_ms": 8,
-        "scored_at": "2026-09-08T04:56:22.905Z"
+        "latency_ms": 5,
+        "scored_at": "2026-09-10T03:37:27.835Z"
       },
-      "reviewed_note": "approved as predicted"
+      "reviewed_note": "approved as predicted; re-labeled after KB-1002/1003 hygiene fix confirmed"
     },
     {
       "id": "BIZ-004",
@@ -105,8 +105,8 @@
         "confidence_score": 98,
         "kb_code": "KB-1004",
         "rule_id": null,
-        "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.909Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.837Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -132,8 +132,8 @@
         "confidence_score": 98,
         "kb_code": "KB-1005",
         "rule_id": null,
-        "latency_ms": 3,
-        "scored_at": "2026-09-08T04:56:22.912Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.839Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -159,8 +159,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1006",
         "rule_id": null,
-        "latency_ms": 3,
-        "scored_at": "2026-09-08T04:56:22.915Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.841Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -187,7 +187,7 @@
         "kb_code": "KB-1007",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:22.917Z"
+        "scored_at": "2026-09-10T03:37:27.843Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -213,8 +213,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1008",
         "rule_id": null,
-        "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.921Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.845Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -240,8 +240,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1009",
         "rule_id": null,
-        "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.925Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.847Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -267,8 +267,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1010",
         "rule_id": null,
-        "latency_ms": 5,
-        "scored_at": "2026-09-08T04:56:22.930Z"
+        "latency_ms": 4,
+        "scored_at": "2026-09-10T03:37:27.851Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -295,7 +295,7 @@
         "kb_code": "KB-1011",
         "rule_id": null,
         "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.934Z"
+        "scored_at": "2026-09-10T03:37:27.855Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -321,8 +321,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1012",
         "rule_id": null,
-        "latency_ms": 5,
-        "scored_at": "2026-09-08T04:56:22.939Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.857Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -348,8 +348,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1013",
         "rule_id": null,
-        "latency_ms": 5,
-        "scored_at": "2026-09-08T04:56:22.944Z"
+        "latency_ms": 3,
+        "scored_at": "2026-09-10T03:37:27.860Z"
       },
       "reviewed_note": "corrected by reviewer"
     },
@@ -375,8 +375,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1014",
         "rule_id": null,
-        "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.948Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.862Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -402,8 +402,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1015",
         "rule_id": null,
-        "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.952Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.864Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -430,7 +430,7 @@
         "kb_code": "KB-1016",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:22.954Z"
+        "scored_at": "2026-09-10T03:37:27.866Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -456,8 +456,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1017",
         "rule_id": null,
-        "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.958Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.868Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -483,8 +483,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1018",
         "rule_id": null,
-        "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.962Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.870Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -510,8 +510,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1019",
         "rule_id": null,
-        "latency_ms": 3,
-        "scored_at": "2026-09-08T04:56:22.965Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.872Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -538,7 +538,7 @@
         "kb_code": "KB-1020",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:22.967Z"
+        "scored_at": "2026-09-10T03:37:27.874Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -564,8 +564,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1021",
         "rule_id": null,
-        "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:22.969Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.876Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -591,8 +591,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1022",
         "rule_id": null,
-        "latency_ms": 3,
-        "scored_at": "2026-09-08T04:56:22.972Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.878Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -618,8 +618,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1023",
         "rule_id": null,
-        "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.976Z"
+        "latency_ms": 3,
+        "scored_at": "2026-09-10T03:37:27.881Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -646,7 +646,7 @@
         "kb_code": "KB-1024",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:22.978Z"
+        "scored_at": "2026-09-10T03:37:27.883Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -673,7 +673,7 @@
         "kb_code": "KB-1025",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:22.980Z"
+        "scored_at": "2026-09-10T03:37:27.885Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -699,8 +699,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1026",
         "rule_id": null,
-        "latency_ms": 3,
-        "scored_at": "2026-09-08T04:56:22.983Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.887Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -726,8 +726,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1027",
         "rule_id": null,
-        "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:22.985Z"
+        "latency_ms": 1,
+        "scored_at": "2026-09-10T03:37:27.888Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -753,8 +753,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1028",
         "rule_id": null,
-        "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:22.986Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.890Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -773,15 +773,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1001",
         "rule_id": null,
-        "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:22.988Z"
+        "latency_ms": 1,
+        "scored_at": "2026-09-10T03:37:27.891Z"
       },
       "reviewed_note": "approved as predicted; re-labeled after KB-1001 correction confirmed"
     },
@@ -796,21 +796,21 @@
       "generated_by": "mechanical-subset",
       "source_row": "KB-1002",
       "expected_complexity_code": "L0",
-      "expected_status": "CLASSIFIED",
+      "expected_status": "NON_FIRMWARE",
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
-        "status": "CLASSIFIED",
-        "complexity_code": "L0",
+        "method": "LEXICAL_SIMILARITY",
+        "status": "NON_FIRMWARE",
+        "complexity_code": null,
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1002",
         "rule_id": null,
-        "latency_ms": 3,
-        "scored_at": "2026-09-08T04:56:22.991Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.893Z"
       },
-      "reviewed_note": "approved as predicted"
+      "reviewed_note": "approved as predicted; re-labeled after KB-1002/1003 hygiene fix confirmed"
     },
     {
       "id": "BIZ-031",
@@ -823,21 +823,21 @@
       "generated_by": "mechanical-reorder",
       "source_row": "KB-1003",
       "expected_complexity_code": "L0",
-      "expected_status": "CLASSIFIED",
+      "expected_status": "NON_FIRMWARE",
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
-        "status": "CLASSIFIED",
-        "complexity_code": "L0",
+        "method": "LEXICAL_SIMILARITY",
+        "status": "NON_FIRMWARE",
+        "complexity_code": null,
         "match_score": 1,
         "confidence_score": 98,
         "kb_code": "KB-1003",
         "rule_id": null,
-        "latency_ms": 4,
-        "scored_at": "2026-09-08T04:56:22.995Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.895Z"
       },
-      "reviewed_note": "approved as predicted"
+      "reviewed_note": "approved as predicted; re-labeled after KB-1002/1003 hygiene fix confirmed"
     },
     {
       "id": "BIZ-032",
@@ -854,7 +854,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L2",
         "match_score": 1,
@@ -862,7 +862,7 @@
         "kb_code": "KB-1004",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:22.997Z"
+        "scored_at": "2026-09-10T03:37:27.897Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -881,7 +881,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L4",
         "match_score": 1,
@@ -889,7 +889,7 @@
         "kb_code": "KB-1005",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:22.999Z"
+        "scored_at": "2026-09-10T03:37:27.899Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -908,15 +908,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L3",
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1006",
         "rule_id": null,
-        "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.000Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.901Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -935,7 +935,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L3",
         "match_score": 1,
@@ -943,7 +943,7 @@
         "kb_code": "KB-1007",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.002Z"
+        "scored_at": "2026-09-10T03:37:27.903Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -962,7 +962,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L2",
         "match_score": 1,
@@ -970,7 +970,7 @@
         "kb_code": "KB-1004",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.004Z"
+        "scored_at": "2026-09-10T03:37:27.905Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -989,15 +989,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L3",
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1009",
         "rule_id": null,
-        "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.005Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.907Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1016,15 +1016,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L4",
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1010",
         "rule_id": null,
-        "latency_ms": 3,
-        "scored_at": "2026-09-08T04:56:23.008Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.909Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1043,15 +1043,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L4",
-        "match_score": 0.9047619047619048,
+        "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1011",
         "rule_id": null,
-        "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.009Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.911Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1070,15 +1070,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L4",
-        "match_score": 0.9166666666666666,
+        "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1012",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.011Z"
+        "scored_at": "2026-09-10T03:37:27.913Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1097,7 +1097,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 1,
@@ -1105,7 +1105,7 @@
         "kb_code": "KB-1013",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.013Z"
+        "scored_at": "2026-09-10T03:37:27.915Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1124,7 +1124,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L4",
         "match_score": 1,
@@ -1132,7 +1132,7 @@
         "kb_code": "KB-1014",
         "rule_id": null,
         "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.014Z"
+        "scored_at": "2026-09-10T03:37:27.916Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1151,7 +1151,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 0.9230769230769231,
@@ -1159,7 +1159,7 @@
         "kb_code": "KB-1015",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.016Z"
+        "scored_at": "2026-09-10T03:37:27.918Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1178,7 +1178,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 0.8125,
@@ -1186,7 +1186,7 @@
         "kb_code": "KB-1016",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.018Z"
+        "scored_at": "2026-09-10T03:37:27.920Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1205,7 +1205,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L3",
         "match_score": 1,
@@ -1213,7 +1213,7 @@
         "kb_code": "KB-1017",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.020Z"
+        "scored_at": "2026-09-10T03:37:27.922Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1232,15 +1232,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1018",
         "rule_id": null,
-        "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.022Z"
+        "latency_ms": 4,
+        "scored_at": "2026-09-10T03:37:27.926Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1259,7 +1259,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 1,
@@ -1267,7 +1267,7 @@
         "kb_code": "KB-1019",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.024Z"
+        "scored_at": "2026-09-10T03:37:27.928Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1286,7 +1286,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 1,
@@ -1294,7 +1294,7 @@
         "kb_code": "KB-1020",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.026Z"
+        "scored_at": "2026-09-10T03:37:27.931Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1313,15 +1313,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1021",
         "rule_id": null,
-        "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.027Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.933Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1340,15 +1340,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1022",
         "rule_id": null,
-        "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.029Z"
+        "latency_ms": 1,
+        "scored_at": "2026-09-10T03:37:27.934Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1367,15 +1367,15 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L2",
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1023",
         "rule_id": null,
-        "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.031Z"
+        "latency_ms": 3,
+        "scored_at": "2026-09-10T03:37:27.937Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1394,7 +1394,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L2",
         "match_score": 1,
@@ -1402,7 +1402,7 @@
         "kb_code": "KB-1024",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.033Z"
+        "scored_at": "2026-09-10T03:37:27.939Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1428,8 +1428,8 @@
         "confidence_score": 90,
         "kb_code": "KB-1025",
         "rule_id": null,
-        "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.034Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.941Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1456,7 +1456,7 @@
         "kb_code": "KB-1026",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.036Z"
+        "scored_at": "2026-09-10T03:37:27.943Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1475,7 +1475,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "NON_FIRMWARE",
         "complexity_code": null,
         "match_score": 1,
@@ -1483,7 +1483,7 @@
         "kb_code": "KB-1027",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.038Z"
+        "scored_at": "2026-09-10T03:37:27.945Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1510,7 +1510,7 @@
         "kb_code": "KB-1028",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.040Z"
+        "scored_at": "2026-09-10T03:37:27.947Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1536,8 +1536,8 @@
         "confidence_score": null,
         "kb_code": null,
         "rule_id": null,
-        "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.042Z"
+        "latency_ms": 1,
+        "scored_at": "2026-09-10T03:37:27.948Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1563,8 +1563,8 @@
         "confidence_score": null,
         "kb_code": null,
         "rule_id": null,
-        "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.044Z"
+        "latency_ms": 3,
+        "scored_at": "2026-09-10T03:37:27.951Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1591,7 +1591,7 @@
         "kb_code": null,
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.046Z"
+        "scored_at": "2026-09-10T03:37:27.953Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1618,7 +1618,7 @@
         "kb_code": null,
         "rule_id": null,
         "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.047Z"
+        "scored_at": "2026-09-10T03:37:27.954Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1644,8 +1644,8 @@
         "confidence_score": null,
         "kb_code": null,
         "rule_id": null,
-        "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.048Z"
+        "latency_ms": 3,
+        "scored_at": "2026-09-10T03:37:27.957Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1671,8 +1671,8 @@
         "confidence_score": null,
         "kb_code": "KB-1018",
         "rule_id": null,
-        "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.050Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.959Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1698,8 +1698,8 @@
         "confidence_score": null,
         "kb_code": null,
         "rule_id": null,
-        "latency_ms": 3,
-        "scored_at": "2026-09-08T04:56:23.053Z"
+        "latency_ms": 2,
+        "scored_at": "2026-09-10T03:37:27.961Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1718,7 +1718,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L2",
         "match_score": 1,
@@ -1726,7 +1726,7 @@
         "kb_code": "KB-1004",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.055Z"
+        "scored_at": "2026-09-10T03:37:27.963Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1753,7 +1753,7 @@
         "kb_code": null,
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.057Z"
+        "scored_at": "2026-09-10T03:37:27.965Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1772,7 +1772,7 @@
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
-        "method": "EXACT_MATCH",
+        "method": "LEXICAL_SIMILARITY",
         "status": "CLASSIFIED",
         "complexity_code": "L4",
         "match_score": 0.8395061728395061,
@@ -1780,7 +1780,7 @@
         "kb_code": "KB-1012",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.059Z"
+        "scored_at": "2026-09-10T03:37:27.967Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1807,7 +1807,7 @@
         "kb_code": "KB-1024",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.061Z"
+        "scored_at": "2026-09-10T03:37:27.969Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1834,7 +1834,7 @@
         "kb_code": "KB-1001",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.063Z"
+        "scored_at": "2026-09-10T03:37:27.971Z"
       },
       "reviewed_note": "approved as predicted; re-labeled after KB-1001 correction confirmed"
     },
@@ -1849,21 +1849,21 @@
       "generated_by": "mechanical-null-model",
       "source_row": "KB-1002",
       "expected_complexity_code": "L0",
-      "expected_status": "CLASSIFIED",
+      "expected_status": "NON_FIRMWARE",
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
         "method": "EXACT_MATCH",
-        "status": "CLASSIFIED",
-        "complexity_code": "L0",
+        "status": "NON_FIRMWARE",
+        "complexity_code": null,
         "match_score": 1,
         "confidence_score": 90,
         "kb_code": "KB-1002",
         "rule_id": null,
         "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.064Z"
+        "scored_at": "2026-09-10T03:37:27.972Z"
       },
-      "reviewed_note": "approved as predicted"
+      "reviewed_note": "approved as predicted; re-labeled after KB-1002/1003 hygiene fix confirmed"
     },
     {
       "id": "BIZ-070",
@@ -1876,21 +1876,21 @@
       "generated_by": "mechanical-null-model",
       "source_row": "KB-1003",
       "expected_complexity_code": "L0",
-      "expected_status": "CLASSIFIED",
+      "expected_status": "NON_FIRMWARE",
       "review_status": "REVIEWED",
       "failure_category": null,
       "prediction": {
         "method": "EXACT_MATCH",
-        "status": "CLASSIFIED",
-        "complexity_code": "L0",
+        "status": "NON_FIRMWARE",
+        "complexity_code": null,
         "match_score": 1,
         "confidence_score": 98,
         "kb_code": "KB-1003",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.066Z"
+        "scored_at": "2026-09-10T03:37:27.974Z"
       },
-      "reviewed_note": "approved as predicted"
+      "reviewed_note": "approved as predicted; re-labeled after KB-1002/1003 hygiene fix confirmed"
     },
     {
       "id": "BIZ-071",
@@ -1915,7 +1915,7 @@
         "kb_code": "KB-1004",
         "rule_id": null,
         "latency_ms": 2,
-        "scored_at": "2026-09-08T04:56:23.068Z"
+        "scored_at": "2026-09-10T03:37:27.976Z"
       },
       "reviewed_note": "approved as predicted"
     },
@@ -1942,7 +1942,7 @@
         "kb_code": "KB-1005",
         "rule_id": null,
         "latency_ms": 1,
-        "scored_at": "2026-09-08T04:56:23.069Z"
+        "scored_at": "2026-09-10T03:37:27.977Z"
       },
       "reviewed_note": "approved as predicted"
     }
