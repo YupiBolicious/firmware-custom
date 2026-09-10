@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const classificationService = require('../src/services/classificationService');
+const classifyFlow = require('../src/services/classifyFlow');
 const semanticAssist = require('../src/services/semanticAssist');
 const embedder = require('../src/services/embedder');
 
@@ -15,9 +16,10 @@ const embedder = require('../src/services/embedder');
     password: process.env.PGPASSWORD,
   });
   const lvAll = await pool.query(
-    `SELECT kb.kb_code, cl.code AS cx FROM kb_items kb
+    `SELECT kb.id, kb.kb_code, cl.code AS cx FROM kb_items kb
      LEFT JOIN complexity_levels cl ON cl.id = kb.complexity_level_id WHERE kb.is_active = TRUE`);
   const cxByCode = Object.fromEntries(lvAll.rows.map((r) => [r.kb_code, r.cx]));
+  const codeById = Object.fromEntries(lvAll.rows.map((r) => [r.id, r.kb_code]));
   await pool.end();
   const probes = JSON.parse(fs.readFileSync(
     path.join(__dirname, '..', 'tests', 'evaluation', 'paraphrase-probes.json'), 'utf8'));
@@ -30,8 +32,16 @@ const embedder = require('../src/services/embedder');
       lexicalStatus: lexical.status, lexicalMethod: lexical.classification_method,
       lexicalScore: lexical.match_score, lexicalKb: null,
       assist: null, verdict: null,
+      decisionPath: null, decisionMethod: null, decisionKb: null, decisionVerdict: null,
     };
     if (lexical.status === 'CODER_REVIEW') {
+      const flowed = await classifyFlow.classifyFlow(item);
+      row.decisionPath = flowed.path;
+      row.decisionMethod = flowed.result.classification_method;
+      row.decisionKb = flowed.result.kb_item_id != null ? (codeById[flowed.result.kb_item_id] || null) : null;
+      row.decisionVerdict = flowed.path === 'semantic'
+        ? (row.decisionKb === p.expectedKb ? 'DECISION_CORRECT' : 'DECISION_WRONG')
+        : 'DECISION_BLOCKED';
       const assist = await semanticAssist.assistWithSemantic(item, lexical);
       if (!assist) {
         row.verdict = 'BLOCKED';
@@ -46,7 +56,8 @@ const embedder = require('../src/services/embedder');
     }
     out.push(row);
     console.log(`${row.id} lex=${lexical.status}@${Number(lexical.match_score || 0).toFixed(2)} -> ${row.verdict}` +
-      (row.assist ? ` (${row.assist.kb_code}@${row.assist.score.toFixed(2)} margin=${row.assist.margin.toFixed(2)})` : ''));
+      (row.assist ? ` (${row.assist.kb_code}@${row.assist.score.toFixed(2)} margin=${row.assist.margin.toFixed(2)})` : '') +
+      (row.decisionVerdict ? ` decision=${row.decisionVerdict}` + (row.decisionKb ? `@${row.decisionKb}` : '') : ''));
   }
   fs.writeFileSync(path.join(__dirname, '..', 'tests', 'evaluation', 'paraphrase-results.json'), JSON.stringify(out, null, 2));
   await embedder.shutdown();

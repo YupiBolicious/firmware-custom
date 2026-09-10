@@ -533,7 +533,8 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       const matchType =
         classification.classification_method === 'EXACT_MATCH' ? 'EXACT'
         : classification.classification_method === 'LEXICAL_SIMILARITY' ? 'EXACT'
-        : classification.classification_method === 'SIMILARITY' ? 'SIMILARITY'
+        : classification.classification_method === 'SIMILARITY'
+        || classification.classification_method === 'SEMANTIC_CLASSIFICATION' ? 'SIMILARITY'
         : 'RULE';
       await classificationRepository.createMatch({
         classification_id: saved.id,

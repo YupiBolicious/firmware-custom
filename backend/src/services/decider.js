@@ -1,4 +1,4 @@
-const { normalize } = require('../utils/tokenPolicy');
+const { normalize, extractCodeTokens, checkCodeAgreement } = require('../utils/tokenPolicy');
 
 const contextNote = (bonus) => {
   if (bonus > 0) return `, context +${Math.round(bonus * 100)}%`;
@@ -133,4 +133,39 @@ const decideBest = ({ bestKb, bestKbScore, bestKbBonus, bestKbJTitle, coverageCo
   };
 };
 
-module.exports = { decideBest, contextNote, diceMinJaccard, labelForTier };
+// Semantic margin floor: provisional hypothesis, not calibrated production
+// truth. Read at call time so ablation can sweep values without code hooks.
+const semanticMarginFloor = () => {
+  const v = Number(process.env.SEMANTIC_MARGIN);
+  return Number.isFinite(v) && v > 0 ? v : 0.15;
+};
+
+// Semantic decision (policy only — candidates, embeddings, and retrieval live
+// outside). Returns a verdict object or null (→ existing review fallback).
+// Never throws; callers treat null as "no semantic decision".
+const decideSemantic = ({ itemText, matches, margin, rowText, row }) => {
+  const top = matches && matches[0];
+  if (!top) return null;
+  if (!(margin >= semanticMarginFloor())) return null;
+  const gate = checkCodeAgreement(
+    extractCodeTokens(itemText || ''),
+    extractCodeTokens(rowText || '')
+  );
+  if (!gate.pass) return null;
+  if (!row) return null;
+  const confidence = Math.min(top.score * 100, Number(row.confidence_score), 99);
+  return {
+    fw_related: row.fw_related,
+    complexity_level_id: row.fw_related ? row.complexity_level_id : null,
+    classification_method: 'SEMANTIC_CLASSIFICATION',
+    confidence_score: confidence,
+    classification_reason:
+      `Semantic match with knowledge base item ${row.kb_code} ` +
+      `(similarity ${(top.score * 100).toFixed(0)}%, margin ${margin.toFixed(2)})`,
+    status: row.fw_related ? 'CLASSIFIED' : 'NON_FIRMWARE',
+    kb_item_id: row.id,
+    match_score: top.score,
+  };
+};
+
+module.exports = { decideBest, decideSemantic, contextNote, diceMinJaccard, labelForTier };

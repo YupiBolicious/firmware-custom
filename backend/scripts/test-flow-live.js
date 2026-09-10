@@ -44,6 +44,10 @@ const WO = 'WO-TEST-FLOW-001';
     }
     ok(res.perf && res.perf.itemsScored === 2, 'live: both dirty items scored');
     console.log('live results: ' + res.results.map((r) => `${r.item_number}=${r.status}`).join(', '));
+    if (woId) await pool.query(`DELETE FROM work_orders WHERE id = $1`, [woId]);
+    const leftInTry = await pool.query(`SELECT COUNT(*)::int AS n FROM work_orders WHERE wo_number = $1`, [WO]);
+    if (leftInTry.rows[0].n !== 0) throw new Error('cleanup failed: scratch WO remains');
+    woId = null;
     console.log(`test-flow-live: OK (${n} assertions, scratch WO removed)`);
     await require('../src/services/embedder').shutdown();
     process.exit(0);

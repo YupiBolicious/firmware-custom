@@ -22,14 +22,16 @@ const item = (title, description) => ({
 
   const weak = await classifyFlow.classifyFlow(item('Quantum flux deflector calibration', ''));
   ok([PATH_SEMANTIC, PATH_REVIEW].includes(weak.path), 'routing: weak lexical leaves lexical path');
-  eq(weak.result.status, 'CODER_REVIEW', 'routing: weak stays review-routed');
-  eq(weak.result, await classificationService.classifyItem(item('Quantum flux deflector calibration', '')),
-    'parity: weak-path verdict equals direct classifyItem (suggestion never overwrites)');
   if (weak.path === PATH_SEMANTIC) {
-    ok(weak.assist && weak.assist.status === 'CODER_REVIEW', 'semantic path: suggestion attached, still review');
-    console.log(`flow: semantic path with suggestion ${weak.assist.kb_code}@${weak.assist.match_score.toFixed(2)}`);
+    eq(weak.result.classification_method, 'SEMANTIC_CLASSIFICATION', 'semantic path: decision verdict recorded');
+    ok(['CLASSIFIED', 'NON_FIRMWARE'].includes(weak.result.status), 'semantic path: decision routes out of review');
+    ok(weak.semantic && weak.semantic.margin >= 0.15, 'semantic path: margin evidence attached');
+    console.log(`flow: semantic decision ${weak.result.classification_method}@${weak.result.match_score.toFixed(2)}`);
   } else {
-    console.log('flow: review path (assist blocked or unavailable)');
+    eq(weak.result.status, 'CODER_REVIEW', 'review path: weak stays review-routed');
+    eq(weak.result, await classificationService.classifyItem(item('Quantum flux deflector calibration', '')),
+      'parity: review-path verdict equals direct classifyItem (suggestion never overwrites)');
+    console.log('flow: review path (decision blocked, assist may be attached)');
   }
 
   process.env.SEMANTIC_ENABLED = '0';

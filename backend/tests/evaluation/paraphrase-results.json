@@ -9,7 +9,11 @@
     "lexicalScore": 0,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "MANUAL",
+    "decisionKb": null,
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-02",
@@ -21,7 +25,11 @@
     "lexicalScore": 0,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "MANUAL",
+    "decisionKb": null,
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-03",
@@ -33,7 +41,11 @@
     "lexicalScore": 0,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "MANUAL",
+    "decisionKb": null,
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-04",
@@ -45,7 +57,11 @@
     "lexicalScore": 0.35294117647058826,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "SIMILARITY",
+    "decisionKb": "KB-1026",
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-05",
@@ -57,7 +73,11 @@
     "lexicalScore": 0,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "MANUAL",
+    "decisionKb": null,
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-06",
@@ -69,7 +89,11 @@
     "lexicalScore": 0.5121951219512195,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "SIMILARITY",
+    "decisionKb": "KB-1017",
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-07",
@@ -81,7 +105,11 @@
     "lexicalScore": 0.45161290322580644,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "SIMILARITY",
+    "decisionKb": "KB-1009",
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-08",
@@ -93,7 +121,11 @@
     "lexicalScore": 0.38235294117647056,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "SIMILARITY",
+    "decisionKb": "KB-1003",
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-09",
@@ -105,7 +137,11 @@
     "lexicalScore": 0.43243243243243246,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "SIMILARITY",
+    "decisionKb": "KB-1010",
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-10",
@@ -117,7 +153,11 @@
     "lexicalScore": 0,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "MANUAL",
+    "decisionKb": null,
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-11",
@@ -129,7 +169,11 @@
     "lexicalScore": 0.47706422018348627,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "SIMILARITY",
+    "decisionKb": "KB-1010",
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-12",
@@ -141,7 +185,11 @@
     "lexicalScore": 0,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "MANUAL",
+    "decisionKb": null,
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-13",
@@ -153,7 +201,11 @@
     "lexicalScore": 0,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "MANUAL",
+    "decisionKb": null,
+    "decisionVerdict": "DECISION_BLOCKED"
   },
   {
     "id": "PP-14",
@@ -165,6 +217,10 @@
     "lexicalScore": 0,
     "lexicalKb": null,
     "assist": null,
-    "verdict": "BLOCKED"
+    "verdict": "BLOCKED",
+    "decisionPath": "review",
+    "decisionMethod": "MANUAL",
+    "decisionKb": null,
+    "decisionVerdict": "DECISION_BLOCKED"
   }
 ]
