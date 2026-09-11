@@ -17,6 +17,10 @@ const login = async (req, res, next) => {
   }
 };
 
+const me = (req, res) => {
+  res.json({ success: true, message: 'Session valid', data: { user: req.user } });
+};
+
 const changePassword = async (req, res, next) => {
   try {
     const data = await authService.changePassword({
@@ -32,4 +36,4 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { login, changePassword };
+module.exports = { login, me, changePassword };

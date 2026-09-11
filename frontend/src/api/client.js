@@ -20,7 +20,9 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      if (window.location.pathname !== '/login') {
+      const isSessionCheck = error.config && typeof error.config.url === 'string'
+        && error.config.url.endsWith('/auth/me');
+      if (window.location.pathname !== '/login' && !isSessionCheck) {
         window.location.href = '/login';
       }
     }

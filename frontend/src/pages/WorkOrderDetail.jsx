@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -64,10 +65,12 @@ export default function WorkOrderDetail() {
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
     access, accessBusy, users, canEdit, canManageAccess, isOwner, isAdmin,
     handleGrantAccess, handleRevokeAccess } = useWorkOrderDetail();
+  useValueToast(error);
+  useValueToast(message, 'success');
 
   if (loading) return <div>Loading...</div>;
-  if (error && !wo) return <div className="alert alert-error">{error}</div>;
-  if (!wo) return <div className="alert alert-error">Work order not found</div>;
+  if (error && !wo) return <div className="text-muted">Work order unavailable.</div>;
+  if (!wo) return <div className="text-muted">Work order not found</div>;
 
   const productionTasks = wo.production_tasks || [];
   const openTaskCount = productionTasks.filter((t) => !t.completed).length;
@@ -112,8 +115,8 @@ export default function WorkOrderDetail() {
         </div>
       </div>
 
-      {message && <div className="alert alert-success">{message}</div>}
-      {error && <div className="alert alert-error">{error}</div>}
+      
+      
 
       <div className="panel">
         <h3>Work Order Details</h3>

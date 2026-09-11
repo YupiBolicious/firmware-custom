@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import RelativeTime from '../components/RelativeTime';
@@ -33,13 +34,14 @@ export default function PMDashboard() {
     uniqueModels, uniqueVersions, uniqueComplexities,
     filteredKpis, filteredStatusDistribution, filteredWorkload, filteredTrend, filteredAttention,
   } = usePmDashboard();
+  useValueToast(error);
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div className="alert alert-error">{error}</div>;
+  if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
 
   return (
-    <div>
+    <div className="pm-dashboard">
       <h1>PM Dashboard</h1>
 
       {/* 1. KPI Summary */}
@@ -80,7 +82,7 @@ export default function PMDashboard() {
           <h3 style={{ margin: 0 }}>
             Work Queue
             {hasActiveFilters && (
-              <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+              <span className="text-muted" style={{ fontSize: 13, fontWeight: 400, marginLeft: 8 }}>
                 {matchingCount} of {data.work_queue.length} shown
               </span>
             )}
@@ -95,7 +97,7 @@ export default function PMDashboard() {
         {/* Search Bar */}
         <div className="toolbar mb-8">
           <input
-            style={{ flex: 1, padding: '6px 10px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 4, color: '#e0e0e0', fontSize: 13 }}
+            className="pm-filter-input"
             placeholder="Search WO number, title, customer, or item..."
             value={filters.search}
             onChange={(e) => setFilter('search', e.target.value)}
@@ -110,12 +112,12 @@ export default function PMDashboard() {
 
         {/* Advanced Filters Panel */}
         {showAdvanced && (
-          <div style={{ padding: 12, background: '#1a1a1a', borderRadius: 6, border: '1px solid #333', marginBottom: 12 }}>
+          <div className="pm-filter-advanced">
             <div className="flex gap-8" style={{ flexWrap: 'wrap', alignItems: 'end' }}>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Status</label>
+                <label className="pm-filter-label">Status</label>
                 <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="pm-filter-control"
                   value={filters.statusFilter}
                   onChange={(e) => setFilter('statusFilter', e.target.value)}
                 >
@@ -126,9 +128,9 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Machine Model</label>
+                <label className="pm-filter-label">Machine Model</label>
                 <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="pm-filter-control"
                   value={filters.modelFilter}
                   onChange={(e) => setFilter('modelFilter', e.target.value)}
                 >
@@ -139,9 +141,9 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Version</label>
+                <label className="pm-filter-label">Version</label>
                 <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="pm-filter-control"
                   value={filters.versionFilter}
                   onChange={(e) => setFilter('versionFilter', e.target.value)}
                   disabled={filters.modelFilter === 'ALL'}
@@ -153,9 +155,9 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Complexity</label>
+                <label className="pm-filter-label">Complexity</label>
                 <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="pm-filter-control"
                   value={filters.complexityFilter}
                   onChange={(e) => setFilter('complexityFilter', e.target.value)}
                 >
@@ -166,9 +168,9 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>FW Related</label>
+                <label className="pm-filter-label">FW Related</label>
                 <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="pm-filter-control"
                   value={filters.fwRelatedFilter}
                   onChange={(e) => setFilter('fwRelatedFilter', e.target.value)}
                 >
@@ -178,19 +180,19 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>From</label>
+                <label className="pm-filter-label">From</label>
                 <input
                   type="date"
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="pm-filter-control"
                   value={filters.dateFrom}
                   onChange={(e) => setFilter('dateFrom', e.target.value)}
                 />
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>To</label>
+                <label className="pm-filter-label">To</label>
                 <input
                   type="date"
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="pm-filter-control"
                   value={filters.dateTo}
                   onChange={(e) => setFilter('dateTo', e.target.value)}
                 />
@@ -233,10 +235,10 @@ export default function PMDashboard() {
                   <td className="num">{w.total_estimated_hours > 0 ? `${w.total_estimated_hours}h` : '-'}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
-                      <div style={{ flex: 1, height: 6, background: '#333', borderRadius: 3 }}>
+                      <div className="pm-progress-track">
                         <div style={{ width: `${w.progress}%`, height: '100%', background: w.progress === 100 ? 'var(--success)' : 'var(--info)', borderRadius: 3 }} />
                       </div>
-                      <span style={{ fontSize: 12, color: '#aaa', minWidth: 32 }}>{w.progress}%</span>
+                      <span className="pm-progress-pct">{w.progress}%</span>
                     </div>
                   </td>
                   <td className="meta text-muted">

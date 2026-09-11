@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import useReviewQueue from './useReviewQueue';
 
@@ -8,9 +9,10 @@ export default function ReviewQueue() {
     keywordInputs, setKeywordInputs,
     reviewing, review,
   } = useReviewQueue();
+  useValueToast(error);
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div className="alert alert-error">{error}</div>;
+  if (error) return <div className="text-muted">Review queue unavailable.</div>;
 
   return (
     <div>

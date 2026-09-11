@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck } from 'lucide-react';
 import useNotifications from '../pages/useNotifications';
+import { useToast } from './Toast';
 
 export default function NotificationBell() {
   const { notifications, unreadCount, open, setOpen, markRead, markAllRead, busy } =
@@ -16,6 +17,27 @@ export default function NotificationBell() {
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [setOpen]);
+
+  const { toast } = useToast() || {};
+  const seenIds = useRef(null);
+  useEffect(() => {
+    if (!toast) return;
+    if (!seenIds.current) {
+      seenIds.current = new Set(notifications.map((n) => n.id));
+      return;
+    }
+    if (open || document.hidden) {
+      notifications.forEach((n) => seenIds.current.add(n.id));
+      return;
+    }
+    notifications
+      .filter((n) => !n.is_read && !seenIds.current.has(n.id))
+      .slice(0, 3)
+      .forEach((n) => {
+        seenIds.current.add(n.id);
+        toast({ title: 'New notification', description: n.message });
+      });
+  }, [notifications, open, toast]);
 
   const openItem = (n) => {
     setOpen(false);

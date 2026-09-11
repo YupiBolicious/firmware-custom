@@ -25,7 +25,9 @@ const withMargin = async (floor, fn) => {
 };
 
 (async () => {
-  const verdict = decider.decideSemantic({ itemText, matches, margin: 0.31, rowText, row });
+  const accepted = decider.decideSemantic({ itemText, matches, margin: 0.31, rowText, row });
+  eq(accepted.blocked, null, 'decision: no block recorded on accept');
+  const verdict = accepted.verdict;
   eq(verdict.classification_method, 'SEMANTIC_CLASSIFICATION', 'decision: method recorded');
   eq(verdict.status, 'CLASSIFIED', 'decision: fw row auto-classifies');
   eq(verdict.kb_item_id, 9001, 'decision: winning row linked');
@@ -34,37 +36,47 @@ const withMargin = async (floor, fn) => {
   eq(verdict.complexity_level_id, 3, 'decision: complexity carried from row');
   ok(verdict.classification_reason.includes('KB-TEST'), 'decision: reason cites the row');
 
-  eq(decider.decideSemantic({ itemText, matches, margin: 0.10, rowText, row }), null, 'floor: margin below 0.15 blocks');
-  eq(decider.decideSemantic({ itemText, matches: [], margin: 0.5, rowText, row }), null, 'empty: no candidate blocks');
-  eq(decider.decideSemantic({ itemText, matches: null, margin: 0.5, rowText, row }), null, 'missing: null matches blocks');
-  eq(decider.decideSemantic({ itemText, matches, margin: 0.5, rowText, row: null }), null, 'missing: unresolved row blocks');
+  const belowFloor = decider.decideSemantic({ itemText, matches, margin: 0.10, rowText, row });
+  eq(belowFloor.verdict, null, 'floor: margin below 0.15 yields no verdict');
+  eq(belowFloor.blocked.reason, 'MARGIN_BELOW_FLOOR', 'floor: block reason recorded');
+  const empty = decider.decideSemantic({ itemText, matches: [], margin: 0.5, rowText, row });
+  eq(empty.blocked.reason, 'NO_CANDIDATE', 'empty: no candidate blocks');
+  const missing = decider.decideSemantic({ itemText, matches: null, margin: 0.5, rowText, row });
+  eq(missing.blocked.reason, 'NO_CANDIDATE', 'missing: null matches blocks');
+  const noRow = decider.decideSemantic({ itemText, matches, margin: 0.5, rowText, row: null });
+  eq(noRow.blocked.reason, 'ROW_UNRESOLVED', 'missing: unresolved row blocks');
 
   const codedRow = { ...row, title: 'Controller board XJ-4800', description: 'replace' };
   const codedText = `${codedRow.title} ${codedRow.description}`;
-  eq(decider.decideSemantic({
+  const gated = decider.decideSemantic({
     itemText: 'Controller board faulty, replace unit',
     matches, margin: 0.5, rowText: codedText, row: codedRow,
-  }), null, 'gate: row code token missing from item blocks');
-  ok(decider.decideSemantic({
+  });
+  eq(gated.verdict, null, 'gate: row code token missing from item yields no verdict');
+  eq(gated.blocked.reason, 'CODE_GATE', 'gate: block reason recorded');
+  const passed = decider.decideSemantic({
     itemText: 'Controller board XJ-4800 faulty, replace unit',
     matches, margin: 0.5, rowText: codedText, row: codedRow,
-  }), 'gate: item carrying the row code passes');
+  });
+  ok(passed.verdict, 'gate: item carrying the row code passes');
+  eq(passed.blocked, null, 'gate: no block recorded on pass');
 
   const nonFw = decider.decideSemantic({
     itemText, matches, margin: 0.31, rowText, row: { ...row, fw_related: false },
-  });
+  }).verdict;
   eq(nonFw.status, 'NON_FIRMWARE', 'routing: non-fw row routes out of review');
   eq(nonFw.complexity_level_id, null, 'routing: non-fw row carries no complexity');
 
   await withMargin(0.5, async () => {
-    eq(decider.decideSemantic({ itemText, matches, margin: 0.3, rowText, row }), null, 'env: raised floor blocks');
-    ok(decider.decideSemantic({ itemText, matches, margin: 0.6, rowText, row }), 'env: margin above raised floor passes');
+    const raised = decider.decideSemantic({ itemText, matches, margin: 0.3, rowText, row });
+    eq(raised.blocked.reason, 'MARGIN_BELOW_FLOOR', 'env: raised floor blocks');
+    ok(decider.decideSemantic({ itemText, matches, margin: 0.6, rowText, row }).verdict, 'env: margin above raised floor passes');
   });
 
   const capped = decider.decideSemantic({
     itemText, matches: [{ kbCode: 'KB-TEST', score: 0.99 }], margin: 0.5, rowText,
     row: { ...row, confidence_score: 70 },
-  });
+  }).verdict;
   eq(capped.confidence_score, 70, 'cap: row confidence bounds the verdict');
 
   console.log(`test-semantic-decision: OK (${n} assertions)`);

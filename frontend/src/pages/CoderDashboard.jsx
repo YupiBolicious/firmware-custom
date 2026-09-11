@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import RelativeTime from '../components/RelativeTime';
@@ -31,9 +32,10 @@ export default function CoderDashboard() {
     coderActivityTotalPages, newWorkOrdersTotalPages,
     CLASSIFICATION_STATUS_LABELS, WORK_ORDER_STATUS_LABELS,
   } = useCoderDashboard();
+  useValueToast(error);
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div className="alert alert-error">{error}</div>;
+  if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
 
   const allQueue = data?.work_queue || [];

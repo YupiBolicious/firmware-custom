@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
@@ -5,6 +6,7 @@ import api from '../api/client';
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
+  useValueToast(error);
 
   useEffect(() => {
     const load = async () => {
@@ -18,7 +20,7 @@ export default function Dashboard() {
     load();
   }, []);
 
-  if (error) return <div className="alert alert-error">{error}</div>;
+  if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!stats) return <div>Loading...</div>;
 
   return (

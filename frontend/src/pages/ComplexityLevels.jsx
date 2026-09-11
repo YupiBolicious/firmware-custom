@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { ChevronUp, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import useComplexityLevels from './useComplexityLevels';
@@ -27,6 +28,7 @@ export default function ComplexityLevels() {
     handleEdit,
     handleCancelEdit,
   } = useComplexityLevels();
+  useValueToast(error);
 
   if (loading) return <div>Loading...</div>;
 
@@ -36,7 +38,7 @@ export default function ComplexityLevels() {
       {/* <div className="text-muted mb-16">
         Fixed estimation hours
       </div> */}
-      {error && <div className="alert alert-error">{error}</div>}
+      
 
       {isAdmin && (
         showForm ? (

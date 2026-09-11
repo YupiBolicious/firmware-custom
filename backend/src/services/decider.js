@@ -141,30 +141,37 @@ const semanticMarginFloor = () => {
 };
 
 // Semantic decision (policy only — candidates, embeddings, and retrieval live
-// outside). Returns a verdict object or null (→ existing review fallback).
-// Never throws; callers treat null as "no semantic decision".
+// outside). Returns { verdict, blocked }: verdict set on accept, otherwise
+// blocked carries the machine-readable reason for telemetry. Never throws.
 const decideSemantic = ({ itemText, matches, margin, rowText, row }) => {
+  const blocked = (reason, detail) => ({
+    verdict: null,
+    blocked: detail === undefined ? { reason } : { reason, detail },
+  });
   const top = matches && matches[0];
-  if (!top) return null;
-  if (!(margin >= semanticMarginFloor())) return null;
+  if (!top) return blocked('NO_CANDIDATE');
+  if (!(margin >= semanticMarginFloor())) return blocked('MARGIN_BELOW_FLOOR', { margin });
   const gate = checkCodeAgreement(
     extractCodeTokens(itemText || ''),
     extractCodeTokens(rowText || '')
   );
-  if (!gate.pass) return null;
-  if (!row) return null;
+  if (!gate.pass) return blocked('CODE_GATE', { reasons: gate.reasons });
+  if (!row) return blocked('ROW_UNRESOLVED');
   const confidence = Math.min(top.score * 100, Number(row.confidence_score), 99);
   return {
-    fw_related: row.fw_related,
-    complexity_level_id: row.fw_related ? row.complexity_level_id : null,
-    classification_method: 'SEMANTIC_CLASSIFICATION',
-    confidence_score: confidence,
-    classification_reason:
-      `Semantic match with knowledge base item ${row.kb_code} ` +
-      `(similarity ${(top.score * 100).toFixed(0)}%, margin ${margin.toFixed(2)})`,
-    status: row.fw_related ? 'CLASSIFIED' : 'NON_FIRMWARE',
-    kb_item_id: row.id,
-    match_score: top.score,
+    verdict: {
+      fw_related: row.fw_related,
+      complexity_level_id: row.fw_related ? row.complexity_level_id : null,
+      classification_method: 'SEMANTIC_CLASSIFICATION',
+      confidence_score: confidence,
+      classification_reason:
+        `Semantic match with knowledge base item ${row.kb_code} ` +
+        `(similarity ${(top.score * 100).toFixed(0)}%, margin ${margin.toFixed(2)})`,
+      status: row.fw_related ? 'CLASSIFIED' : 'NON_FIRMWARE',
+      kb_item_id: row.id,
+      match_score: top.score,
+    },
+    blocked: null,
   };
 };
 

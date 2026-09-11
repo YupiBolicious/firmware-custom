@@ -5,6 +5,7 @@ const estimationService = require('../services/estimationService');
 const kbRepository = require('../repositories/kbRepository');
 const { inputHash } = require('../services/classificationService');
 const auditService = require('../services/auditService');
+const telemetry = require('../services/classifyTelemetry');
 const notificationService = require('../services/notificationService');
 const workOrderAccessRepository = require('../repositories/workOrderAccessRepository');
 const { ApiError } = require('../middleware/errorHandler');
@@ -73,6 +74,22 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
     entity_type: 'WORK_ORDER_ITEM',
     entity_id: itemId,
     details: { work_order_id: item.work_order_id, complexity_code: level.code, fw_related: isFirmware },
+    ip_address,
+  });
+
+  await auditService.log({
+    user_id,
+    action: telemetry.REVIEWED_ACTION,
+    entity_type: 'WORK_ORDER_ITEM',
+    entity_id: itemId,
+    details: telemetry.buildReviewedDetails({
+      classificationId: saved.id,
+      finalFw: isFirmware,
+      finalComplexityId: level.id,
+      levelCode: level.code,
+      suggestionMethod: classification.classification_method,
+      suggestionKbId: classification.kb_item_id,
+    }),
     ip_address,
   });
 

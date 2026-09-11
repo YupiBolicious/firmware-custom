@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -8,6 +9,7 @@ export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  useValueToast(error);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -46,7 +48,7 @@ export default function Login() {
             <div className="subtitle">Item Classification & Estimation</div>
           </div>
         </div>
-        {error && <div className="alert alert-error" role="alert">{error}</div>}
+        
         <form onSubmit={handleSubmit}>
           <div className="form-row">
             <label htmlFor="login-identifier">Email or Username</label>

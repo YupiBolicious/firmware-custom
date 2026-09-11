@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
 import useAdminDashboard, { RANGE_PRESETS } from './useAdminDashboard';
@@ -44,10 +45,12 @@ function ConfigCard({ configs }) {
 }
 
 export default function AdminDashboard() {
-  const { data, error, loading, preset, changePreset, trendRefreshing, trendError } = useAdminDashboard();
+  const { data, error, loading, preset, changePreset, trendRefreshing, trendError } =   useAdminDashboard();
+  useValueToast(error);
+  useValueToast(trendError);
 
   if (loading && !data) return <div>Loading...</div>;
-  if (error) return <div className="alert alert-error">{error}</div>;
+  if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
 
   const { kpis, health, users, classification, config, trend } = data;
@@ -204,7 +207,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {trendError && <div className="alert alert-error mb-16">{trendError}</div>}
+        
 
         {buckets.length === 0 ? (
           <div className="text-muted">No activity data for the selected period.</div>

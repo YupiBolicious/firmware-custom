@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { ChevronUp, KeyRound, Pencil, Plus, Trash2, UserCheck } from 'lucide-react';
 import useUserManagement from './useUserManagement';
 
@@ -24,6 +25,7 @@ export default function UserManagement() {
     handleToggleActive,
     handleResetPassword,
   } = useUserManagement();
+  useValueToast(error);
 
   const toggleRole = (code) => {
     setForm({
@@ -42,7 +44,7 @@ export default function UserManagement() {
       {/* <div className="text-muted mb-16">
         Manually registered users. Passwords are stored hashed; default passwords should be changed after first use.
       </div> */}
-      {error && <div className="alert alert-error">{error}</div>}
+      
 
       {showForm ? (
         <div className="panel mb-16">

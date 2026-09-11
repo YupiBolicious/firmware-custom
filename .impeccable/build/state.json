@@ -1,0 +1,103 @@
+{
+  "tool": "build-phase",
+  "version": 2,
+  "startedAt": "2026-09-11T02:39:47.663Z",
+  "comp": null,
+  "direction": "bef2bc92",
+  "breakpoint": null,
+  "artifact": null,
+  "phase": "comps",
+  "phases": {
+    "comps": {
+      "status": "open",
+      "openedAt": "2026-09-11T02:39:47.658Z",
+      "closedAt": null,
+      "attempts": 4,
+      "notes": [
+        {
+          "at": "2026-09-11T02:54:14.893Z",
+          "text": "Waiver probe sentence number one"
+        },
+        {
+          "at": "2026-09-11T02:54:32.292Z",
+          "text": "User waived the raster comp round after picking Option A Centered from three text-presented compositions because this harness has no image generation"
+        }
+      ],
+      "gate": {
+        "ok": false,
+        "reasons": [
+          "0 comps under .impeccable\\mocks; the comp round puts three compositional options of the chosen direction in front of the user (reference/visualize.md). Generate the missing ones (harness image tool or generate-image.mjs), each with a .json sidecar holding its prompt.",
+          "no comp is approved: put the three comps in front of the user (decision page via serve-question.mjs, or the structured question tool), then set \"approved\": true in the chosen comp's sidecar. A delegated pick is recorded the same way and disclosed."
+        ],
+        "summary": "0 comps, 0 approved",
+        "approved": null,
+        "at": "2026-09-11T02:50:01.962Z"
+      },
+      "forced": null
+    },
+    "spec": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "plates": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "hero": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "sections": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "motion": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "responsive": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "review": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    }
+  },
+  "finish": null
+}

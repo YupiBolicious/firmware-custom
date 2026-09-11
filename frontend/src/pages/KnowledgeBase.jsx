@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { Fragment } from 'react';
 import { Pencil, Trash2, FlaskConical, X, Plus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import useKnowledgeBase from './useKnowledgeBase';
@@ -43,9 +44,12 @@ export default function KnowledgeBase() {
     closeTest,
     handleTest,
   } = useKnowledgeBase();
+  useValueToast(error);
+  useValueToast(message, 'success');
+  useValueToast(testResult && testResult.error);
 
   if (loading) return <div>Loading...</div>;
-  if (error && items.length === 0) return <div className="alert alert-error">{error}</div>;
+  if (error && items.length === 0) return <div className="text-muted">Knowledge base unavailable.</div>;
 
   return (
     <div>
@@ -61,8 +65,8 @@ export default function KnowledgeBase() {
         KB items are matched against work order items during analysis. New or edited items take effect on the next Analyze.
       </div>
 
-      {message && <div className="alert alert-success">{message}</div>}
-      {error && <div className="alert alert-error">{error}</div>}
+      
+      
 
       {showForm && (
         <div className="panel">
@@ -300,7 +304,7 @@ export default function KnowledgeBase() {
               </div>
             </div>
           )}
-          {testResult?.error && <div className="alert alert-error" style={{ marginTop: 8 }}>{testResult.error}</div>}
+          
         </div>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import RelativeTime from '../components/RelativeTime';
 import useAuditLog from './useAuditLog';
@@ -72,9 +73,10 @@ export default function AuditLog() {
     page, setPage, totalPages, PAGE_SIZE,
     matchingCount, hasActiveFilters, formatAction,
   } = useAuditLog();
+  useValueToast(error);
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div className="alert alert-error">{error}</div>;
+  if (error) return <div className="text-muted">Audit log unavailable.</div>;
 
   return (
     <div>

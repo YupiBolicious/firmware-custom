@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { ChevronDown, ChevronRight, Pencil, Trash2, Plus, X } from 'lucide-react';
 import useMachineModels from './useMachineModels';
 
@@ -24,13 +25,14 @@ export default function MachineModels() {
     handleEditVersion,
     handleCancelEditVersion,
   } = useMachineModels();
+  useValueToast(error);
 
   if (loading) return <div>Loading...</div>;
 
   return (
     <div>
       <h1>Machine Models</h1>
-      {error && <div className="alert alert-error">{error}</div>}
+      
 
       <div className="panel mb-16">
         <h3>{editingModelId ? 'Edit Model' : 'Add Model'}</h3>

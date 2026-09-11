@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import useWorkOrderCreate from './useWorkOrderCreate';
 
 export default function WorkOrderCreate() {
@@ -14,11 +15,12 @@ export default function WorkOrderCreate() {
     handleSubmit,
     handleCancel,
   } = useWorkOrderCreate();
+  useValueToast(error);
 
   return (
     <div>
       <h1>{isEditMode ? 'Edit Work Order' : 'Create Work Order'}</h1>
-      {error && <div className="alert alert-error">{error}</div>}
+      
       <div className="panel" style={{ maxWidth: 700 }}>
         <form onSubmit={handleSubmit}>
           <div className="form-row">

@@ -6,6 +6,7 @@ const machineModelRepository = require('../repositories/machineModelRepository')
 const classificationRepository = require('../repositories/classificationRepository');
 const classificationService = require('../services/classificationService');
 const classifyFlow = require('../services/classifyFlow');
+const telemetry = require('../services/classifyTelemetry');
 const kbCache = require('../services/kbCache');
 const kbRepository = require('../repositories/kbRepository');
 const estimationRepository = require('../repositories/estimationRepository');
@@ -429,6 +430,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     rules: await classificationRepository.findAllRules(),
   };
   const kbVersion = prepared.version;
+  const kbById = new Map(prepared.rows.map((r) => [r.id, r]));
   const perf = {
     kbRows: prepared.rowCount,
     kbCandidates: prepared.rows.length,
@@ -486,6 +488,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     let classification;
     let itemSemantic = null;
     let itemAssist = null;
+    let flowed = null;
     if (reusable) {
       classification = {
         fw_related: item.fw_related,
@@ -499,7 +502,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       };
     } else {
       const tScore = Date.now();
-      const flowed = await classifyFlow.classifyFlow(item, refs);
+      flowed = await classifyFlow.classifyFlow(item, refs);
       classification = flowed.result;
       itemSemantic = flowed.semantic;
       itemAssist = flowed.assist || null;
@@ -542,6 +545,27 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         rule_id: classification.rule_id || null,
         match_type: matchType,
         match_score: classification.match_score,
+      });
+    }
+
+    if (flowed) {
+      await auditService.log({
+        user_id,
+        action: telemetry.DECIDED_ACTION,
+        entity_type: 'WORK_ORDER_ITEM',
+        entity_id: item.id,
+        details: telemetry.buildDecidedDetails({
+          path: flowed.path,
+          result: classification,
+          semantic: itemSemantic,
+          assist: itemAssist,
+          lexical: flowed.lexical,
+          decisionBlocked: flowed.decisionBlocked,
+          classificationId: saved.id,
+          kbVersion,
+          kbById,
+        }),
+        ip_address,
       });
     }
 

@@ -19,6 +19,7 @@ import KnowledgeBase from './pages/KnowledgeBase';
 import AuditLog from './pages/AuditLog';
 import UserManagement from './pages/UserManagement';
 import ChangePassword from './pages/ChangePassword';
+import { ToastProvider } from './components/Toast';
 
 export default function App() {
   const { user, hasRole } = useAuth();
@@ -29,6 +30,7 @@ export default function App() {
                     :                     Dashboard;
 
   return (
+    <ToastProvider>
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
 
@@ -71,5 +73,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </ToastProvider>
   );
 }

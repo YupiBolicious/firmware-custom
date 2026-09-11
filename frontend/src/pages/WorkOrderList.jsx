@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
@@ -7,6 +8,7 @@ export default function WorkOrderList() {
   const { hasRole } = useAuth();
   const [workOrders, setWorkOrders] = useState([]);
   const [error, setError] = useState('');
+  useValueToast(error);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function WorkOrderList() {
   }, []);
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div className="alert alert-error">{error}</div>;
+  if (error) return <div className="text-muted">Work order list unavailable.</div>;
 
   return (
     <div>

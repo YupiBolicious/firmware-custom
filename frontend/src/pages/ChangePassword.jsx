@@ -1,3 +1,4 @@
+import { useValueToast } from '../components/Toast';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +11,7 @@ export default function ChangePassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  useValueToast(error);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -42,7 +44,7 @@ export default function ChangePassword() {
   return (
     <div>
       <h1>Change Password</h1>
-      {error && <div className="alert alert-error">{error}</div>}
+      
       <div className="panel" style={{ maxWidth: 480 }}>
         <form onSubmit={handleSubmit}>
           <div className="form-row">

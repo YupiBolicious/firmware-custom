@@ -26,6 +26,12 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'API is running', data: { time: new Date().toISOString() } });
 });
 
+// Root pointer: this server only serves /api/* (the app runs on the frontend
+// dev server). A plain JSON note here beats a bare 404 for anyone opening :5000.
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'Firmware Custom API is running. Use /api/* endpoints.', data: null });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
