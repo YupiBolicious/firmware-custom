@@ -33,7 +33,7 @@ export default function ComplexityLevels() {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div>
+    <div className="glass-page">
       <h1>Complexity Levels</h1>
       {/* <div className="text-muted mb-16">
         Fixed estimation hours

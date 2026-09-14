@@ -13,6 +13,19 @@ const findComplexityLevelById = async (id) => {
   return result.rows[0] || null;
 };
 
+// Fetch an active complexity level by code (e.g. 'L0' for non-firmware)
+const findComplexityLevelByCode = async (code) => {
+  const result = await pool.query(
+    `SELECT id, code, name, description,
+            requirement_review_h, code_development_h, peer_review_fixing_h,
+            bench_testing_h, unit_testing_h, total_hours
+     FROM complexity_levels
+     WHERE code = $1 AND is_active = TRUE`,
+    [code]
+  );
+  return result.rows[0] || null;
+};
+
 // Upsert the current estimation for an item
 const upsertEstimation = async ({
   work_order_item_id,
@@ -90,6 +103,7 @@ const findVerificationByCode = async (code) => {
 
 module.exports = {
   findComplexityLevelById,
+  findComplexityLevelByCode,
   findVerificationByComplexityId,
   findVerificationByCode,
   upsertEstimation,

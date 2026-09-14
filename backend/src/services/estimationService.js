@@ -3,8 +3,10 @@ const workOrderRepository = require('../repositories/workOrderRepository');
 
 const READINESS_MISSING = 'MISSING';
 
-const resolveVerification = async (complexityLevelId, readiness) => {
+const resolveVerification = async (complexityLevelId, readiness, levelCode) => {
   if (!complexityLevelId) return null;
+  // L0 (non-firmware) never carries verification effort, even when docs are missing
+  if (levelCode === 'L0') return null;
   if (readiness === READINESS_MISSING) {
     return estimationRepository.findVerificationByCode('V3');
   }
@@ -22,7 +24,7 @@ const createOrUpdateEstimation = async ({ work_order_item_id, complexity_level_i
     throw new Error(`Complexity level ${complexity_level_id} not found or inactive`);
   }
   const item = await workOrderRepository.findItemById(work_order_item_id);
-  const verification = await resolveVerification(level.id, item ? item.documentation_readiness : null);
+  const verification = await resolveVerification(level.id, item ? item.documentation_readiness : null, level.code);
 
   const verificationMh = verification ? Number(verification.verification_mh) : 0;
   const otherMh = Number(level.total_hours);

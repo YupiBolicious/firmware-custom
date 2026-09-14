@@ -447,6 +447,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
   };
   const levels = await estimationRepository.findAllLevels?.() ?? [];
   const levelById = new Map(levels.map((l) => [l.id, l]));
+  const l0Level = await estimationRepository.findComplexityLevelByCode('L0');
   const levelOf = async (id) => {
     if (id == null) return null;
     if (!levelById.has(id)) {
@@ -465,7 +466,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         serial_number: item.serial_number || null,
         fw_related: item.fw_related,
         complexity_level_id: item.complexity_level_id,
-        complexity_code: item.complexity_code,
+        complexity_code: item.complexity_code || 0,
         classification_method: item.classification_method,
         confidence_score: item.confidence_score != null ? Number(item.confidence_score) : null,
         classification_reason: item.classification_reason,
@@ -516,6 +517,10 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
 
     if (classification.status === 'CODER_REVIEW' && item.classification_status !== 'CODER_REVIEW') {
       newlyInReview.push(item);
+    }
+
+    if (classification.fw_related === false && !classification.complexity_level_id && l0Level) {
+      classification.complexity_level_id = l0Level.id;
     }
 
     const tWrite = Date.now();
@@ -571,7 +576,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
 
     let estimation = null;
     let complexityCode = null;
-    if (classification.fw_related === true && classification.complexity_level_id) {
+    if (classification.complexity_level_id) {
       estimation = await estimationService.createOrUpdateEstimation({
         work_order_item_id: item.id,
         complexity_level_id: classification.complexity_level_id,
@@ -622,7 +627,8 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     action: 'WORK_ORDER_ANALYZED',
     entity_type: 'WORK_ORDER',
     entity_id: work_order_id,
-    details: { item_count: items.length, results: results.map((r) => ({ item_number: r.item_number, status: r.status })) },
+    // Slim payload: per-item statuses already live in per-item rows + classifications table
+    details: { item_count: items.length, newly_in_review: newlyInReview.length },
     ip_address,
   });
 

@@ -79,7 +79,7 @@ export default function AuditLog() {
   if (error) return <div className="text-muted">Audit log unavailable.</div>;
 
   return (
-    <div>
+    <div className="glass-page">
       <h1>Audit Log</h1>
       {/* <div className="text-muted mb-16">
         Records every action across the system, including who performed it and when.
@@ -104,7 +104,7 @@ export default function AuditLog() {
 
         <div className="flex gap-8 mb-8">
           <input
-            style={{ flex: 1, padding: '6px 10px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 4, color: '#e0e0e0', fontSize: 13 }}
+            className="filter-input"
             placeholder="Search action, entity, WO number, item number, user..."
             value={filters.search}
             onChange={(e) => setFilter('search', e.target.value)}
@@ -118,12 +118,12 @@ export default function AuditLog() {
         </div>
 
         {showAdvanced && (
-          <div style={{ padding: 12, background: '#1a1a1a', borderRadius: 6, border: '1px solid #333', marginBottom: 12 }}>
+          <div className="filter-advanced">
             <div className="flex gap-8" style={{ flexWrap: 'wrap', alignItems: 'end' }}>
               <div className="form-row" style={{ flex: 1, minWidth: 140 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Action</label>
+                <label className="filter-label">Action</label>
                 <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="filter-control"
                   value={filters.actionFilter}
                   onChange={(e) => setFilter('actionFilter', e.target.value)}
                 >
@@ -134,9 +134,9 @@ export default function AuditLog() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 140 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>User</label>
+                <label className="filter-label">User</label>
                 <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="filter-control"
                   value={filters.userFilter}
                   onChange={(e) => setFilter('userFilter', e.target.value)}
                 >
@@ -147,9 +147,9 @@ export default function AuditLog() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 160 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Work Order</label>
+                <label className="filter-label">Work Order</label>
                 <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="filter-control"
                   value={filters.woFilter}
                   onChange={(e) => setFilter('woFilter', e.target.value)}
                 >
@@ -162,19 +162,19 @@ export default function AuditLog() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 140 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>From</label>
+                <label className="filter-label">From</label>
                 <input
                   type="date"
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="filter-control"
                   value={filters.dateFrom}
                   onChange={(e) => setFilter('dateFrom', e.target.value)}
                 />
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 140 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>To</label>
+                <label className="filter-label">To</label>
                 <input
                   type="date"
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
+                  className="filter-control"
                   value={filters.dateTo}
                   onChange={(e) => setFilter('dateTo', e.target.value)}
                 />

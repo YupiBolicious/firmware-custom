@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Sun, Moon } from 'lucide-react';
 import RelativeTime from '../components/RelativeTime';
+import NotificationBell from '../components/NotificationBell';
 import usePmDashboard from './usePmDashboard';
 
 const STATUS_BADGE = {
@@ -10,6 +13,14 @@ const STATUS_BADGE = {
   FINALIZED: 'badge-warning',
   PRODUCTION: 'badge-success',
   COMPLETED: 'badge-success',
+};
+
+const STATUS_COLORS = {
+  DRAFT: '#94a3b8',
+  ANALYZED: '#38bdf8',
+  FINALIZED: '#f59e0b',
+  PRODUCTION: '#10b981',
+  COMPLETED: '#059669',
 };
 
 function TrendTooltip({ active, payload, label }) {
@@ -36,14 +47,48 @@ export default function PMDashboard() {
   } = usePmDashboard();
   useValueToast(error);
 
+  const [theme, setTheme] = useState(() => {
+    try {
+      return document.documentElement.dataset.theme || localStorage.getItem('theme') || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
 
   return (
-    <div className="pm-dashboard">
-      <h1>PM Dashboard</h1>
-
+    <div className="dashboard">
+      <header className="topbar">
+        <nav className="breadcrumb" aria-label="Breadcrumb">
+          <span className="breadcrumb-root">workspace</span>
+          <span className="breadcrumb-sep">/</span>
+          <span className="breadcrumb-current">PM Dashboard</span>
+        </nav>
+        <div className="topbar-actions">
+          <button
+            className="notif-bell"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+          >
+            {theme === 'dark' ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
+          </button>
+          <NotificationBell />
+        </div>
+      </header>
       {/* 1. KPI Summary */}
       <div className="stats-grid">
         <div className="stat">
@@ -97,7 +142,7 @@ export default function PMDashboard() {
         {/* Search Bar */}
         <div className="toolbar mb-8">
           <input
-            className="pm-filter-input"
+            className="filter-input"
             placeholder="Search WO number, title, customer, or item..."
             value={filters.search}
             onChange={(e) => setFilter('search', e.target.value)}
@@ -112,12 +157,12 @@ export default function PMDashboard() {
 
         {/* Advanced Filters Panel */}
         {showAdvanced && (
-          <div className="pm-filter-advanced">
+          <div className="filter-advanced">
             <div className="flex gap-8" style={{ flexWrap: 'wrap', alignItems: 'end' }}>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="pm-filter-label">Status</label>
+                <label className="filter-label">Status</label>
                 <select
-                  className="pm-filter-control"
+                  className="filter-control"
                   value={filters.statusFilter}
                   onChange={(e) => setFilter('statusFilter', e.target.value)}
                 >
@@ -128,9 +173,9 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="pm-filter-label">Machine Model</label>
+                <label className="filter-label">Machine Model</label>
                 <select
-                  className="pm-filter-control"
+                  className="filter-control"
                   value={filters.modelFilter}
                   onChange={(e) => setFilter('modelFilter', e.target.value)}
                 >
@@ -141,9 +186,9 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="pm-filter-label">Version</label>
+                <label className="filter-label">Version</label>
                 <select
-                  className="pm-filter-control"
+                  className="filter-control"
                   value={filters.versionFilter}
                   onChange={(e) => setFilter('versionFilter', e.target.value)}
                   disabled={filters.modelFilter === 'ALL'}
@@ -155,9 +200,9 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="pm-filter-label">Complexity</label>
+                <label className="filter-label">Complexity</label>
                 <select
-                  className="pm-filter-control"
+                  className="filter-control"
                   value={filters.complexityFilter}
                   onChange={(e) => setFilter('complexityFilter', e.target.value)}
                 >
@@ -168,9 +213,9 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="pm-filter-label">FW Related</label>
+                <label className="filter-label">FW Related</label>
                 <select
-                  className="pm-filter-control"
+                  className="filter-control"
                   value={filters.fwRelatedFilter}
                   onChange={(e) => setFilter('fwRelatedFilter', e.target.value)}
                 >
@@ -180,19 +225,19 @@ export default function PMDashboard() {
                 </select>
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="pm-filter-label">From</label>
+                <label className="filter-label">From</label>
                 <input
                   type="date"
-                  className="pm-filter-control"
+                  className="filter-control"
                   value={filters.dateFrom}
                   onChange={(e) => setFilter('dateFrom', e.target.value)}
                 />
               </div>
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="pm-filter-label">To</label>
+                <label className="filter-label">To</label>
                 <input
                   type="date"
-                  className="pm-filter-control"
+                  className="filter-control"
                   value={filters.dateTo}
                   onChange={(e) => setFilter('dateTo', e.target.value)}
                 />
@@ -235,10 +280,10 @@ export default function PMDashboard() {
                   <td className="num">{w.total_estimated_hours > 0 ? `${w.total_estimated_hours}h` : '-'}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
-                      <div className="pm-progress-track">
+                      <div className="progress-track">
                         <div style={{ width: `${w.progress}%`, height: '100%', background: w.progress === 100 ? 'var(--success)' : 'var(--info)', borderRadius: 3 }} />
                       </div>
-                      <span className="pm-progress-pct">{w.progress}%</span>
+                      <span className="progress-pct">{w.progress}%</span>
                     </div>
                   </td>
                   <td className="meta text-muted">
@@ -261,11 +306,11 @@ export default function PMDashboard() {
           <div className="text-muted">No status data available.</div>
         ) : (
           <div>
-            <div style={{ display: 'flex', height: 24, borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{display: 'flex', height: 24, borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
               {filteredStatusDistribution.map((s) => {
                 const total = filteredStatusDistribution.reduce((sum, x) => sum + x.count, 0);
                 const pct = total > 0 ? (s.count / total) * 100 : 0;
-                const colors = { DRAFT: '#666', ANALYZED: '#2196f3', FINALIZED: '#ff9800', PRODUCTION: '#4caf50', COMPLETED: '#166534' };
+                 const colors = { DRAFT: '#666', ANALYZED: '#2196f3', FINALIZED: '#ff9800', PRODUCTION: '#4caf50', COMPLETED: '#166534' };
                 return pct > 0 ? (
                   <div
                     key={s.status}
@@ -274,40 +319,86 @@ export default function PMDashboard() {
                   />
                 ) : null;
               })}
-            </div>
-            <div className="flex gap-16" style={{ flexWrap: 'wrap' }}>
+              </div>
+              <div className="flex gap-16" style={{ flexWrap: 'wrap' }}>
               {filteredStatusDistribution.map((s) => (
                 <div key={s.status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                   <div style={{ width: 10, height: 10, borderRadius: 2, background: { DRAFT: '#666', ANALYZED: '#2196f3', FINALIZED: '#ff9800', PRODUCTION: '#4caf50', COMPLETED: '#166534' }[s.status] || '#555' }} />
                   <span className="text-muted">{formatStatus(s.status)}:</span> <strong>{s.count}</strong>
                 </div>
               ))}
+            {/* <div className="dist-chips">
+              {filteredStatusDistribution.map((s) => (
+                <span key={s.status} className="dist-chip">
+                  <span className="dist-dot" style={{ background: STATUS_COLORS[s.status] || '#64748b' }} />
+                  {formatStatus(s.status)}
+                  <span className="dist-count">{s.count}</span>
+                </span>
+              ))}
+            </div> */}
+            {/* <div className="dist-bars">
+              {filteredStatusDistribution.map((s) => {
+                const total = filteredStatusDistribution.reduce((sum, x) => sum + x.count, 0);
+                const pct = total > 0 ? (s.count / total) * 100 : 0;
+                const max = Math.max(...filteredStatusDistribution.map((x) => x.count));
+                const height = max > 0 ? (s.count / max) * 100 : 0;
+                return (
+                  <div key={s.status} title={`${formatStatus(s.status)}: ${s.count}`} className="dist-col">
+                    <div className="dist-col-track">
+                      <div
+                        className="dist-col-fill"
+                        style={{ height: `${height}%`, background: STATUS_COLORS[s.status] || '#64748b' }}
+                      />
+                    </div>
+                    <div className="dist-col-num">{s.count}</div>
+                    <div className="dist-col-pct">{Math.round(pct)}%</div>
+                  </div>
+                );
+              })}
+            </div> */}
             </div>
           </div>
         )}
       </div>
 
-      {/* 4. Workload / Estimation Overview */}
+      {/* 4. Workload / Estimation Overview adjustable later*/}
       <div className="panel">
         <h3 className="mb-16">Workload Overview</h3>
-        <div className="stats-grid">
-          <div className="stat">
-            <div className="label">Queued Hours</div>
-            <div className="value">{filteredWorkload.queued.toFixed(1)}h</div>
-          </div>
-          <div className="stat">
-            <div className="label">In Progress Hours</div>
-            <div className="value">{filteredWorkload.in_progress.toFixed(1)}h</div>
-          </div>
-          <div className="stat">
-            <div className="label">Completed Hours</div>
-            <div className="value" style={{ color: 'var(--success)' }}>{filteredWorkload.completed.toFixed(1)}h</div>
-          </div>
-          <div className="stat">
-            <div className="label">Total Hours</div>
-            <div className="value">{(filteredWorkload.queued + filteredWorkload.in_progress + filteredWorkload.completed).toFixed(1)}h</div>
-          </div>
-        </div>
+        {(() => {
+          const queued = filteredWorkload.queued;
+          const inProgress = filteredWorkload.in_progress;
+          const completed = filteredWorkload.completed;
+          const total = queued + inProgress + completed;
+          const pct = (v) => (total > 0 ? Math.round((v / total) * 100) : 0);
+          return (
+            <div className="work-grid">
+              <div className="work-card">
+                <span className="work-bar" style={{ background: '#94a3b8' }} />
+                <div className="work-label">Queued Hours</div>
+                <div className="work-value">{queued.toFixed(1)}h</div>
+                <div className="work-sub">{queued > 0 ? `${pct(queued)}% pending backlog` : '0 pending backlog'}</div>
+              </div>
+              <div className="work-card">
+                <span className="work-bar" style={{ background: '#c1cf8b' }} />
+                <div className="work-label">In Progress Hours</div>
+                <div className="work-value">{inProgress.toFixed(1)}h</div>
+                <div className="work-sub" style={{ color: 'var(--accent)' }}>{pct(inProgress)}% active burden</div>
+              </div>
+              <div className="work-card">
+                <span className="work-bar" style={{ background: 'var(--success)' }} />
+                <div className="work-label">Completed Hours</div>
+                <div className="work-value">{completed.toFixed(1)}h</div>
+                <div className="work-sub" style={{ color: 'var(--success)' }}>{pct(completed)}% closed-out work</div>
+              </div>
+              <div className="work-card">
+                <span className="work-bar" style={{ background: 'var(--accent)' }} />
+                <div className="work-label">Total Hours</div>
+                <div className="work-value">{total.toFixed(1)}h</div>
+                <div className="work-sub">total estimated hours</div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
       </div>
 

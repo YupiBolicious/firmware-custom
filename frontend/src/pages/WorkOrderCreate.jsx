@@ -18,7 +18,7 @@ export default function WorkOrderCreate() {
   useValueToast(error);
 
   return (
-    <div>
+    <div className="glass-page">
       <h1>{isEditMode ? 'Edit Work Order' : 'Create Work Order'}</h1>
       
       <div className="panel" style={{ maxWidth: 700 }}>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 import {Menu, LayoutDashboard,
@@ -71,6 +71,7 @@ const NAV_ITEMS = [
 export default function Layout() {
   const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [theme, setTheme] = useState(() => {
     try {
@@ -94,6 +95,10 @@ export default function Layout() {
   };
 
   const visibleItems = NAV_ITEMS.filter((item) => !item.roles || hasRole(...item.roles));
+
+  // PM dashboard renders its own top bar (breadcrumb + theme + notifications),
+  // so the global header is hidden on those routes to avoid duplication.
+  const isPMDashboard = hasRole('PM') && ['/', '/dashboard'].includes(location.pathname);
 
   return (
     <div className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
@@ -138,17 +143,19 @@ export default function Layout() {
         </div>
       </aside>
       <main className="main">
-        <header className="app-header">
-          <button
-            className="notif-bell"
-            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-            title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
-          >
-            {theme === 'dark' ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
-          </button>
-          <NotificationBell />
-        </header>
+        {!isPMDashboard && (
+          <header className="app-header">
+            <button
+              className="notif-bell"
+              onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+            >
+              {theme === 'dark' ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
+            </button>
+            <NotificationBell />
+          </header>
+        )}
         <Outlet />
       </main>
     </div>

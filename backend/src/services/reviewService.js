@@ -56,7 +56,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
 
   const estimation = await estimationService.createOrUpdateEstimation({
     work_order_item_id: itemId,
-    complexity_level_id: isFirmware ? level.id : null,
+    complexity_level_id: level.id,
   });
 
   const learnedKbItem = await kbRepository.upsertCoderLearning({
@@ -108,7 +108,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
     ...saved,
     complexity_code: level.code,
     complexity_name: level.name,
-    estimated_hours: isFirmware && estimation && estimation.breakdown
+    estimated_hours: estimation && estimation.breakdown
       ? Number(estimation.breakdown.verification_mh)
         + Number(estimation.breakdown.other_mh) * (item.quantity || 1)
       : null,

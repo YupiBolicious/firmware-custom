@@ -52,7 +52,7 @@ export default function KnowledgeBase() {
   if (error && items.length === 0) return <div className="text-muted">Knowledge base unavailable.</div>;
 
   return (
-    <div>
+    <div className="glass-page">
       <div className="flex justify-between align-center mb-16">
         <h1>Knowledge Base</h1>
         {isAdmin && (
@@ -281,7 +281,7 @@ export default function KnowledgeBase() {
                   padding: '2px 8px',
                   borderRadius: 4,
                   fontWeight: 600,
-                  backgroundColor: testResult.verdict === 'EXACT_MATCH' ? '#166534'
+                  backgroundColor: testResult.verdict === 'EXACT_MATCH' ? '#059669'
                     : testResult.verdict === 'LEXICAL_SIMILARITY' ? '#854d0e'
                     : testResult.verdict === 'SIMILARITY' ? '#854d0e'
                     : testResult.verdict === 'NON_FIRMWARE' ? '#6b21a8' : '#555',

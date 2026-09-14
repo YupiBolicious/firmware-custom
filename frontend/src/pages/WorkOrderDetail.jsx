@@ -29,7 +29,7 @@ function DocumentUpload({ uploading, onUpload }) {
   };
 
   return (
-    <div style={{ marginBottom: 12, padding: 12, background: '#1a1a1a', borderRadius: 6, border: '1px solid #333' }}>
+    <div className="glass-card">
       <div className="form-row">
         <label>Select files</label>
         <input
@@ -87,7 +87,7 @@ export default function WorkOrderDetail() {
   const summary = analysis?.summary || null;
 
   return (
-    <div>
+    <div className="glass-page">
       <div className="flex justify-between align-center mb-16">
         <h1>{wo.wo_number}</h1>
         <div className="flex gap-8">
@@ -222,7 +222,7 @@ export default function WorkOrderDetail() {
 
         {/* Edit / Add Item Form */}
         {canEdit && (editingItemId || showAddItemForm) && (
-          <div style={{ marginTop: 12, marginBottom: 12, padding: 12, background: '#1a1a1a', borderRadius: 6, border: '1px solid #333' }}>
+          <div className="glass-card" style={{ marginTop: 12 }}>
             <h3>{editingItemId ? 'Edit Item' : 'Add Custom Item'}</h3>
             <form onSubmit={editingItemId ? handleUpdateItem : handleAddItem}>
             <div className="form-grid">

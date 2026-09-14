@@ -16,6 +16,7 @@ src/
 ├── middleware/       # auth.js, errorHandler.js (ApiError + PG-code map), validateParams.js
 └── config/db.js      # pg pool (PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD)
 ```
+- `scripts/purge-audit-log.js` — audit_trail retention purge (`--dry-run` / `--months N`), index added by `database/alter_audit_retention.sql`
 
 ## WHERE TO LOOK
 | Task | Location | Notes |
@@ -40,4 +41,5 @@ src/
 ```bash
 node src/server.js
 node --check src/services/<name>.js
+node scripts/purge-audit-log.js --dry-run
 ```

@@ -29,7 +29,7 @@ export default function WorkOrderList() {
   if (error) return <div className="text-muted">Work order list unavailable.</div>;
 
   return (
-    <div>
+    <div className="glass-page">
       <div className="page-head">
         <h1>Work Orders</h1>
         {hasRole('PM') && <Link className="btn" to="/work-orders/new">Create Work Order</Link>}

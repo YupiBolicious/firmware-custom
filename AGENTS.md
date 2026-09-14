@@ -11,7 +11,7 @@ Firmware custom-item classification & estimation system. Express + PostgreSQL ba
 ./
 ├── backend/        # Express API (port 5000), layered: routes→controllers→services→repositories
 ├── frontend/       # Vite + React SPA (port 5173, /api proxied to :5000)
-├── database/       # schema.sql + alter/index migrations (4 files, apply manually)
+├── database/       # schema.sql + alter/* migration files (apply manually)
 ├── reports/        # QA/QC reports (*.md)
 └── tempLiveTest/   # live smoke-test harness (re-runnable scripts + reports)
 ```
@@ -40,6 +40,7 @@ Firmware custom-item classification & estimation system. Express + PostgreSQL ba
 # backend (from backend/)
 node src/server.js          # start API (:5000, needs .env — see .env.example)
 node --check src/services/userService.js   # syntax check (no linter exists)
+node scripts/purge-audit-log.js --dry-run  # audit retention: preview; drop --dry-run to purge
 
 # frontend (from frontend/)
 node node_modules/vite/bin/vite.js --port 5173  # dev server
