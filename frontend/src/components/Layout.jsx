@@ -12,7 +12,6 @@ import {Menu, LayoutDashboard,
 
 const NAV_ITEMS = [
   {
-    
     to: '/dashboard',
     label: 'Dashboard',
     roles: ['ADMIN', 'PM', 'CODER'],
@@ -68,11 +67,26 @@ const NAV_ITEMS = [
   },
 ];
 
+const PAGE_NAMES = {
+  '/': 'Dashboard',
+  '/dashboard': 'Dashboard',
+  '/work-orders': 'Work Orders',
+  '/review-queue': 'Review Queue',
+  '/complexity-levels': 'Complexity Levels',
+  '/machine-models': 'Machine Models',
+  '/users': 'Users',
+  '/knowledge-base': 'Knowledge Base',
+  '/audit-log': 'Audit Log',
+  '/change-password': 'Change Password',
+};
+
 export default function Layout() {
   const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [collapsed, setCollapsed] = useState(false);
+
   const [theme, setTheme] = useState(() => {
     try {
       return localStorage.getItem('theme') || 'dark';
@@ -85,8 +99,7 @@ export default function Layout() {
     document.documentElement.dataset.theme = theme;
     try {
       localStorage.setItem('theme', theme);
-    } catch {
-    }
+    } catch {}
   }, [theme]);
 
   const handleLogout = () => {
@@ -94,69 +107,89 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const visibleItems = NAV_ITEMS.filter((item) => !item.roles || hasRole(...item.roles));
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => !item.roles || hasRole(...item.roles)
+  );
 
-  // PM dashboard renders its own top bar (breadcrumb + theme + notifications),
-  // so the global header is hidden on those routes to avoid duplication.
-  const isPMDashboard = hasRole('PM') && ['/', '/dashboard'].includes(location.pathname);
+  const currentPage =
+    PAGE_NAMES[location.pathname] || 'Workspace';
 
   return (
     <div className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
-      <aside className="sidebar">
-       <div className="sidebar-header">
-      <div className="brand">
-        {collapsed ? 'FC' : 'Firmware Custom'}
-      </div>
 
-      <button
-        className="sidebar-toggle"
-        onClick={() => setCollapsed((c) => !c)}
-        aria-label="Toggle sidebar"
-        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        <Menu size={16} strokeWidth={1.5} aria-hidden="true" />
-      </button>
-    </div>
+      {/* SIDEBAR */}
+      <aside className="sidebar">
+
+        <div className="sidebar-header">
+          <div className="brand"> {collapsed ? 'FC' : 'Firmware Custom'}
+          </div>
+
+          <button
+            className="sidebar-toggle" onClick={() => setCollapsed((c) => !c)}
+            aria-label="Toggle sidebar" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <Menu size={16} strokeWidth={1.5} aria-hidden="true"/>
+          </button>
+        </div>
+
         <nav>
           {visibleItems.map((item) => (
             <NavLink key={item.to} to={item.to} title={collapsed ? item.label : undefined}>
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
+              <span className="nav-icon">
+                {item.icon}
+              </span>
+
+              <span className="nav-label">
+                {item.label}
+              </span>
             </NavLink>
           ))}
         </nav>
+
         <div className="user-info">
           <div className="user-info-row">
             <div className="user-name">
               {collapsed ? user?.full_name?.split(' ')[0] : user?.full_name}
             </div>
-            <button
-              className="logout-btn"
-              onClick={handleLogout}
-              title="Logout"
-              aria-label="Logout"
-            >
-              <LogOut size={16} strokeWidth={1.5} />
+
+            <button className="logout-btn" onClick={handleLogout} title="Logout" aria-label="Logout">
+              <LogOut size={16} strokeWidth={1.5}/>
             </button>
           </div>
-          {!collapsed && <div>{user?.roles?.join(', ')}</div>}
+
+          {!collapsed && (<div> {user?.roles?.join(', ')} </div> )}
         </div>
       </aside>
+
+
+      {/* MAIN */}
       <main className="main">
-        {!isPMDashboard && (
-          <header className="app-header">
-            <button
-              className="notif-bell"
-              onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-              title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+        <header className="app-header">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <span className="breadcrumb-root">
+              workspace
+            </span>
+
+            <span className="breadcrumb-sep"> / </span>
+
+            <span className="breadcrumb-current"> {currentPage} </span>
+          </nav>
+
+          <div className="topbar-actions">
+            <button className="notif-bell"
+              onClick={() => setTheme((t) => t === 'dark' ? 'light' : 'dark')}
+              aria-label={ theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme' }
+              title={ theme === 'dark' ? 'Light theme' : 'Dark theme' }
             >
-              {theme === 'dark' ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
+              {theme === 'dark' ? ( <Sun size={18} strokeWidth={1.5}></Sun>
+              ) : (<Moon size={18} strokeWidth={1.5}/>)}
             </button>
-            <NotificationBell />
-          </header>
-        )}
-        <Outlet />
+        <NotificationBell />
+          </div>
+        </header>
+        <div className="main-content">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

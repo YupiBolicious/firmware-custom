@@ -94,7 +94,7 @@ const findWorkQueue = async () => {
   return result.rows;
 };
 
-const countWorkOrderQueue = async ({ search, woStatus } = {}) => {
+const buildWorkOrderConds = ({ search, woStatus, complexity, classification, dateFrom, dateTo } = {}) => {
   const conds = [];
   const params = [];
   if (search) {
@@ -105,22 +105,34 @@ const countWorkOrderQueue = async ({ search, woStatus } = {}) => {
     params.push(woStatus);
     conds.push(`wo.status = $${params.length}`);
   }
+  if (complexity && complexity !== 'ALL') {
+    params.push(complexity);
+    conds.push(`EXISTS (SELECT 1 FROM work_order_items wci JOIN classifications cci ON cci.work_order_item_id = wci.id JOIN complexity_levels clci ON clci.id = cci.complexity_level_id WHERE wci.work_order_id = wo.id AND clci.code = $${params.length})`);
+  }
+  if (classification && classification !== 'ALL') {
+    params.push(classification);
+    conds.push(`EXISTS (SELECT 1 FROM work_order_items wcc JOIN classifications ccc ON ccc.work_order_item_id = wcc.id WHERE wcc.work_order_id = wo.id AND ccc.status = $${params.length})`);
+  }
+  if (dateFrom) {
+    params.push(dateFrom);
+    conds.push(`wo.created_at >= $${params.length}::date`);
+  }
+  if (dateTo) {
+    params.push(dateTo);
+    conds.push(`wo.created_at < ($${params.length}::date + 1)`);
+  }
+  return { conds, params };
+};
+
+const countWorkOrderQueue = async (opts = {}) => {
+  const { conds, params } = buildWorkOrderConds(opts);
   const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
   const result = await pool.query(`SELECT COUNT(*)::int AS count FROM work_orders wo ${where}`, params);
   return result.rows[0].count;
 };
 
-const findWorkOrderQueue = async ({ page = 1, limit = 10, search, woStatus } = {}) => {
-  const conds = [];
-  const params = [];
-  if (search) {
-    params.push(`%${search}%`);
-    conds.push(`(wo.wo_number ILIKE $${params.length} OR wo.title ILIKE $${params.length} OR wo.customer ILIKE $${params.length})`);
-  }
-  if (woStatus && woStatus !== 'ALL') {
-    params.push(woStatus);
-    conds.push(`wo.status = $${params.length}`);
-  }
+const findWorkOrderQueue = async ({ page = 1, limit = 10, ...filters } = {}) => {
+  const { conds, params } = buildWorkOrderConds(filters);
   const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
   params.push(limit);
   const limitPh = `$${params.length}`;

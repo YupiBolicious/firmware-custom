@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import StatusBadge from '../components/StatusBadge';
 
 export default function WorkOrderList() {
   const { hasRole } = useAuth();
@@ -59,7 +60,7 @@ export default function WorkOrderList() {
                 <td className="meta">{wo.group_summary || '-'}</td>
                 <td className="title-cell">{wo.title || '-'}</td>
                 <td className="meta">{wo.customer || '-'}</td>
-                <td><span className="badge badge-info">{wo.status}</span></td>
+                <td><StatusBadge status={wo.status} /></td>
                 <td className="num">{wo.item_count}</td>
                 <td className="num">{wo.total_estimated_hours}</td>
                 <td className="meta">{wo.created_by_name || '-'}</td>

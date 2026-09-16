@@ -86,6 +86,7 @@ const createWorkOrder = async ({ wo_number, title, description, customer, create
     action: 'WORK_ORDER_CREATED',
     entity_type: 'WORK_ORDER',
     entity_id: wo.id,
+    work_order_id: wo.id,
     details: { wo_number: wo.wo_number, title: wo.title, group_count: wo.groups.length },
     ip_address,
   });
@@ -168,9 +169,10 @@ const updateWorkOrder = async (id, { title, description, customer, status, user_
     await auditService.log({
       user_id,
       action: 'WORK_ORDER_STATUS_ROLLED_BACK',
-      entity_type: 'WORK_ORDER',
-      entity_id: id,
-      details: { wo_number: existing.wo_number, from: 'ANALYZED', to: 'DRAFT' },
+entity_type: 'WORK_ORDER',
+    entity_id: id,
+    work_order_id: id,
+    details: { wo_number: existing.wo_number, from: 'ANALYZED', to: 'DRAFT' },
       ip_address,
     });
   }
@@ -180,6 +182,7 @@ const updateWorkOrder = async (id, { title, description, customer, status, user_
     action: 'WORK_ORDER_UPDATED',
     entity_type: 'WORK_ORDER',
     entity_id: wo.id,
+    work_order_id: wo.id,
     details: { wo_number: wo.wo_number, changes: { title, description, customer, status } },
     ip_address,
   });
@@ -212,7 +215,8 @@ const addGroup = async (work_order_id, { machine_model_id, machine_model_version
     action: 'WORK_ORDER_GROUP_ADDED',
     entity_type: 'WORK_ORDER_GROUP',
     entity_id: group.id,
-    details: { work_order_id, machine_model_id, machine_model_version_id, serial_number: group.serial_number },
+    work_order_id,
+    details: { machine_model_id, machine_model_version_id, serial_number: group.serial_number },
     ip_address,
   });
   return group;
@@ -239,7 +243,8 @@ const updateGroup = async (work_order_id, groupId, { machine_model_id, machine_m
     action: 'WORK_ORDER_GROUP_UPDATED',
     entity_type: 'WORK_ORDER_GROUP',
     entity_id: group.id,
-    details: { work_order_id, machine_model_id, machine_model_version_id, serial_number: group.serial_number },
+    work_order_id,
+    details: { machine_model_id, machine_model_version_id, serial_number: group.serial_number },
     ip_address,
   });
   return group;
@@ -265,7 +270,8 @@ const deleteGroup = async (work_order_id, groupId, { user_id, roles, ip_address 
     action: 'WORK_ORDER_GROUP_DELETED',
     entity_type: 'WORK_ORDER_GROUP',
     entity_id: groupId,
-    details: { work_order_id },
+    work_order_id,
+    details: {},
     ip_address,
   });
   return deleted;
@@ -322,7 +328,8 @@ const addItem = async (work_order_id, { work_order_group_id, item_number, title,
     action: 'ITEM_ADDED',
     entity_type: 'WORK_ORDER_ITEM',
     entity_id: item.id,
-    details: { work_order_id, work_order_group_id, item_number: item.item_number, title: item.title },
+    work_order_id,
+    details: { work_order_group_id, item_number: item.item_number, title: item.title },
     ip_address,
   });
   return item;
@@ -357,7 +364,8 @@ const updateItem = async (id, { title, description, quantity, documentation_read
     action: 'ITEM_UPDATED',
     entity_type: 'WORK_ORDER_ITEM',
     entity_id: item.id,
-    details: { work_order_id: item.work_order_id, item_number: item.item_number, changes: { title, description, quantity, documentation_readiness } },
+    work_order_id: item.work_order_id,
+    details: { item_number: item.item_number, changes: { title, description, quantity, documentation_readiness } },
     ip_address,
   });
   return { ...item, work_order_status: workOrderStatus, text_changed: textChanged };
@@ -382,6 +390,7 @@ const deleteItem = async (id, { user_id, roles, ip_address }) => {
         action: 'WORK_ORDER_RESET_TO_DRAFT',
         entity_type: 'WORK_ORDER',
         entity_id: existing.work_order_id,
+        work_order_id: existing.work_order_id,
         details: { reason: 'Last custom item deleted' },
         ip_address,
       });
@@ -396,7 +405,8 @@ const deleteItem = async (id, { user_id, roles, ip_address }) => {
     action: 'ITEM_DELETED',
     entity_type: 'WORK_ORDER_ITEM',
     entity_id: id,
-    details: { work_order_id: existing.work_order_id, item_number: existing.item_number },
+    work_order_id: existing.work_order_id,
+    details: { item_number: existing.item_number },
     ip_address,
   });
   return { id };
@@ -627,6 +637,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     action: 'WORK_ORDER_ANALYZED',
     entity_type: 'WORK_ORDER',
     entity_id: work_order_id,
+    work_order_id,
     // Slim payload: per-item statuses already live in per-item rows + classifications table
     details: { item_count: items.length, newly_in_review: newlyInReview.length },
     ip_address,
@@ -753,8 +764,8 @@ const completeProductionTask = async (taskId, { completed, user_id, ip_address }
     action: completed ? 'PRODUCTION_TASK_COMPLETED' : 'PRODUCTION_TASK_REOPENED',
     entity_type: 'PRODUCTION_TASK',
     entity_id: taskId,
+    work_order_id: task.work_order_id,
     details: {
-      work_order_id: task.work_order_id,
       wo_number: wo.wo_number,
       task_code: task.task_code,
       work_order_item_id: task.work_order_item_id,
@@ -786,6 +797,7 @@ const completeProduction = async (id, { ip_address }) => {
     action: 'WORK_ORDER_COMPLETED',
     entity_type: 'WORK_ORDER',
     entity_id: id,
+    work_order_id: id,
     details: { wo_number: wo.wo_number, title: wo.title },
     ip_address,
   });
@@ -828,6 +840,7 @@ const grantWorkOrderAccess = async (work_order_id, { user_id, target_user_id, ro
     action: 'WORK_ORDER_ACCESS_GRANTED',
     entity_type: 'WORK_ORDER',
     entity_id: work_order_id,
+    work_order_id,
     details: { wo_number: wo.wo_number, granted_user_id: target_user_id },
     ip_address,
   });
@@ -860,6 +873,7 @@ const revokeWorkOrderAccess = async (work_order_id, { user_id, target_user_id, r
     action: 'WORK_ORDER_ACCESS_REVOKED',
     entity_type: 'WORK_ORDER',
     entity_id: work_order_id,
+    work_order_id,
     details: { wo_number: wo.wo_number, revoked_user_id: target_user_id },
     ip_address,
   });

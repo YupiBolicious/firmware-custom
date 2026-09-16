@@ -1,0 +1,31 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [aria-hidden] [ref=e6]: FC
+    - generic [ref=e7]:
+      - heading "Firmware Custom" [level=1] [ref=e8]
+      - generic [ref=e9]: Item Classification & Estimation
+  - generic [ref=e10]:
+    - generic [ref=e11]:
+      - generic [ref=e12]: Email or Username
+      - textbox "Email or Username" [ref=e13]:
+        - /placeholder: you@company.com or username
+    - generic [ref=e14]:
+      - generic [ref=e15]: Password
+      - textbox "Password" [ref=e16]:
+        - /placeholder: Your password
+    - button "Sign In" [ref=e17] [cursor=pointer]
+  - generic [ref=e18]:
+    - generic [ref=e19]: Demo accounts
+    - generic [ref=e20]:
+      - generic [ref=e21]: pm@demo.com
+      - generic [ref=e22]: PM
+    - generic [ref=e23]:
+      - generic [ref=e24]: coder@demo.com
+      - generic [ref=e25]: Coder
+    - generic [ref=e26]:
+      - generic [ref=e27]: admin@demo.com
+      - generic [ref=e28]: Admin
+    - generic [ref=e29]:
+      - generic [ref=e30]: Password for all
+      - generic [ref=e31]: password123
+  - generic [ref=e32]: Authorized use only

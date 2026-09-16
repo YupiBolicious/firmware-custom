@@ -1,0 +1,158 @@
+- generic [ref=f9e3]:
+  - complementary [ref=f9e4]:
+    - generic [ref=f9e5]:
+      - generic [ref=f9e6]: Firmware Custom
+      - button "Toggle sidebar" [ref=f9e7] [cursor=pointer]
+    - navigation [ref=f9e9]:
+      - link "Dashboard" [ref=f9e10] [cursor=pointer]:
+        - /url: /dashboard
+      - link "Work Orders" [ref=f9e18] [cursor=pointer]:
+        - /url: /work-orders
+      - link "Audit Log" [ref=f9e24] [cursor=pointer]:
+        - /url: /audit-log
+      - link "Change Password" [ref=f9e28] [cursor=pointer]:
+        - /url: /change-password
+    - generic [ref=f9e34]:
+      - generic [ref=f9e35]:
+        - generic [ref=f9e36]: Demo PM
+        - button "Logout" [ref=f9e37] [cursor=pointer]
+      - generic [ref=f9e41]: PM
+  - main [ref=f9e42]:
+    - generic [ref=f9e43]:
+      - button "Switch to light theme" [ref=f9e44] [cursor=pointer]
+      - button "Notifications" [ref=f9e52] [cursor=pointer]:
+        - generic [ref=f9e56]: "1"
+    - generic [ref=f9e57]:
+      - generic [ref=f9e58]:
+        - heading "WO-MANTEST-04" [level=1] [ref=f9e59]
+        - generic [ref=f9e60]:
+          - link "Edit Work Order" [ref=f9e61] [cursor=pointer]:
+            - /url: /work-orders/93/edit
+          - button "Finalize Work Order" [ref=f9e65] [cursor=pointer]
+      - generic [ref=f9e66]:
+        - heading "Work Order Details" [level=3] [ref=f9e67]
+        - generic [ref=f9e68]:
+          - generic [ref=f9e69]:
+            - text: "Status:"
+            - generic [ref=f9e70]: Analyzed
+          - generic [ref=f9e71]: "Customer: Cust4"
+          - generic [ref=f9e72]: "Title: 2 Models To Check 1 Existed 1 New"
+          - generic [ref=f9e73]: "Created By: Demo PM"
+          - generic [ref=f9e74]: "Created At: 9/11/2026, 11:21:51 AM"
+          - generic [ref=f9e75]: "Total Estimated Hours: 98.00h"
+      - generic [ref=f9e76]:
+        - heading "Shared Access" [level=3] [ref=f9e78]
+        - generic [ref=f9e79]:
+          - combobox [ref=f9e80]:
+            - option "Select user to grant access..." [disabled] [selected]
+            - option "pm manual test (pm@test)"
+          - button "Grant Access" [ref=f9e81] [cursor=pointer]
+        - generic [ref=f9e82]: No shared access. Only the owner (and admins) can edit this work order.
+      - generic [ref=f9e83]:
+        - generic [ref=f9e84]:
+          - heading "Models and Custom Items" [level=3] [ref=f9e85]
+          - generic [ref=f9e86]:
+            - button "Estimate Work Order" [ref=f9e87] [cursor=pointer]
+            - button "+ Add Model" [ref=f9e88] [cursor=pointer]
+        - generic [ref=f9e203]:
+          - heading "Add Custom Item" [level=3] [ref=f9e204]
+          - generic [ref=f9e205]:
+            - generic [ref=f9e206]:
+              - generic [ref=f9e207]:
+                - generic [ref=f9e208]: Quantity
+                - spinbutton [ref=f9e209]: "1"
+              - generic [ref=f9e210]:
+                - generic [ref=f9e211]: Model/Ver/SN
+                - combobox [ref=f9e212]:
+                  - option "MAN-TEST-02 / v1" [selected]
+                  - option "MC-001"
+              - generic [ref=f9e213]:
+                - generic [ref=f9e214]: Title
+                - textbox [ref=f9e215]
+            - generic [ref=f9e216]:
+              - generic [ref=f9e217]: Description
+              - textbox [ref=f9e218]
+            - generic [ref=f9e219]:
+              - button "Add Item" [ref=f9e220] [cursor=pointer]
+              - button "Cancel" [ref=f9e221] [cursor=pointer]
+        - generic [ref=f9e89]:
+          - generic [ref=f9e90]:
+            - strong [ref=f9e91]: MAN-TEST-02 / v1
+            - generic [ref=f9e92]:
+              - button "Edit model" [ref=f9e93] [cursor=pointer]
+              - button "Delete model" [disabled] [ref=f9e97]
+          - table [ref=f9e101]:
+            - rowgroup [ref=f9e102]:
+              - row [ref=f9e103]:
+                - columnheader "Item" [ref=f9e104]
+                - columnheader "Title" [ref=f9e105]
+                - columnheader "Description" [ref=f9e106]
+                - columnheader "Qty" [ref=f9e107]
+                - columnheader "Firmware" [ref=f9e108]
+                - columnheader "Complexity" [ref=f9e109]
+                - columnheader "Confidence" [ref=f9e110]
+                - columnheader "Hours" [ref=f9e111]
+                - columnheader "Status" [ref=f9e112]
+                - columnheader "Actions" [ref=f9e113]
+            - rowgroup [ref=f9e114]:
+              - row [ref=f9e115]:
+                - cell "02" [ref=f9e116]
+                - cell "Custom Connection To 20 Ma" [ref=f9e117]
+                - cell "-" [ref=f9e118]
+                - cell "1" [ref=f9e119]
+                - cell "YES" [ref=f9e120]
+                - cell "L4" [ref=f9e121]
+                - cell "75.00%" [ref=f9e122]
+                - cell "98.00h" [ref=f9e123]
+                - cell "Classified" [ref=f9e124]
+                - cell [ref=f9e126]:
+                  - button "Edit item" [ref=f9e127] [cursor=pointer]
+                  - button "Delete item" [ref=f9e131] [cursor=pointer]
+              - row [ref=f9e135]:
+                - cell "03" [ref=f9e136]
+                - cell "Front Panel Remove Enclosure" [ref=f9e137]
+                - cell "-" [ref=f9e138]
+                - cell "1" [ref=f9e139]
+                - cell "NO" [ref=f9e140]
+                - cell "-" [ref=f9e141]
+                - cell "67.53%" [ref=f9e142]
+                - cell "0h" [ref=f9e143]
+                - cell "Non-Firmware" [ref=f9e144]
+                - cell [ref=f9e146]:
+                  - button "Edit item" [ref=f9e147] [cursor=pointer]
+                  - button "Delete item" [ref=f9e151] [cursor=pointer]
+          - button "+ Add Item" [active] [ref=f9e155] [cursor=pointer]
+        - generic [ref=f9e156]:
+          - generic [ref=f9e157]:
+            - strong [ref=f9e158]: MC-001
+            - generic [ref=f9e159]:
+              - button "Edit model" [ref=f9e160] [cursor=pointer]
+              - button "Delete model" [disabled] [ref=f9e164]
+          - table [ref=f9e168]:
+            - rowgroup [ref=f9e169]:
+              - row [ref=f9e170]:
+                - columnheader "Item" [ref=f9e171]
+                - columnheader "Title" [ref=f9e172]
+                - columnheader "Description" [ref=f9e173]
+                - columnheader "Qty" [ref=f9e174]
+                - columnheader "Firmware" [ref=f9e175]
+                - columnheader "Complexity" [ref=f9e176]
+                - columnheader "Confidence" [ref=f9e177]
+                - columnheader "Hours" [ref=f9e178]
+                - columnheader "Status" [ref=f9e179]
+                - columnheader "Actions" [ref=f9e180]
+            - rowgroup [ref=f9e181]:
+              - row [ref=f9e182]:
+                - cell "01" [ref=f9e183]
+                - cell "Uv Lamp" [ref=f9e184]
+                - cell "Provide Uv Lamp" [ref=f9e185]
+                - cell "1" [ref=f9e186]
+                - cell "NO" [ref=f9e187]
+                - cell "-" [ref=f9e188]
+                - cell "90.00%" [ref=f9e189]
+                - cell "0h" [ref=f9e190]
+                - cell "Non-Firmware" [ref=f9e191]
+                - cell [ref=f9e193]:
+                  - button "Edit item" [ref=f9e194] [cursor=pointer]
+                  - button "Delete item" [ref=f9e198] [cursor=pointer]
+          - button "+ Add Item" [ref=f9e202] [cursor=pointer]

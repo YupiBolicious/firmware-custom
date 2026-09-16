@@ -17,6 +17,7 @@ src/
 └── config/db.js      # pg pool (PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD)
 ```
 - `scripts/purge-audit-log.js` — audit_trail retention purge (`--dry-run` / `--months N`), index added by `database/alter_audit_retention.sql`
+- Semantic classification is env-gated: `SEMANTIC_ENABLED=0` in `.env` disables the whole pipeline (kill switch, no code change). Full variable list in `.env.example`.
 
 ## WHERE TO LOOK
 | Task | Location | Notes |

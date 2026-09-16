@@ -81,12 +81,8 @@ export default function AuditLog() {
   return (
     <div className="glass-page">
       <h1>Audit Log</h1>
-      {/* <div className="text-muted mb-16">
-        Records every action across the system, including who performed it and when.
-      </div> */}
-
       <div className="panel mb-16">
-        <div className="flex justify-between align-center mb-8">
+        <div className="flex justify-between align-center mb-8" style={{ flexWrap: 'wrap', gap: 8 }}>
           <h3 style={{ margin: 0 }}>
             Activity
             {hasActiveFilters && (
@@ -102,7 +98,7 @@ export default function AuditLog() {
           </div>
         </div>
 
-        <div className="flex gap-8 mb-8">
+        <div className="toolbar mb-8">
           <input
             className="filter-input"
             placeholder="Search action, entity, WO number, item number, user..."
@@ -188,49 +184,52 @@ export default function AuditLog() {
             {hasActiveFilters ? 'No audit entries match the current filters.' : 'No audit entries found.'}
           </div>
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Work Orders</th>
-                <th>Entity</th>
-                <th>Detail</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedItems.map((item) => {
-                const wo = formatWorkOrder(item);
-                return (
-                  <tr key={item.id}>
-                    <td className="text-muted"><RelativeTime date={item.created_at} /></td>
-                    <td>{item.user_name || <span className="text-muted">System</span>}</td>
-                    <td>
-                      <span className={`badge ${ACTION_BADGE[item.action] || 'badge-muted'}`}>
-                        {formatAction(item.action)}
-                      </span>
-                    </td>
-                    <td>
-                      {wo ? (
-                        <Link to={`/work-orders/${wo.workOrderId}`}>
-                          {wo.woNumber}
-                        </Link>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td>{formatEntity(item)}</td>
-                    <td className="text-muted">{formatDetail(item) || '-'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Work Orders</th>
+                  <th>Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedItems.map((item) => {
+                  const wo = formatWorkOrder(item);
+                  return (
+                    <tr key={item.id}>
+                      <td className="text-muted"><RelativeTime date={item.created_at} /></td>
+                      <td>{item.user_name || <span className="text-muted">System</span>}</td>
+                      <td>
+                        <span className={`badge ${ACTION_BADGE[item.action] || 'badge-muted'}`}>
+                          {formatAction(item.action)}
+                        </span>
+                      </td>
+                      <td>
+                        {wo ? (
+                          <Link to={`/work-orders/${wo.workOrderId}`}>
+                            {wo.woNumber}
+                          </Link>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      {/* <td>{formatEntity(item)}</td> */}
+                      <td className="text-muted title-cell" title={formatDetail(item) || '-'}>
+                        {formatDetail(item) || '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {totalPages > 1 && (
-          <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
+          <div className="flex justify-between align-center" style={{ marginTop: 12, flexWrap: 'wrap', gap: 8 }}>
             <span className="text-muted" style={{ fontSize: 13 }}>
               Page {page} of {totalPages}
             </span>

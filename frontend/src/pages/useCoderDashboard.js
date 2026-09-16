@@ -23,7 +23,7 @@ const WORK_ORDER_STATUS_LABELS = {
   DRAFT: 'Draft',
   ANALYZED: 'Analyzed',
   FINALIZED: 'Finalized',
-  PRODUCTION: 'In Production',
+  PRODUCTION: 'Production',
   COMPLETED: 'Completed',
 };
 
@@ -41,7 +41,7 @@ const initialFilters = {
   // confidenceMin: '',
   // confidenceMax: '',
   classificationStatusFilter: 'ALL',
-  workOrderStatusFilter: 'ALL',
+  statusFilter: 'ALL',
   dateFrom: '',
   dateTo: '',
 };
@@ -74,7 +74,7 @@ export default function useCoderDashboard() {
 
   useEffect(() => {
     setWorkOrderPage(1);
-  }, [filters.search, filters.workOrderStatusFilter]);
+  }, [filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
   useEffect(() => {
     const load = async () => {
@@ -86,7 +86,11 @@ export default function useCoderDashboard() {
             limit: ACTIVITY_PAGE_SIZE,
             work_order_page: workOrderPage,
             work_order_search: filters.search,
-            work_order_status: filters.workOrderStatusFilter,
+            work_order_status: filters.statusFilter,
+            complexity: filters.complexityFilter,
+            classification_status: filters.classificationStatusFilter,
+            date_from: filters.dateFrom,
+            date_to: filters.dateTo,
           },
         });
         setData(res.data.data);
@@ -97,10 +101,14 @@ export default function useCoderDashboard() {
       }
     };
     load();
-  }, [activityPage, newWoPage, workOrderPage, filters.search, filters.workOrderStatusFilter]);
+  }, [activityPage, newWoPage, workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
   const setFilter = useCallback((key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === 'classificationStatusFilter' || key === 'statusFilter') next.complexityFilter = 'ALL';
+      return next;
+    });
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -121,11 +129,17 @@ export default function useCoderDashboard() {
   const workOrderQueueTotalPages = Math.max(1, Math.ceil(workOrderQueueTotal / 10));
 
   const uniqueComplexities = useMemo(() => {
+    const matches = (r) => {
+      const cls = r.classification_status ?? r.status;
+      if (filters.classificationStatusFilter !== 'ALL' && cls !== filters.classificationStatusFilter) return false;
+      if (filters.statusFilter !== 'ALL' && r.work_order_status !== filters.statusFilter) return false;
+      return true;
+    };
     const set = new Set(
-      [...reviewQueue, ...workQueue].map((r) => r.complexity_code).filter(Boolean)
+      [...reviewQueue, ...workQueue].filter(matches).map((r) => r.complexity_code).filter(Boolean)
     );
     return [...set].sort();
-  }, [reviewQueue, workQueue]);
+  }, [reviewQueue, workQueue, filters.classificationStatusFilter, filters.statusFilter]);
 
   const filteredReviewQueue = useMemo(() => {
     return reviewQueue.filter((r) => {
@@ -157,7 +171,7 @@ export default function useCoderDashboard() {
       }
       if (filters.complexityFilter !== 'ALL' && r.complexity_code !== filters.complexityFilter) return false;
       if (filters.classificationStatusFilter !== 'ALL' && r.classification_status !== filters.classificationStatusFilter) return false;
-      if (filters.workOrderStatusFilter !== 'ALL' && r.work_order_status !== filters.workOrderStatusFilter) return false;
+      if (filters.statusFilter !== 'ALL' && r.work_order_status !== filters.statusFilter) return false;
       if (filters.dateFrom && new Date(r.created_at) < new Date(filters.dateFrom)) return false;
       if (filters.dateTo && new Date(r.created_at) > new Date(filters.dateTo + 'T23:59:59')) return false;
       return true;
@@ -168,7 +182,7 @@ export default function useCoderDashboard() {
   const totalCount = reviewQueue.length + workQueue.length;
   const hasActiveFilters = filters.search || filters.complexityFilter !== 'ALL'
     || filters.confidenceMin || filters.confidenceMax
-    || filters.classificationStatusFilter !== 'ALL' || filters.workOrderStatusFilter !== 'ALL'
+    || filters.classificationStatusFilter !== 'ALL' || filters.statusFilter !== 'ALL'
     || filters.dateFrom || filters.dateTo;
 
   const filteredKpis = useMemo(() => ({

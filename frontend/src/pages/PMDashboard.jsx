@@ -6,21 +6,15 @@ import { Sun, Moon } from 'lucide-react';
 import RelativeTime from '../components/RelativeTime';
 import NotificationBell from '../components/NotificationBell';
 import usePmDashboard from './usePmDashboard';
-
-const STATUS_BADGE = {
-  DRAFT: 'badge-muted',
-  ANALYZED: 'badge-info',
-  FINALIZED: 'badge-warning',
-  PRODUCTION: 'badge-success',
-  COMPLETED: 'badge-success',
-};
+import FilterSearch from './FilterSearch';
+import StatusBadge from '../components/StatusBadge';
 
 const STATUS_COLORS = {
-  DRAFT: '#94a3b8',
-  ANALYZED: '#38bdf8',
-  FINALIZED: '#f59e0b',
-  PRODUCTION: '#10b981',
-  COMPLETED: '#059669',
+  DRAFT: 'var(--text-muted)',
+  ANALYZED: 'var(--production)',
+  FINALIZED: 'var(--warning)',
+  PRODUCTION: 'var(--info)',
+  COMPLETED: 'var(--success)',
 };
 
 function TrendTooltip({ active, payload, label }) {
@@ -47,23 +41,6 @@ export default function PMDashboard() {
   } = usePmDashboard();
   useValueToast(error);
 
-  const [theme, setTheme] = useState(() => {
-    try {
-      return document.documentElement.dataset.theme || localStorage.getItem('theme') || 'dark';
-    } catch {
-      return 'dark';
-    }
-  });
-
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem('theme', next);
-    } catch {
-    }
-  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
@@ -71,24 +48,6 @@ export default function PMDashboard() {
 
   return (
     <div className="dashboard">
-      <header className="topbar">
-        <nav className="breadcrumb" aria-label="Breadcrumb">
-          <span className="breadcrumb-root">workspace</span>
-          <span className="breadcrumb-sep">/</span>
-          <span className="breadcrumb-current">PM Dashboard</span>
-        </nav>
-        <div className="topbar-actions">
-          <button
-            className="notif-bell"
-            onClick={toggleTheme}
-            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-            title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
-          >
-            {theme === 'dark' ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
-          </button>
-          <NotificationBell />
-        </div>
-      </header>
       {/* 1. KPI Summary */}
       <div className="stats-grid">
         <div className="stat">
@@ -121,7 +80,7 @@ export default function PMDashboard() {
         )}
       </div>
 
-      {/* 2. Work Queue + Filters */}
+      {/* 2. Work Queue */}
       <div className="panel">
         <div className="flex justify-between align-center mb-8">
           <h3 style={{ margin: 0 }}>
@@ -132,119 +91,18 @@ export default function PMDashboard() {
               </span>
             )}
           </h3>
-          <div className="flex gap-8">
-            {hasActiveFilters && (
-              <button className="btn btn-secondary btn-sm" onClick={clearFilters}>Clear Filters</button>
-            )}
-          </div>
         </div>
-
-        {/* Search Bar */}
-        <div className="toolbar mb-8">
-          <input
-            className="filter-input"
-            placeholder="Search WO number, title, customer, or item..."
-            value={filters.search}
-            onChange={(e) => setFilter('search', e.target.value)}
-          />
-          <button
-            className={`btn btn-sm ${showAdvanced ? '' : 'btn-secondary'}`}
-            onClick={() => setShowAdvanced(!showAdvanced)}
-          >
-            Advanced Filters {showAdvanced ? '▲' : '▼'}
-          </button>
-        </div>
-
-        {/* Advanced Filters Panel */}
-        {showAdvanced && (
-          <div className="filter-advanced">
-            <div className="flex gap-8" style={{ flexWrap: 'wrap', alignItems: 'end' }}>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">Status</label>
-                <select
-                  className="filter-control"
-                  value={filters.statusFilter}
-                  onChange={(e) => setFilter('statusFilter', e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  {Object.keys(STATUS_BADGE).map((s) => (
-                    <option key={s} value={s}>{formatStatus(s)}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">Machine Model</label>
-                <select
-                  className="filter-control"
-                  value={filters.modelFilter}
-                  onChange={(e) => setFilter('modelFilter', e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  {uniqueModels.map((m) => (
-                    <option key={m.id} value={m.id}>{m.code} - {m.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">Version</label>
-                <select
-                  className="filter-control"
-                  value={filters.versionFilter}
-                  onChange={(e) => setFilter('versionFilter', e.target.value)}
-                  disabled={filters.modelFilter === 'ALL'}
-                >
-                  <option value="ALL">All</option>
-                  {uniqueVersions.map((v) => (
-                    <option key={v.id} value={v.id}>{v.code}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">Complexity</label>
-                <select
-                  className="filter-control"
-                  value={filters.complexityFilter}
-                  onChange={(e) => setFilter('complexityFilter', e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  {uniqueComplexities.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">FW Related</label>
-                <select
-                  className="filter-control"
-                  value={filters.fwRelatedFilter}
-                  onChange={(e) => setFilter('fwRelatedFilter', e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  <option value="FW">Firmware</option>
-                  <option value="NON_FW">Non-Firmware</option>
-                </select>
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">From</label>
-                <input
-                  type="date"
-                  className="filter-control"
-                  value={filters.dateFrom}
-                  onChange={(e) => setFilter('dateFrom', e.target.value)}
-                />
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">To</label>
-                <input
-                  type="date"
-                  className="filter-control"
-                  value={filters.dateTo}
-                  onChange={(e) => setFilter('dateTo', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        <FilterSearch
+          filters={filters}
+          setFilter={setFilter}
+          showAdvanced={showAdvanced}
+          setShowAdvanced={setShowAdvanced}
+          clearFilters={clearFilters}
+          hasActiveFilters={hasActiveFilters}
+          uniqueModels={uniqueModels}
+          uniqueVersions={uniqueVersions}
+          uniqueComplexities={uniqueComplexities}
+        />
 
         {filteredQueue.length === 0 ? (
           <div className="text-muted">No work orders match the current filters.</div>
@@ -272,11 +130,7 @@ export default function PMDashboard() {
                   <td className="title-cell">{w.title || '-'}</td>
                   <td className="meta text-muted">{w.customer || '-'}</td>
                   <td className="num">{w.item_count}</td>
-                  <td>
-                    <span className={`badge ${STATUS_BADGE[w.status] || 'badge-muted'}`}>
-                      {formatStatus(w.status)}
-                    </span>
-                  </td>
+                  <td><StatusBadge status={w.status} /></td>
                   <td className="num">{w.total_estimated_hours > 0 ? `${w.total_estimated_hours}h` : '-'}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
@@ -296,8 +150,6 @@ export default function PMDashboard() {
           </div>
         )}
       </div>
-
-      {/* 3 + 4. Secondary insights share one row on wide screens */}
       <div className="split-2">
       {/* 3. Progress Overview */}
       <div className="panel">
@@ -310,12 +162,11 @@ export default function PMDashboard() {
               {filteredStatusDistribution.map((s) => {
                 const total = filteredStatusDistribution.reduce((sum, x) => sum + x.count, 0);
                 const pct = total > 0 ? (s.count / total) * 100 : 0;
-                 const colors = { DRAFT: '#666', ANALYZED: '#2196f3', FINALIZED: '#ff9800', PRODUCTION: '#4caf50', COMPLETED: '#166534' };
                 return pct > 0 ? (
                   <div
                     key={s.status}
                     title={`${formatStatus(s.status)}: ${s.count}`}
-                    style={{ width: `${pct}%`, background: colors[s.status] || '#555' }}
+                    style={{ width: `${pct}%`, background: STATUS_COLORS[s.status] || 'var(--text-muted)' }}
                   />
                 ) : null;
               })}
@@ -323,39 +174,10 @@ export default function PMDashboard() {
               <div className="flex gap-16" style={{ flexWrap: 'wrap' }}>
               {filteredStatusDistribution.map((s) => (
                 <div key={s.status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 2, background: { DRAFT: '#666', ANALYZED: '#2196f3', FINALIZED: '#ff9800', PRODUCTION: '#4caf50', COMPLETED: '#166534' }[s.status] || '#555' }} />
+                  <div style={{ width: 10, height: 10, borderRadius: 2, background: STATUS_COLORS[s.status] || 'var(--text-muted)' }} />
                   <span className="text-muted">{formatStatus(s.status)}:</span> <strong>{s.count}</strong>
                 </div>
               ))}
-            {/* <div className="dist-chips">
-              {filteredStatusDistribution.map((s) => (
-                <span key={s.status} className="dist-chip">
-                  <span className="dist-dot" style={{ background: STATUS_COLORS[s.status] || '#64748b' }} />
-                  {formatStatus(s.status)}
-                  <span className="dist-count">{s.count}</span>
-                </span>
-              ))}
-            </div> */}
-            {/* <div className="dist-bars">
-              {filteredStatusDistribution.map((s) => {
-                const total = filteredStatusDistribution.reduce((sum, x) => sum + x.count, 0);
-                const pct = total > 0 ? (s.count / total) * 100 : 0;
-                const max = Math.max(...filteredStatusDistribution.map((x) => x.count));
-                const height = max > 0 ? (s.count / max) * 100 : 0;
-                return (
-                  <div key={s.status} title={`${formatStatus(s.status)}: ${s.count}`} className="dist-col">
-                    <div className="dist-col-track">
-                      <div
-                        className="dist-col-fill"
-                        style={{ height: `${height}%`, background: STATUS_COLORS[s.status] || '#64748b' }}
-                      />
-                    </div>
-                    <div className="dist-col-num">{s.count}</div>
-                    <div className="dist-col-pct">{Math.round(pct)}%</div>
-                  </div>
-                );
-              })}
-            </div> */}
             </div>
           </div>
         )}

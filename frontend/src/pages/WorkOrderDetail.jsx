@@ -115,9 +115,6 @@ export default function WorkOrderDetail() {
         </div>
       </div>
 
-      
-      
-
       <div className="panel">
         <h3>Work Order Details</h3>
         <div className="form-grid">

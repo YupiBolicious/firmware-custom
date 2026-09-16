@@ -66,6 +66,20 @@ summary: flows=23 auto=2 correctAuto=1 wrongAuto=1 blockedMargin=14 ...
 - **Impact:** 1 wrong auto-classification when a live user submits exactly "Volt-free contact pair". All other 28 coverage cases, all 21 probes, all 72 business cases, and every unit suite pass.
 - **Remediation options (not applied — out of scope for this validation):** (a) adjudicate/curate the KB-CODER-177 row or its embedding, (b) re-baseline the coverage case expectation if the claim is accepted, (c) raise the semantic margin floor.
 
+## 4a. C07 RESOLVED — 2026-09-16
+
+Remediation (a) applied: corpus curation of `KB-CODER-177`.
+
+- **Dependency check first (read-only, no writes):** zero `classification_matches`, zero `PENDING`/`CLASSIFIED`/`CODER_REVIEW` classifications, zero `DRAFT`/`ANALYZED` work orders, zero audit/task refs reference KB-CODER-177 → the row has **no active dependants**; retire-only is safe.
+- **Retired, not deleted:** `UPDATE kb_items SET is_active = FALSE WHERE kb_code = 'KB-CODER-177'` + `bumpCorpusVersion()` → corpus version **39 → 40**, active rows **29 → 28**. Row retained (`source = CODER_REVIEW`, `created_at 2026-09-11`) so historical joins still resolve.
+- **Re-verification (2026-09-16, live DB):**
+  - `test-semantic-decision-coverage.js` → **coverage: OK (29 cases)**, `wrongAuto=0`, `correctAuto=1`
+  - `matcher-parity.js` → **98/98**
+  - `run-business-eval.js` + `score-business-eval.js` → **72/72 predictions stored**, no failure categories
+  - kbCache picked up the version bump and rebuilt (observed `builds=1 hits=72` against 28 active rows)
+
+The frozen suite expectation (no-wrong-auto for "Volt-free contact pair") is now satisfied by the corpus itself; no code or expectation changed.
+
 ## 5. Environment notes
 
 - DB live at localhost (`.env` present), embedding worker available (semantic paths executed for real — top matches and margins are measured, not stubbed, except the suite's explicit failure simulations).

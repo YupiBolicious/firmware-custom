@@ -5,7 +5,7 @@ const STATUS_LABELS = {
   DRAFT: 'Draft',
   ANALYZED: 'Analyzed',
   FINALIZED: 'Finalized',
-  PRODUCTION: 'In Production',
+  PRODUCTION: 'Production',
   COMPLETED: 'Completed',
 };
 
@@ -64,7 +64,10 @@ export default function usePmDashboard() {
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => {
       const next = { ...prev, [key]: value };
-      if (key === 'modelFilter') next.versionFilter = 'ALL';
+      if (key === 'modelFilter') {
+        next.versionFilter = 'ALL';
+        next.complexityFilter = 'ALL';
+      }
       return next;
     });
   }, []);
@@ -105,9 +108,12 @@ export default function usePmDashboard() {
   }, [workQueue, filters.modelFilter]);
 
   const uniqueComplexities = useMemo(() => {
-    const set = new Set(workQueue.map((w) => w.complexity_code).filter(Boolean));
+    const scoped = filters.modelFilter === 'ALL'
+      ? workQueue
+      : workQueue.filter((w) => (w.groups || []).some((g) => g.machine_model_id === Number(filters.modelFilter)));
+    const set = new Set(scoped.map((w) => w.complexity_code).filter(Boolean));
     return [...set].sort();
-  }, [workQueue]);
+  }, [workQueue, filters.modelFilter]);
 
   const filteredQueue = useMemo(() => {
     return workQueue.filter((w) => {
@@ -141,7 +147,8 @@ export default function usePmDashboard() {
     active_wos: filteredQueue.filter((w) => ['DRAFT', 'ANALYZED'].includes(w.status)).length,
     pending_review: filteredQueue.filter((w) => w.has_pending_review).length,
     in_progress: filteredQueue.filter((w) => w.status === 'ANALYZED').length,
-    completed: filteredQueue.filter((w) => ['PRODUCTION', 'COMPLETED'].includes(w.status)).length,
+    production: filteredQueue.filter((w) => w.status === 'PRODUCTION').length,
+    completed: filteredQueue.filter((w) => w.status === 'COMPLETED').length,
     total_estimated_hours: filteredQueue.reduce((s, w) => s + w.total_estimated_hours, 0),
     overdue: filteredQueue.filter((w) => w.has_overdue).length,
   }), [filteredQueue]);

@@ -73,7 +73,8 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
     action: 'ITEM_REVIEWED',
     entity_type: 'WORK_ORDER_ITEM',
     entity_id: itemId,
-    details: { work_order_id: item.work_order_id, complexity_code: level.code, fw_related: isFirmware },
+    work_order_id: item.work_order_id,
+    details: { complexity_code: level.code, fw_related: isFirmware },
     ip_address,
   });
 
@@ -82,6 +83,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
     action: telemetry.REVIEWED_ACTION,
     entity_type: 'WORK_ORDER_ITEM',
     entity_id: itemId,
+    work_order_id: item.work_order_id,
     details: telemetry.buildReviewedDetails({
       classificationId: saved.id,
       finalFw: isFirmware,

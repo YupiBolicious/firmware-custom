@@ -38,6 +38,7 @@ const uploadDocuments = async (workOrderId, files, { user_id, description, ip_ad
     action: 'DOCUMENTS_UPLOADED',
     entity_type: 'WORK_ORDER',
     entity_id: workOrderId,
+    work_order_id: workOrderId,
     details: { wo_number: wo.wo_number, count: files.length },
     ip_address,
   });
@@ -46,10 +47,11 @@ const uploadDocuments = async (workOrderId, files, { user_id, description, ip_ad
     await workOrderRepository.updateStatus(workOrderId, 'COMPLETED');
     await auditService.log({
       user_id,
-      action: 'WORK_ORDER_COMPLETED',
-      entity_type: 'WORK_ORDER',
-      entity_id: workOrderId,
-      details: { wo_number: wo.wo_number, title: wo.title, trigger: 'document_upload' },
+action: 'WORK_ORDER_COMPLETED',
+    entity_type: 'WORK_ORDER',
+    entity_id: workOrderId,
+    work_order_id: workOrderId,
+    details: { wo_number: wo.wo_number, title: wo.title, trigger: 'document_upload' },
       ip_address,
     });
   }
@@ -75,7 +77,8 @@ const deleteDocument = async (docId, { user_id, ip_address }) => {
     action: 'DOCUMENT_DELETED',
     entity_type: 'WORK_ORDER_DOCUMENT',
     entity_id: docId,
-    details: { work_order_id: doc.work_order_id, original_name: doc.original_name },
+    work_order_id: doc.work_order_id,
+    details: { original_name: doc.original_name },
     ip_address,
   });
   return doc;

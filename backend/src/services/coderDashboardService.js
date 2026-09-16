@@ -1,13 +1,13 @@
 const coderDashboardRepository = require('../repositories/coderDashboardRepository');
 
-const getCoderDashboard = async (userId, { activityPage = 1, newWoPage = 1, limit = 15, workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL' } = {}) => {
+const getCoderDashboard = async (userId, { activityPage = 1, newWoPage = 1, limit = 15, workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL', complexity = 'ALL', classificationStatus = 'ALL', dateFrom = '', dateTo = '' } = {}) => {
   const WORK_ORDER_LIMIT = 10;
   const [kpis, reviewQueue, workQueue, workOrderQueue, workOrderQueueTotal, coderActivity, coderActivityTotal, newWorkOrders, newWorkOrdersTotal, trend] = await Promise.all([
     coderDashboardRepository.findKpis(userId),
     coderDashboardRepository.findReviewQueue(),
     coderDashboardRepository.findWorkQueue(),
-    coderDashboardRepository.findWorkOrderQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus }),
-    coderDashboardRepository.countWorkOrderQueue({ search: workOrderSearch, woStatus: workOrderStatus }),
+    coderDashboardRepository.findWorkOrderQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo }),
+    coderDashboardRepository.countWorkOrderQueue({ search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo }),
     coderDashboardRepository.findCoderActivity(activityPage, limit),
     coderDashboardRepository.countCoderActivity(),
     coderDashboardRepository.findNewWorkOrders(newWoPage, limit),

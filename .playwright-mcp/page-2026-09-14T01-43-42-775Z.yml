@@ -1,0 +1,216 @@
+- generic [ref=f7e3]:
+  - complementary [ref=f7e4]:
+    - generic [ref=f7e5]:
+      - generic [ref=f7e6]: Firmware Custom
+      - button "Toggle sidebar" [ref=f7e7] [cursor=pointer]
+    - navigation [ref=f7e9]:
+      - link "Dashboard" [ref=f7e10] [cursor=pointer]:
+        - /url: /dashboard
+      - link "Work Orders" [ref=f7e18] [cursor=pointer]:
+        - /url: /work-orders
+      - link "Audit Log" [ref=f7e24] [cursor=pointer]:
+        - /url: /audit-log
+      - link "Change Password" [ref=f7e28] [cursor=pointer]:
+        - /url: /change-password
+    - generic [ref=f7e34]:
+      - generic [ref=f7e35]:
+        - generic [ref=f7e36]: Demo PM
+        - button "Logout" [ref=f7e37] [cursor=pointer]
+      - generic [ref=f7e41]: PM
+  - main [ref=f7e42]:
+    - generic [ref=f7e43]:
+      - button "Switch to light theme" [ref=f7e44] [cursor=pointer]
+      - button "Notifications" [ref=f7e52] [cursor=pointer]:
+        - generic [ref=f7e56]: "1"
+    - generic [ref=f7e57]:
+      - heading "Audit Log" [level=1] [ref=f7e58]
+      - generic [ref=f7e59]:
+        - heading "Activity" [level=3] [ref=f7e61]
+        - generic [ref=f7e62]:
+          - textbox "Search action, entity, WO number, item number, user..." [ref=f7e63]
+          - button "Advanced Filters ▲" [active] [ref=f7e212] [cursor=pointer]
+        - generic [ref=f7e214]:
+          - generic [ref=f7e215]:
+            - generic [ref=f7e216]: Action
+            - combobox [ref=f7e217]:
+              - option "All" [selected]
+              - option "CLASSIFY_DECIDED"
+              - option "CLASSIFY_REVIEWED"
+              - option "Documents uploaded"
+              - option "Item added"
+              - option "Item deleted"
+              - option "Item reviewed"
+              - option "Item updated"
+              - option "PRODUCTION_TASK_COMPLETED"
+              - option "WORK_ORDER_ACCESS_GRANTED"
+              - option "Work order analyzed"
+              - option "Work order completed"
+              - option "Work order created"
+              - option "Work order finalized"
+              - option "Work order in production"
+              - option "Work order updated"
+          - generic [ref=f7e218]:
+            - generic [ref=f7e219]: User
+            - combobox [ref=f7e220]:
+              - option "All" [selected]
+              - option "Demo Coder"
+              - option "Demo PM"
+              - option "pm manual test"
+          - generic [ref=f7e221]:
+            - generic [ref=f7e222]: Work Order
+            - combobox [ref=f7e223]:
+              - option "All" [selected]
+              - option "WO-MANTEST-02 - Manual Test 02"
+              - option "WO-MANTEST-04 - 2 Models To Check 1 Existed 1 New"
+              - option "WO-MANTEST-1 - Test 1 Manual"
+              - option "WO-MANTEST-3 - Manual Test 3"
+          - generic [ref=f7e224]:
+            - generic [ref=f7e225]: From
+            - textbox [ref=f7e226]
+          - generic [ref=f7e227]:
+            - generic [ref=f7e228]: To
+            - textbox [ref=f7e229]
+        - table [ref=f7e65]:
+          - rowgroup [ref=f7e66]:
+            - row [ref=f7e67]:
+              - columnheader "Time" [ref=f7e68]
+              - columnheader "User" [ref=f7e69]
+              - columnheader "Action" [ref=f7e70]
+              - columnheader "Work Orders" [ref=f7e71]
+              - columnheader "Entity" [ref=f7e72]
+              - columnheader "Detail" [ref=f7e73]
+          - rowgroup [ref=f7e74]:
+            - row [ref=f7e230]:
+              - cell "53m ago" [ref=f7e231]
+              - cell "Demo PM" [ref=f7e77]
+              - cell "Work order analyzed" [ref=f7e78]
+              - cell [ref=f7e80]:
+                - link "WO-MANTEST-04" [ref=f7e81] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "Work Order" [ref=f7e82]
+              - cell "-" [ref=f7e83]
+            - row [ref=f7e84]:
+              - cell "2d ago" [ref=f7e85]
+              - cell "Demo PM" [ref=f7e86]
+              - cell "Item deleted" [ref=f7e87]
+              - cell [ref=f7e89]:
+                - link "WO-MANTEST-04" [ref=f7e90] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "04" [ref=f7e91]
+              - cell "-" [ref=f7e92]
+            - row [ref=f7e93]:
+              - cell "2d ago" [ref=f7e94]
+              - cell "Demo PM" [ref=f7e95]
+              - cell "Work order analyzed" [ref=f7e96]
+              - cell [ref=f7e98]:
+                - link "WO-MANTEST-04" [ref=f7e99] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "Work Order" [ref=f7e100]
+              - cell "-" [ref=f7e101]
+            - row [ref=f7e102]:
+              - cell "2d ago" [ref=f7e103]
+              - cell "Demo PM" [ref=f7e104]
+              - cell "CLASSIFY_DECIDED" [ref=f7e105]
+              - cell "-" [ref=f7e107]
+              - cell "#180" [ref=f7e108]
+              - cell "-" [ref=f7e109]
+            - row [ref=f7e110]:
+              - cell "2d ago" [ref=f7e111]
+              - cell "Demo PM" [ref=f7e112]
+              - cell "Item added" [ref=f7e113]
+              - cell [ref=f7e115]:
+                - link "WO-MANTEST-04" [ref=f7e116] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "04" [ref=f7e117]
+              - cell "0 Vault Relay Contcats" [ref=f7e118]
+            - row [ref=f7e119]:
+              - cell "2d ago" [ref=f7e120]
+              - cell "Demo PM" [ref=f7e121]
+              - cell "Item deleted" [ref=f7e122]
+              - cell [ref=f7e124]:
+                - link "WO-MANTEST-04" [ref=f7e125] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "01" [ref=f7e126]
+              - cell "-" [ref=f7e127]
+            - row [ref=f7e128]:
+              - cell "2d ago" [ref=f7e129]
+              - cell "Demo PM" [ref=f7e130]
+              - cell "Work order analyzed" [ref=f7e131]
+              - cell [ref=f7e133]:
+                - link "WO-MANTEST-04" [ref=f7e134] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "Work Order" [ref=f7e135]
+              - cell "-" [ref=f7e136]
+            - row [ref=f7e137]:
+              - cell "2d ago" [ref=f7e138]
+              - cell "Demo PM" [ref=f7e139]
+              - cell "Work order analyzed" [ref=f7e140]
+              - cell [ref=f7e142]:
+                - link "WO-MANTEST-04" [ref=f7e143] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "Work Order" [ref=f7e144]
+              - cell "-" [ref=f7e145]
+            - row [ref=f7e146]:
+              - cell "2d ago" [ref=f7e147]
+              - cell "Demo PM" [ref=f7e148]
+              - cell "Item updated" [ref=f7e149]
+              - cell [ref=f7e151]:
+                - link "WO-MANTEST-04" [ref=f7e152] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "01" [ref=f7e153]
+              - cell "-" [ref=f7e154]
+            - row [ref=f7e155]:
+              - cell "2d ago" [ref=f7e156]
+              - cell "Demo PM" [ref=f7e157]
+              - cell "Work order analyzed" [ref=f7e158]
+              - cell [ref=f7e160]:
+                - link "WO-MANTEST-04" [ref=f7e161] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "Work Order" [ref=f7e162]
+              - cell "-" [ref=f7e163]
+            - row [ref=f7e164]:
+              - cell "2d ago" [ref=f7e165]
+              - cell "Demo PM" [ref=f7e166]
+              - cell "Item updated" [ref=f7e167]
+              - cell [ref=f7e169]:
+                - link "WO-MANTEST-04" [ref=f7e170] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "01" [ref=f7e171]
+              - cell "-" [ref=f7e172]
+            - row [ref=f7e173]:
+              - cell "2d ago" [ref=f7e174]
+              - cell "Demo PM" [ref=f7e175]
+              - cell "Work order analyzed" [ref=f7e176]
+              - cell [ref=f7e178]:
+                - link "WO-MANTEST-04" [ref=f7e179] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "Work Order" [ref=f7e180]
+              - cell "-" [ref=f7e181]
+            - row [ref=f7e182]:
+              - cell "2d ago" [ref=f7e183]
+              - cell "Demo PM" [ref=f7e184]
+              - cell "Work order analyzed" [ref=f7e185]
+              - cell [ref=f7e187]:
+                - link "WO-MANTEST-04" [ref=f7e188] [cursor=pointer]:
+                  - /url: /work-orders/93
+              - cell "Work Order" [ref=f7e189]
+              - cell "-" [ref=f7e190]
+            - row [ref=f7e191]:
+              - cell "2d ago" [ref=f7e192]
+              - cell "Demo PM" [ref=f7e193]
+              - cell "CLASSIFY_DECIDED" [ref=f7e194]
+              - cell "-" [ref=f7e196]
+              - cell "01" [ref=f7e197]
+              - cell "-" [ref=f7e198]
+            - row [ref=f7e199]:
+              - cell "2d ago" [ref=f7e200]
+              - cell "Demo PM" [ref=f7e201]
+              - cell "CLASSIFY_DECIDED" [ref=f7e202]
+              - cell "-" [ref=f7e204]
+              - cell "03" [ref=f7e205]
+              - cell "-" [ref=f7e206]
+        - generic [ref=f7e207]:
+          - generic [ref=f7e208]: Page 1 of 20
+          - generic [ref=f7e209]:
+            - button "Prev" [disabled] [ref=f7e210]
+            - button "Next" [ref=f7e211] [cursor=pointer]

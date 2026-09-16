@@ -1,0 +1,24 @@
+- generic [ref=f1e3]:
+  - complementary [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - generic [ref=f1e6]: Firmware Custom
+      - button "Toggle sidebar" [ref=f1e7] [cursor=pointer]
+    - navigation [ref=f1e9]:
+      - link "Dashboard" [ref=f1e10] [cursor=pointer]:
+        - /url: /dashboard
+      - link "Work Orders" [ref=f1e18] [cursor=pointer]:
+        - /url: /work-orders
+      - link "Audit Log" [ref=f1e24] [cursor=pointer]:
+        - /url: /audit-log
+      - link "Change Password" [ref=f1e28] [cursor=pointer]:
+        - /url: /change-password
+    - generic [ref=f1e34]:
+      - generic [ref=f1e35]:
+        - generic [ref=f1e36]: Demo PM
+        - button "Logout" [ref=f1e37] [cursor=pointer]
+      - generic [ref=f1e41]: PM
+  - main [ref=f1e42]:
+    - generic [ref=f1e43]:
+      - button "Switch to light theme" [ref=f1e44] [cursor=pointer]
+      - button "Notifications" [ref=f1e52] [cursor=pointer]
+    - generic [ref=f1e56]: Loading...

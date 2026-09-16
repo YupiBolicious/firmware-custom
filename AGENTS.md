@@ -49,5 +49,6 @@ npm run build               # production build
 
 ## NOTES
 - Backend `.env` holds PG credentials + `JWT_SECRET`; never commit it.
+- Semantic classification is **enabled by default** (`SEMANTIC_ENABLED !== '0'`) — the deployment kill switch is `SEMANTIC_ENABLED=0` in `backend/.env`, no code change needed. Full env contract in `backend/.env.example` (see also `reports/lexical-semantic-state.md` for posture).
 - Seed/demo accounts: `admin@demo.com` / `pm@demo.com` / `coder@demo.com` (password `password123`); user count baseline is 4.
 - Frontend login accepts `?token=` query param (documented leak surface, not a bug to "fix" silently).

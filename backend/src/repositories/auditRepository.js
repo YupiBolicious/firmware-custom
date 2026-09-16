@@ -11,12 +11,12 @@ const compactDetails = (details) => {
   return JSON.stringify(out);
 };
 
-const create = async ({ user_id, action, entity_type, entity_id, details, ip_address }) => {
+const create = async ({ user_id, action, entity_type, entity_id, work_order_id, details, ip_address }) => {
   const result = await pool.query(
-    `INSERT INTO audit_trail (user_id, action, entity_type, entity_id, details, ip_address)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO audit_trail (user_id, action, entity_type, entity_id, work_order_id, details, ip_address)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [user_id, action, entity_type, entity_id, compactDetails(details), ip_address || null]
+    [user_id, action, entity_type, entity_id, work_order_id || null, compactDetails(details), ip_address || null]
   );
   return result.rows[0];
 };

@@ -8,7 +8,7 @@ export default function StatusBadge({ status, stale }) {
     DRAFT: { label: 'Draft', cls: 'badge-muted' },
     ANALYZED: { label: 'Analyzed', cls: 'badge-info' },
     FINALIZED: { label: 'Finalized', cls: 'badge-warning' },
-    PRODUCTION: { label: 'In Production', cls: 'badge-success' },
+    PRODUCTION: { label: 'Production', cls: 'badge-production' },
     COMPLETED: { label: 'Completed', cls: 'badge-success' },
   };
   const item = map[status] || { label: status || 'Unknown', cls: 'badge-muted' };

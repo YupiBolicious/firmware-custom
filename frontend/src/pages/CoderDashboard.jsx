@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import RelativeTime from '../components/RelativeTime';
 import useCoderDashboard from './useCoderDashboard';
+import FilterSearch from './FilterSearch';
+import StatusBadge from '../components/StatusBadge';
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -30,7 +32,7 @@ export default function CoderDashboard() {
     workOrderQueue, workOrderQueueTotal, workOrderQueueTotalPages,
     workOrderPage, setWorkOrderPage,
     coderActivityTotalPages, newWorkOrdersTotalPages,
-    CLASSIFICATION_STATUS_LABELS, WORK_ORDER_STATUS_LABELS,
+    CLASSIFICATION_STATUS_LABELS,
   } = useCoderDashboard();
   useValueToast(error);
 
@@ -43,8 +45,8 @@ export default function CoderDashboard() {
   const globalOpen = allQueue.filter((r) => r.classification_status === 'CODER_REVIEW').length;
 
   return (
-    <div>
-      <h1>Firmware Engineer Dashboard</h1>
+    <div className='dashboard'>
+      
 
       {/* 1. Personal KPI Summary */}
       <div className="stats-grid mb-16">
@@ -73,129 +75,7 @@ export default function CoderDashboard() {
           </div>
         )}
       </div>
-
-      {/* Search & Filter Controls */}
-      <div className="panel mb-16">
-        <div className="flex justify-between align-center mb-8">
-          <h3 style={{ margin: 0 }}>
-            Filters
-            {hasActiveFilters && (
-              <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
-                {matchingCount} of {totalCount} shown
-              </span>
-            )}
-          </h3>
-          <div className="flex gap-8">
-            {hasActiveFilters && (
-              <button className="btn btn-secondary btn-sm" onClick={clearFilters}>Clear Filters</button>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-8 mb-8">
-          <input
-            style={{ flex: 1, padding: '6px 10px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 4, color: '#e0e0e0', fontSize: 13 }}
-            placeholder="Search WO number, item title, item number..."
-            value={filters.search}
-            onChange={(e) => setFilter('search', e.target.value)}
-          />
-          <button
-            className={`btn btn-sm ${showAdvanced ? '' : 'btn-secondary'}`}
-            onClick={() => setShowAdvanced(!showAdvanced)}
-          >
-            Advanced Filters {showAdvanced ? '\u25B2' : '\u25BC'}
-          </button>
-        </div>
-
-        {showAdvanced && (
-          <div style={{ padding: 12, background: '#1a1a1a', borderRadius: 6, border: '1px solid #333', marginBottom: 12 }}>
-            <div className="flex gap-8" style={{ flexWrap: 'wrap', alignItems: 'end' }}>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Complexity</label>
-                <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
-                  value={filters.complexityFilter}
-                  onChange={(e) => setFilter('complexityFilter', e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  {uniqueComplexities.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              {/* <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Confidence Min %</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="0"
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
-                  value={filters.confidenceMin}
-                  onChange={(e) => setFilter('confidenceMin', e.target.value)}
-                />
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Confidence Max %</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  placeholder="100"
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
-                  value={filters.confidenceMax}
-                  onChange={(e) => setFilter('confidenceMax', e.target.value)}
-                />
-              </div> */}
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Classification Status</label>
-                <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
-                  value={filters.classificationStatusFilter}
-                  onChange={(e) => setFilter('classificationStatusFilter', e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  {Object.entries(CLASSIFICATION_STATUS_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>Work Order Status</label>
-                <select
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
-                  value={filters.workOrderStatusFilter}
-                  onChange={(e) => setFilter('workOrderStatusFilter', e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  {Object.entries(WORK_ORDER_STATUS_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>From</label>
-                <input
-                  type="date"
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
-                  value={filters.dateFrom}
-                  onChange={(e) => setFilter('dateFrom', e.target.value)}
-                />
-              </div>
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label style={{ fontSize: 11, color: '#aaa' }}>To</label>
-                <input
-                  type="date"
-                  style={{ width: '100%', padding: '4px 6px', background: '#222', border: '1px solid #444', borderRadius: 4, color: '#e0e0e0', fontSize: 12 }}
-                  value={filters.dateTo}
-                  onChange={(e) => setFilter('dateTo', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
+      
       {/* 3. Workload + Overall Progress */}
       <div className="panel mb-16">
         <h3 className="mb-16">Workload</h3>
@@ -240,6 +120,16 @@ export default function CoderDashboard() {
             </span>
           )}
         </h3>
+        <FilterSearch
+          filters={filters}
+          setFilter={setFilter}
+          showAdvanced={showAdvanced}
+          setShowAdvanced={setShowAdvanced}
+          clearFilters={clearFilters}
+          hasActiveFilters={hasActiveFilters}
+          uniqueComplexities={uniqueComplexities}
+          classificationLabels={CLASSIFICATION_STATUS_LABELS}
+        />
         {workOrderQueue.length === 0 ? (
           <div className="text-muted">{hasActiveFilters ? 'No work orders match the current filters.' : 'No work orders yet.'}</div>
         ) : (
@@ -262,11 +152,7 @@ export default function CoderDashboard() {
                     <td><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
                     <td>{w.title || '-'}</td>
                     <td className="text-muted">{w.customer || '-'}</td>
-                    <td>
-                      <span className={`badge ${w.status === 'COMPLETED' ? 'badge-success' : w.status === 'FINALIZED' ? 'badge-warning' : w.status === 'ANALYZED' ? 'badge-info' : 'badge-muted'}`}>
-                        {WORK_ORDER_STATUS_LABELS[w.status] || w.status}
-                      </span>
-                    </td>
+                    <td><StatusBadge status={w.status} /></td>
                     <td>
                       {w.open_count > 0 ? (
                         <span className="badge badge-warning">{w.open_count} of {w.item_count}</span>

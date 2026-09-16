@@ -13,6 +13,10 @@ const getCoderDashboard = async (req, res, next) => {
       workOrderPage: toInt(req.query.work_order_page, 1),
       workOrderSearch: typeof req.query.work_order_search === 'string' ? req.query.work_order_search.trim() : '',
       workOrderStatus: typeof req.query.work_order_status === 'string' && req.query.work_order_status ? req.query.work_order_status : 'ALL',
+      complexity: typeof req.query.complexity === 'string' && req.query.complexity ? req.query.complexity : 'ALL',
+      classificationStatus: typeof req.query.classification_status === 'string' && req.query.classification_status ? req.query.classification_status : 'ALL',
+      dateFrom: typeof req.query.date_from === 'string' ? req.query.date_from.trim() : '',
+      dateTo: typeof req.query.date_to === 'string' ? req.query.date_to.trim() : '',
     });
     res.json({ success: true, message: 'Coder dashboard retrieved', data });
   } catch (err) {

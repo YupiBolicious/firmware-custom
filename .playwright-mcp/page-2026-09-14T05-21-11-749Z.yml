@@ -1,0 +1,183 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: Firmware Custom
+        - button "Toggle sidebar" [ref=e7] [cursor=pointer]
+      - navigation [ref=e9]:
+        - link "Dashboard" [ref=e10] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Work Orders" [ref=e18] [cursor=pointer]:
+          - /url: /work-orders
+        - link "Audit Log" [ref=e24] [cursor=pointer]:
+          - /url: /audit-log
+        - link "Change Password" [ref=e28] [cursor=pointer]:
+          - /url: /change-password
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]: Demo PM
+          - button "Logout" [ref=e37] [cursor=pointer]
+        - generic [ref=e41]: PM
+    - main [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - navigation "Breadcrumb" [ref=e45]:
+            - generic [ref=e46]: workspace
+            - generic [ref=e47]: /
+            - generic [ref=e48]: PM Dashboard
+          - generic [ref=e49]:
+            - button "Switch to dark theme" [active] [ref=e274] [cursor=pointer]
+            - button "Notifications" [ref=e58] [cursor=pointer]
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - generic [ref=e64]: Active WOs
+            - generic [ref=e65]: "3"
+          - generic [ref=e66]:
+            - generic [ref=e67]: Pending Coder Review
+            - generic [ref=e68]: "0"
+          - generic [ref=e69]:
+            - generic [ref=e70]: In Progress
+            - generic [ref=e71]: "3"
+          - generic [ref=e72]:
+            - generic [ref=e73]: Completed
+            - generic [ref=e74]: "1"
+          - generic [ref=e75]:
+            - generic [ref=e76]: Total Est. Hours
+            - generic [ref=e77]: 996.0h
+        - generic [ref=e78]:
+          - heading "Work Queue" [level=3] [ref=e80]
+          - generic [ref=e81]:
+            - textbox "Search WO number, title, customer, or item..." [ref=e82]
+            - button "Advanced Filters ▼" [ref=e83] [cursor=pointer]
+          - table [ref=e85]:
+            - rowgroup [ref=e86]:
+              - row [ref=e87]:
+                - columnheader "WO Number" [ref=e88]
+                - columnheader "Model" [ref=e89]
+                - columnheader "Title" [ref=e90]
+                - columnheader "Customer" [ref=e91]
+                - columnheader "Items" [ref=e92]
+                - columnheader "Status" [ref=e93]
+                - columnheader "Hours" [ref=e94]
+                - columnheader "Progress" [ref=e95]
+                - columnheader "Last Update" [ref=e96]
+            - rowgroup [ref=e97]:
+              - row [ref=e277]:
+                - cell [ref=e99]:
+                  - link [ref=e100] [cursor=pointer]:
+                    - /url: /work-orders/93
+                    - strong [ref=e101]: WO-MANTEST-04
+                - cell "MAN-TEST-02 v1; MC-001" [ref=e102]
+                - cell "2 Models To Check 1 Existed 1 New" [ref=e103]
+                - cell "Cust4" [ref=e104]
+                - cell "3" [ref=e105]
+                - cell "Analyzed" [ref=e106]
+                - cell "98h" [ref=e108]
+                - cell "100%" [ref=e109]
+                - cell "27m ago" [ref=e278]
+              - row [ref=e279]:
+                - cell [ref=e116]:
+                  - link [ref=e117] [cursor=pointer]:
+                    - /url: /work-orders/65
+                    - strong [ref=e118]: WO-MANTEST-3
+                - cell "MNT-001-1 V1" [ref=e119]
+                - cell "Manual Test 3" [ref=e120]
+                - cell "Cust 01" [ref=e121]
+                - cell "6" [ref=e122]
+                - cell "Analyzed" [ref=e123]
+                - cell "360h" [ref=e125]
+                - cell "100%" [ref=e126]
+                - cell "20m ago" [ref=e280]
+              - row [ref=e132]:
+                - cell [ref=e133]:
+                  - link [ref=e134] [cursor=pointer]:
+                    - /url: /work-orders/63
+                    - strong [ref=e135]: WO-MANTEST-02
+                - cell "MAN-TEST-02 v1" [ref=e136]
+                - cell "Manual Test 02" [ref=e137]
+                - cell "Customer 2" [ref=e138]
+                - cell "2" [ref=e139]
+                - cell "Analyzed" [ref=e140]
+                - cell "232h" [ref=e142]
+                - cell "100%" [ref=e143]
+                - cell "6d ago" [ref=e148]
+              - row [ref=e149]:
+                - cell [ref=e150]:
+                  - link [ref=e151] [cursor=pointer]:
+                    - /url: /work-orders/52
+                    - strong [ref=e152]: WO-MANTEST-1
+                - cell "AL1-TEST V1; AL2-TEST V1 SN-TST011" [ref=e153]
+                - cell "Test 1 Manual" [ref=e154]
+                - cell "Customer Test 1" [ref=e155]
+                - cell "5" [ref=e156]
+                - cell "Completed" [ref=e157]
+                - cell "306h" [ref=e159]
+                - cell "100%" [ref=e160]
+                - cell "6d ago" [ref=e165]
+        - generic [ref=e166]:
+          - generic [ref=e167]:
+            - heading "Progress Overview" [level=3] [ref=e168]
+            - generic [ref=e169]:
+              - generic [ref=e170]:
+                - 'generic "Analyzed: 3" [ref=e171]'
+                - 'generic "Completed: 1" [ref=e172]'
+              - generic [ref=e173]:
+                - generic [ref=e174]:
+                  - generic [ref=e176]: "Analyzed:"
+                  - strong [ref=e177]: "3"
+                - generic [ref=e178]:
+                  - generic [ref=e180]: "Completed:"
+                  - strong [ref=e181]: "1"
+          - generic [ref=e182]:
+            - heading "Workload Overview" [level=3] [ref=e183]
+            - generic [ref=e184]:
+              - generic [ref=e185]:
+                - generic [ref=e187]: Queued Hours
+                - generic [ref=e188]: 0.0h
+                - generic [ref=e189]: 0 pending backlog
+              - generic [ref=e190]:
+                - generic [ref=e192]: In Progress Hours
+                - generic [ref=e193]: 690.0h
+                - generic [ref=e194]: 69% active burden
+              - generic [ref=e195]:
+                - generic [ref=e197]: Completed Hours
+                - generic [ref=e198]: 306.0h
+                - generic [ref=e199]: 31% closed-out work
+              - generic [ref=e200]:
+                - generic [ref=e202]: Total Hours
+                - generic [ref=e203]: 996.0h
+                - generic [ref=e204]: total estimated hours
+        - generic [ref=e205]:
+          - heading "Workload & Status Chart" [level=3] [ref=e206]
+          - generic [ref=e208]:
+            - list [ref=e210]:
+              - listitem [ref=e211]:
+                - img "Completed legend icon" [ref=e212]
+                - text: Completed
+              - listitem [ref=e214]:
+                - img "In Progress legend icon" [ref=e215]
+                - text: In Progress
+              - listitem [ref=e217]:
+                - img "Queued legend icon" [ref=e218]
+                - text: Queued
+            - application [ref=e220]:
+              - generic [ref=e240]:
+                - generic [ref=e241]:
+                  - generic [ref=e242]: 7/26
+                  - generic [ref=e244]: 8/2
+                  - generic [ref=e246]: 8/9
+                  - generic [ref=e248]: 8/16
+                  - generic [ref=e250]: 8/23
+                  - generic [ref=e252]: 8/30
+                  - generic [ref=e254]: 9/6
+                  - generic [ref=e256]: 9/13
+                - generic [ref=e258]:
+                  - generic [ref=e259]: "0"
+                  - generic [ref=e261]: "150"
+                  - generic [ref=e263]: "300"
+                  - generic [ref=e265]: "450"
+                  - generic [ref=e267]: "600"
+        - generic [ref=e269]:
+          - heading "Attention Required" [level=3] [ref=e271]
+          - generic [ref=e272]: No attention required.
+  - generic [aria-hidden] [ref=e273]: "0"
