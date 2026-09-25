@@ -142,7 +142,7 @@ const validateItemUpdate = (req, res, next) => {
 };
 
 const validateReview = (req, res, next) => {
-  const { complexity_level_id, keywords } = req.body || {};
+  const { complexity_level_id, keywords, notes, semantic_assist_response } = req.body || {};
   const errors = [];
 
   if (!Number.isInteger(complexity_level_id)) {
@@ -150,6 +150,26 @@ const validateReview = (req, res, next) => {
   }
   if (keywords !== undefined && (typeof keywords !== 'string' || keywords.length > 500)) {
     errors.push('keywords must be a string of max 500 characters');
+  }
+  if (notes !== undefined && notes !== null && typeof notes !== 'string') {
+    errors.push('notes must be a string');
+  }
+  if (semantic_assist_response !== undefined && !['ACCEPTED', 'IGNORED'].includes(semantic_assist_response)) {
+    errors.push('semantic_assist_response must be ACCEPTED or IGNORED');
+  }
+
+  if (errors.length > 0) {
+    return next(new ApiError(400, 'Validation failed', errors));
+  }
+  next();
+};
+
+const validateProductionTaskUpdate = (req, res, next) => {
+  const { completed } = req.body || {};
+  const errors = [];
+
+  if (completed !== undefined && typeof completed !== 'boolean') {
+    errors.push('completed must be a boolean');
   }
 
   if (errors.length > 0) {
@@ -180,5 +200,6 @@ module.exports = {
   validateItemCreate,
   validateItemUpdate,
   validateReview,
+  validateProductionTaskUpdate,
   validateAccessGrant,
 };

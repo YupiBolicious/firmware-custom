@@ -4,6 +4,7 @@ const workOrderAccessRepository = require('../repositories/workOrderAccessReposi
 const userRepository = require('../repositories/userRepository');
 const machineModelRepository = require('../repositories/machineModelRepository');
 const classificationRepository = require('../repositories/classificationRepository');
+const complexityRepository = require('../repositories/complexityRepository');
 const classificationService = require('../services/classificationService');
 const classifyFlow = require('../services/classifyFlow');
 const telemetry = require('../services/classifyTelemetry');
@@ -20,8 +21,11 @@ const { reviewItem } = require('./reviewService');
 const { uploadDocuments, listDocuments, deleteDocument } = require('./documentService');
 const documentRepository = require('../repositories/documentRepository');
 const { capitalizeWords } = require('../utils/textUtils');
+const { deriveReviewReason, pickPrimaryBlockedReason } = require('./semanticAssist');
 
 // ---------- Work Orders ----------
+const { validatePagination, paginatedPayload } = require('../utils/pagination');
+
 const resolveGroupTargets = async (machine_model_id, machine_model_version_id) => {
   let modelId;
   if (Number.isInteger(machine_model_id)) {
@@ -43,12 +47,16 @@ const resolveGroupTargets = async (machine_model_id, machine_model_version_id) =
   return { machine_model_id: modelId, machine_model_version_id: versionId };
 };
 
-const listWorkOrders = async () => {
-  return workOrderRepository.findAll();
+const listWorkOrders = async ({ page = 1, limit = 15 } = {}) => {
+  const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
+  const res = await workOrderRepository.findAll({ page: parsedPage, limit: parsedLimit });
+  return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
 };
 
-const listCoderReviewQueue = async () => {
-  return workOrderRepository.findCoderReviewQueue();
+const listCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
+  const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
+  const res = await workOrderRepository.findCoderReviewQueue({ page: parsedPage, limit: parsedLimit });
+  return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
 };
 
 const getWorkOrder = async (id) => {
@@ -455,8 +463,8 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     semanticHits: 0,
     writeMs: 0,
   };
-  const levels = await estimationRepository.findAllLevels?.() ?? [];
-  const levelById = new Map(levels.map((l) => [l.id, l]));
+  const levels = await complexityRepository.findAll();
+  const levelById = new Map(levels.filter((l) => l.is_active !== false).map((l) => [l.id, l]));
   const l0Level = await estimationRepository.findComplexityLevelByCode('L0');
   const levelOf = async (id) => {
     if (id == null) return null;
@@ -482,6 +490,11 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         classification_reason: item.classification_reason,
         status: item.classification_status,
         estimated_hours: item.estimated_hours != null ? Number(item.estimated_hours) : null,
+        assist_kb_code: item.assist_kb_code || null,
+        assist_match_score: item.assist_match_score != null ? Math.round(Number(item.assist_match_score) * 100) : null,
+        assist_semantic_margin: item.assist_semantic_margin != null ? Number(item.assist_semantic_margin) : null,
+        review_reason: item.review_reason || null,
+        assist_blocked_reason: item.assist_blocked_reason || null,
         estimation_breakdown: item.estimation_total_hours != null ? {
           verification_mh: Number(item.verification_mh) || 0,
           other_mh: Number(item.estimation_total_hours)
@@ -533,6 +546,20 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       classification.complexity_level_id = l0Level.id;
     }
 
+    // Structured why-review reason, persisted next to the assist snapshot.
+    // assistBlocked reasons come from classifyFlow's shadow semantic block
+    // (semantic.assistBlocked.reasons); priority is enforced in
+    // deriveReviewReason (mismatch > low score > no candidate).
+    const assistBlockedReasons = itemSemantic && itemSemantic.assistBlocked && itemSemantic.assistBlocked.reasons
+      ? itemSemantic.assistBlocked.reasons
+      : null;
+    const reviewReason = classification.status === 'CODER_REVIEW'
+      ? deriveReviewReason({ assist: itemAssist, assistBlockedReasons })
+      : null;
+    const assistBlockedReason = classification.status === 'CODER_REVIEW'
+      ? pickPrimaryBlockedReason(assistBlockedReasons)
+      : null;
+
     const tWrite = Date.now();
     const saved = await classificationRepository.upsertClassification({
       work_order_item_id: item.id,
@@ -544,6 +571,10 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       status: classification.status,
       input_hash: hash,
       kb_version: kbVersion,
+      assist: itemAssist,
+      preserveAssist: reusable,
+      review_reason: reviewReason,
+      assist_blocked_reason: assistBlockedReason,
     });
 
     await classificationRepository.deleteMatchesByClassificationId(saved.id);
@@ -569,6 +600,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         action: telemetry.DECIDED_ACTION,
         entity_type: 'WORK_ORDER_ITEM',
         entity_id: item.id,
+        work_order_id,
         details: telemetry.buildDecidedDetails({
           path: flowed.path,
           result: classification,
@@ -619,6 +651,21 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
         ? Number(estimation.breakdown.verification_mh)
           + Number(estimation.breakdown.other_mh) * (item.quantity || 1)
         : null,
+      provisional_hours: classification.status === 'CODER_REVIEW' && saved.assist_complexity_level_id != null
+        ? (Number(levelById.get(saved.assist_complexity_level_id)?.total_hours) || 0) * (item.quantity || 1)
+        : null,
+      assist_complexity_code: classification.status === 'CODER_REVIEW' && saved.assist_complexity_level_id != null
+        ? (levelById.get(saved.assist_complexity_level_id)?.code || null)
+        : null,
+      // assist_match_score is 0-100 here for frontend display ONLY. The persisted
+      // database value (saved.assist_match_score / semantic_suggestion.match_score)
+      // stays the original 0-1 score — never scale what is stored.
+      assist_kb_code: saved.assist_kb_code || null,
+      assist_match_score: saved.assist_match_score != null ? Math.round(Number(saved.assist_match_score) * 100) : null,
+      assist_semantic_margin: saved.assist_semantic_margin != null ? Number(saved.assist_semantic_margin) : null,
+      assist_kb_title: saved.assist_kb_id != null ? (kbById.get(Number(saved.assist_kb_id))?.title || null) : null,
+      review_reason: saved.review_reason || null,
+      assist_blocked_reason: saved.assist_blocked_reason || null,
       semantic: itemSemantic,
       semantic_suggestion: itemAssist,
       estimation_breakdown: estimation && estimation.breakdown ? {
@@ -699,6 +746,7 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
     action: 'WORK_ORDER_FINALIZED',
     entity_type: 'WORK_ORDER',
     entity_id: finalized.id,
+    work_order_id: finalized.id,
     details: {
       wo_number: finalized.wo_number,
       item_count: items.length,
@@ -734,16 +782,18 @@ const buildSummary = (results) => {
 };
 
 // ---------- Production ----------
-const startProduction = async (id, { ip_address }) => {
+const startProduction = async (id, { user_id, ip_address }) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) throw new ApiError(404, 'Work order not found');
   if (wo.status !== 'FINALIZED') throw new ApiError(400, 'Work order must be FINALIZED to start production');
-  const updated = await workOrderRepository.updateStatus(id, 'PRODUCTION');
+  const updated = await workOrderRepository.updateStatus(id, 'PRODUCTION', 'FINALIZED');
+  if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
   await auditService.log({
-    user_id: null,
+    user_id,
     action: 'WORK_ORDER_PRODUCTION',
     entity_type: 'WORK_ORDER',
     entity_id: id,
+    work_order_id: id,
     details: { wo_number: wo.wo_number, title: wo.title },
     ip_address,
   });
@@ -759,6 +809,9 @@ const completeProductionTask = async (taskId, { completed, user_id, ip_address }
     throw new ApiError(400, 'Work order must be in production to update tasks');
   }
   const saved = await workOrderRepository.completeProductionTask(taskId, completed);
+  if (!saved) {
+    throw new ApiError(409, 'Work order is no longer in production');
+  }
   await auditService.log({
     user_id,
     action: completed ? 'PRODUCTION_TASK_COMPLETED' : 'PRODUCTION_TASK_REOPENED',
@@ -775,11 +828,14 @@ const completeProductionTask = async (taskId, { completed, user_id, ip_address }
   return saved;
 };
 
-const completeProduction = async (id, { ip_address }) => {
+const completeProduction = async (id, { user_id, ip_address }) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) throw new ApiError(404, 'Work order not found');
   if (wo.status !== 'PRODUCTION') throw new ApiError(400, 'Work order must be in PRODUCTION to complete');
   const { total, open } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
+  // ponytail: count-check + status flip are not atomic; a task toggle committed between them
+  // can leave a COMPLETED WO with an open task. Microsecond window, needs a single tx with
+  // SELECT ... FOR UPDATE on the work_orders row to close, upgrade if it ever bites.
   if (open > 0) {
     throw new ApiError(400, `All production items must be completed first (${open} of ${total} still open)`);
   }
@@ -791,9 +847,10 @@ const completeProduction = async (id, { ip_address }) => {
       throw new ApiError(400, 'Documentation files are required before completing (firmware items present, no documents attached)');
     }
   }
-  const updated = await workOrderRepository.updateStatus(id, 'COMPLETED');
+  const updated = await workOrderRepository.updateStatus(id, 'COMPLETED', 'PRODUCTION');
+  if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
   await auditService.log({
-    user_id: null,
+    user_id,
     action: 'WORK_ORDER_COMPLETED',
     entity_type: 'WORK_ORDER',
     entity_id: id,

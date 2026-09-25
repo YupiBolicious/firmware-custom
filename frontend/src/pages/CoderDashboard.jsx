@@ -115,7 +115,7 @@ export default function CoderDashboard() {
         <h3 className="mb-16">
           Work Orders
           {workOrderQueueTotal > 0 && (
-            <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
               {workOrderQueueTotal} total
             </span>
           )}
@@ -134,6 +134,7 @@ export default function CoderDashboard() {
           <div className="text-muted">{hasActiveFilters ? 'No work orders match the current filters.' : 'No work orders yet.'}</div>
         ) : (
           <>
+            <div className="table-scroll">
             <table>
               <thead>
                 <tr>
@@ -166,6 +167,7 @@ export default function CoderDashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
             {workOrderQueueTotalPages > 1 && (
               <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
                 <span className="text-muted" style={{ fontSize: 13 }}>
@@ -199,7 +201,7 @@ export default function CoderDashboard() {
           <h3>
             Review Queue
             {hasActiveFilters && (
-              <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                 {filteredReviewQueue.length} shown
               </span>
             )}
@@ -211,6 +213,7 @@ export default function CoderDashboard() {
         {filteredReviewQueue.length === 0 ? (
           <div className="text-muted">{hasActiveFilters ? 'No review items match the current filters.' : 'No items awaiting review.'}</div>
         ) : (
+          <div className="table-scroll">
           <table>
             <thead>
               <tr>
@@ -241,6 +244,7 @@ export default function CoderDashboard() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -293,6 +297,7 @@ export default function CoderDashboard() {
             <div className="text-muted">No recent coder activity.</div>
           ) : (
             <>
+              <div className="table-scroll table-scroll--fit">
               <table>
                 <thead>
                   <tr>
@@ -311,6 +316,7 @@ export default function CoderDashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
               {coderActivityTotalPages > 1 && (
                 <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
                   <span className="text-muted" style={{ fontSize: 13 }}>
@@ -344,6 +350,7 @@ export default function CoderDashboard() {
             <div className="text-muted">No new work orders.</div>
           ) : (
             <>
+              <div className="table-scroll table-scroll--fit">
               <table>
                 <thead>
                   <tr>
@@ -364,6 +371,7 @@ export default function CoderDashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
               {newWorkOrdersTotalPages > 1 && (
                 <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
                   <span className="text-muted" style={{ fontSize: 13 }}>

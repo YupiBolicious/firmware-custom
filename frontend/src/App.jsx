@@ -17,6 +17,8 @@ import ReviewQueue from './pages/ReviewQueue';
 import MachineModels from './pages/MachineModels';
 import KnowledgeBase from './pages/KnowledgeBase';
 import AuditLog from './pages/AuditLog';
+import QuarterlyReport from './pages/QuarterlyReport';
+import HistoricalReport from './pages/HistoricalReport';
 import UserManagement from './pages/UserManagement';
 import ChangePassword from './pages/ChangePassword';
 import { ToastProvider } from './components/Toast';
@@ -60,6 +62,10 @@ export default function App() {
         </Route>
         <Route element={<RoleRoute roles={['ADMIN', 'PM', 'CODER']} />}>
           <Route path="/audit-log" element={<AuditLog />} />
+        </Route>
+        <Route element={<RoleRoute roles={['PM', 'ADMIN']} />}>
+          <Route path="/reports/quarterly" element={<QuarterlyReport />} />
+          <Route path="/reports/historical" element={<HistoricalReport />} />
         </Route>
         <Route element={<RoleRoute roles={['ADMIN']} />}>
           <Route path="/machine-models" element={<MachineModels />} />

@@ -1,0 +1,17 @@
+{
+  "ts": 1789883309566,
+  "pass": 59,
+  "fail": 0,
+  "skipped": 0,
+  "failLines": [],
+  "skipLines": [],
+  "notes": [
+    "double finalize statuses=200,200"
+  ],
+  "woNumbers": [
+    "SMOKE-DUP-1789883309566",
+    "SMOKE-A-1789883309566",
+    "SMOKE-B-1789883309566",
+    "SMOKE-C-1789883309566"
+  ]
+}

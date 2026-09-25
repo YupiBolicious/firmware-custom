@@ -11,7 +11,7 @@ const workOrderAccessRepository = require('../repositories/workOrderAccessReposi
 const { ApiError } = require('../middleware/errorHandler');
 const { buildKeywords } = require('../utils/tokenPolicy');
 
-const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_id, ip_address }) => {
+const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semantic_assist_response, user_id, ip_address }) => {
   const item = await workOrderRepository.findItemWithWorkOrder(itemId);
   if (!item) {
     throw new ApiError(404, 'Work order item not found');
@@ -28,6 +28,12 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
   const classification = await classificationRepository.findByItemId(itemId);
   if (!classification || classification.status !== 'CODER_REVIEW') {
     throw new ApiError(400, 'Item is not awaiting coder review');
+  }
+
+  const assistShown = !!(classification.assist_kb_code);
+  const assistResponse = semantic_assist_response || null;
+  if (assistShown && !['ACCEPTED', 'IGNORED'].includes(assistResponse)) {
+    throw new ApiError(400, 'Choose Accept or Ignore for the semantic suggestion before confirming');
   }
 
   const isFirmware = level.code !== 'L0';
@@ -49,6 +55,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
       machine_model_version_id: group ? group.machine_model_version_id : null,
     }),
     kb_version: await kbRepository.getCorpusVersion(),
+    assist_response: assistResponse,
   });
   if (!saved) {
     throw new ApiError(409, 'Item review was already completed; reload the queue');
@@ -78,6 +85,10 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
     ip_address,
   });
 
+  const suggestionKbId = assistShown
+    ? classification.assist_kb_id
+    : await classificationRepository.findTopMatch(classification.id);
+
   await auditService.log({
     user_id,
     action: telemetry.REVIEWED_ACTION,
@@ -90,7 +101,11 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, user_i
       finalComplexityId: level.id,
       levelCode: level.code,
       suggestionMethod: classification.classification_method,
-      suggestionKbId: classification.kb_item_id,
+      suggestionKbId,
+      assistShown,
+      assistResponse,
+      assistKbId: classification.assist_kb_id,
+      assistKbCode: classification.assist_kb_code,
     }),
     ip_address,
   });

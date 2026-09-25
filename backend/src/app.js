@@ -14,6 +14,7 @@ const auditLogRoutes = require('./routes/auditLogRoutes');
 const adminDashboardRoutes = require('./routes/adminDashboardRoutes');
 const userRoutes = require('./routes/userRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/machine-models', machineModelRoutes);
 app.use('/api/audit-log', auditLogRoutes);
 app.use('/api/admin-dashboard', adminDashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reports', reportRoutes);
 
 // 404 + centralized error handling
 app.use(notFound);

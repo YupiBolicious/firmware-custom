@@ -2,7 +2,7 @@ const userService = require('../services/userService');
 
 const list = async (req, res, next) => {
   try {
-    const data = await userService.listUsers();
+    const data = await userService.listUsers({ page: req.query.page, limit: req.query.limit });
     res.json({ success: true, message: 'Users retrieved', data });
   } catch (err) {
     next(err);

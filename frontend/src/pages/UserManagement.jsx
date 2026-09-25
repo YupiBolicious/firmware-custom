@@ -17,6 +17,9 @@ export default function UserManagement() {
     editingId,
     showForm,
     busyId,
+    page,
+    setPage,
+    totalPages,
     setForm,
     toggleShowForm,
     handleSave,
@@ -41,9 +44,6 @@ export default function UserManagement() {
   return (
     <div>
       <h1>User Management</h1>
-      {/* <div className="text-muted mb-16">
-        Manually registered users. Passwords are stored hashed; default passwords should be changed after first use.
-      </div> */}
       
 
       {showForm ? (
@@ -102,7 +102,7 @@ export default function UserManagement() {
         </div>
       )}
 
-      <div className="panel">
+      <div className="panel table-scroll">
         <h3>Users List</h3>
         {users.length === 0 ? (
           <div className="text-muted">No users found.</div>
@@ -155,6 +155,17 @@ export default function UserManagement() {
               ))}
             </tbody>
           </table>
+        )}
+        {totalPages > 1 && (
+          <div className="flex justify-between align-center" style={{ marginTop: 12, flexWrap: 'wrap', gap: 8 }}>
+            <span className="text-muted" style={{ fontSize: 13 }}>
+              Page {page} of {totalPages}
+            </span>
+            <div className="flex gap-8">
+              <button className="btn btn-secondary btn-sm" onClick={() => setPage(page - 1)} disabled={page <= 1}>Prev</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setPage(page + 1)} disabled={page >= totalPages}>Next</button>
+            </div>
+          </div>
         )}
       </div>
     </div>

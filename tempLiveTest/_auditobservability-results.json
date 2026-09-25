@@ -1,0 +1,42 @@
+{
+  "run": "auditability + observability",
+  "date": "2026-09-18",
+  "updated": "2026-09-21",
+  "pass": 63,
+  "fail": 0,
+  "smokeExit": 0,
+  "harness": "tempLiveTest/auditObservabilitySmoke.js",
+  "verifiedAuditActions": [
+    "WORK_ORDER_CREATED", "WORK_ORDER_ACCESS_GRANTED", "CLASSIFY_DECIDED x3",
+    "WORK_ORDER_ANALYZED", "ITEM_REVIEWED", "CLASSIFY_REVIEWED",
+    "WORK_ORDER_FINALIZED", "WORK_ORDER_PRODUCTION", "PRODUCTION_TASK_COMPLETED",
+    "DOCUMENTS_UPLOADED", "WORK_ORDER_COMPLETED",
+    "USER_LOGIN (success)", "LOGIN_FAILED (unknown/wrong-pwd/deactivated)"
+  ],
+  "fixesApplied": [
+    "work_order_id populated on CLASSIFY_DECIDED / WORK_ORDER_FINALIZED / WORK_ORDER_PRODUCTION audit rows",
+    "user_id captured on WORK_ORDER_PRODUCTION + manual WORK_ORDER_COMPLETED (controller passes req.user.id)",
+    "login audit: USER_LOGIN on success (user_id+ip), LOGIN_FAILED on 401/403 (identifier+reason+ip, user_id when resolved); validation 400 intentionally not audited"
+  ],
+  "gaps": [],
+  "notes": [
+    "/api/health static (time only)",
+    "admin dashboard health.api/database hard-coded 'online'",
+    "auditService.log fire-and-forget (console.error only on failure)",
+    "no request-logging middleware / no metrics endpoint",
+    "audit-log API: all roles can read",
+    "?token=/auth/me session restore not a credential login -> not audited",
+    "no trust proxy -> req.ip is socket address (behind real reverse proxy rows record proxy IP)"
+  ],
+  "telemetryScoreOutput": [
+    "decided events: 8",
+    "wrong rate: 0.0% (0/0)",
+    "THRESHOLD PASS (min decisions=20, max wrong rate=0.05)"
+  ],
+  "cleanup": {
+    "usersRestored": 5,
+    "scratchUsersLeft": 0,
+    "scratchWorkOrdersLeft": 0,
+    "scratchLoginAuditRowsRemoved": true
+  }
+}

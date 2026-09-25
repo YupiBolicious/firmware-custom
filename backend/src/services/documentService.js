@@ -44,7 +44,7 @@ const uploadDocuments = async (workOrderId, files, { user_id, description, ip_ad
   });
 
   if (wo.status === 'PRODUCTION') {
-    await workOrderRepository.updateStatus(workOrderId, 'COMPLETED');
+    await workOrderRepository.updateStatus(workOrderId, 'COMPLETED', 'PRODUCTION');
     await auditService.log({
       user_id,
 action: 'WORK_ORDER_COMPLETED',

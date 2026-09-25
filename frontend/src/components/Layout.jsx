@@ -8,7 +8,7 @@ import {Menu, LayoutDashboard,
   BarChart3,
   Settings,
   BookOpen,
-  List, Lock, LogOut, Users, Sun, Moon} from 'lucide-react';
+  List, Lock, LogOut, Users, Sun, Moon, CalendarRange, LineChart} from 'lucide-react';
 
 const NAV_ITEMS = [
   {
@@ -60,6 +60,18 @@ const NAV_ITEMS = [
     icon: <List size={16} strokeWidth={1.5} />,
   },
   {
+    to: '/reports/quarterly',
+    label: 'Quarterly Report',
+    roles: ['PM', 'ADMIN'],
+    icon: <CalendarRange size={16} strokeWidth={1.5} />,
+  },
+  {
+    to: '/reports/historical',
+    label: 'Historical Report',
+    roles: ['PM', 'ADMIN'],
+    icon: <LineChart size={16} strokeWidth={1.5} />,
+  },
+  {
     to: '/change-password',
     label: 'Change Password',
     roles: ['ADMIN', 'PM', 'CODER'],
@@ -77,6 +89,8 @@ const PAGE_NAMES = {
   '/users': 'Users',
   '/knowledge-base': 'Knowledge Base',
   '/audit-log': 'Audit Log',
+  '/reports/quarterly': 'Quarterly Report',
+  '/reports/historical': 'Historical Report',
   '/change-password': 'Change Password',
 };
 
@@ -89,7 +103,11 @@ export default function Layout() {
 
   const [theme, setTheme] = useState(() => {
     try {
-      return localStorage.getItem('theme') || 'dark';
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
     } catch {
       return 'dark';
     }

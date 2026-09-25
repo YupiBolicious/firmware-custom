@@ -28,9 +28,8 @@ export default function KnowledgeBase() {
     setFwFilter,
     cxFilter,
     setCxFilter,
-    filteredItems,
-    paginatedItems,
-    currentPage,
+    total,
+    page,
     totalPages,
     setPage,
     resetPage,
@@ -159,79 +158,81 @@ export default function KnowledgeBase() {
         </div>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Code</th>
-            <th>Title</th>
-            <th>Firmware</th>
-            <th>Complexity</th>
-            {isAdmin && <th className="col-actions">Actions</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedItems.map((item) => (
-            <Fragment key={item.id}>
-              <tr>
-                <td><strong>{item.kb_code}</strong></td>
-                <td>{item.title}</td>
-                <td>{item.fw_related ? 'YES' : 'NO'}</td>
-                <td>{item.complexity_code || '-'}</td>
-                {isAdmin && (
-                  <td className="col-actions">
-                    <span className="icon-actions">
-                      <button className="icon-btn" title={expandedId === item.id ? 'Hide details' : 'View details'} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>
-                        {expandedId === item.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
-                      <button className="icon-btn" title="Edit" onClick={() => openEdit(item)}>
-                        <Pencil size={16} />
-                      </button>
-                      <button className="icon-btn icon-btn-danger" title="Delete" onClick={() => handleDelete(item)}>
-                        <Trash2 size={16} />
-                      </button>
-                    </span>
-                  </td>
-                )}
-              </tr>
-              {expandedId === item.id && (
-                <tr className="kb-detail-row">
-                  <td colSpan={isAdmin ? 5 : 4}>
-                    <div className="kb-detail-grid">
-                      <div>
-                        <div className="kb-detail-label">Description</div>
-                        <div className="text-muted">{item.description || '-'}</div>
-                      </div>
-                      <div>
-                        <div className="kb-detail-label">Keywords</div>
-                        <div className="text-muted">{item.keywords || '-'}</div>
-                      </div>
-                      <div>
-                        <div className="kb-detail-label">Confidence</div>
-                        <div>{item.confidence_score}%</div>
-                      </div>
-                      <div>
-                        <div className="kb-detail-label">Active</div>
-                        <div>{item.is_active ? 'Yes' : 'No'}</div>
-                      </div>
-                      <div>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => openTest(item)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                        >
-                          <FlaskConical size={14} /> Test
+      <div className='table-scroll'>
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Title</th>
+              <th>Firmware</th>
+              <th>Complexity</th>
+              {isAdmin && <th className="col-actions">Actions</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <Fragment key={item.id}>
+                <tr>
+                  <td><strong>{item.kb_code}</strong></td>
+                  <td>{item.title}</td>
+                  <td>{item.fw_related ? 'YES' : 'NO'}</td>
+                  <td>{item.complexity_code || '-'}</td>
+                  {isAdmin && (
+                    <td className="col-actions">
+                      <span className="icon-actions">
+                        <button className="icon-btn" title={expandedId === item.id ? 'Hide details' : 'View details'} onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>
+                          {expandedId === item.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
-                      </div>
-                    </div>
-                  </td>
+                        <button className="icon-btn" title="Edit" onClick={() => openEdit(item)}>
+                          <Pencil size={16} />
+                        </button>
+                        <button className="icon-btn icon-btn-danger" title="Delete" onClick={() => handleDelete(item)}>
+                          <Trash2 size={16} />
+                        </button>
+                      </span>
+                    </td>
+                  )}
                 </tr>
-              )}
-            </Fragment>
-          ))}
-        </tbody>
-      </table>
+                {expandedId === item.id && (
+                  <tr className="kb-detail-row">
+                    <td colSpan={isAdmin ? 5 : 4}>
+                      <div className="kb-detail-grid">
+                        <div>
+                          <div className="kb-detail-label">Description</div>
+                          <div className="text-muted">{item.description || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="kb-detail-label">Keywords</div>
+                          <div className="text-muted">{item.keywords || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="kb-detail-label">Confidence</div>
+                          <div>{item.confidence_score}%</div>
+                        </div>
+                        <div>
+                          <div className="kb-detail-label">Active</div>
+                          <div>{item.is_active ? 'Yes' : 'No'}</div>
+                        </div>
+                        <div>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => openTest(item)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                          >
+                            <FlaskConical size={14} /> Test
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {filteredItems.length === 0 ? (
+      {total === 0 ? (
         <div className="text-muted mt-8">
           {search || fwFilter !== 'ALL' || cxFilter !== 'ALL'
             ? 'No KB items match the current filters.'
@@ -240,13 +241,13 @@ export default function KnowledgeBase() {
       ) : (
         <div className="flex justify-between align-center mt-16">
           <span className="text-muted" style={{ fontSize: 13 }}>
-            {filteredItems.length} item{(filteredItems.length !== 1) ? 's' : ''} · Page {currentPage} of {totalPages}
+            {total} item{(total !== 1) ? 's' : ''} · Page {page} of {totalPages}
           </span>
           <div className="flex gap-8">
-            <button className="btn btn-secondary btn-sm" onClick={() => setPage(currentPage - 1)} disabled={currentPage <= 1} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setPage(page - 1)} disabled={page <= 1} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <ChevronLeft size={14} /> Prev
             </button>
-            <button className="btn btn-secondary btn-sm" onClick={() => setPage(currentPage + 1)} disabled={currentPage >= totalPages} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => setPage(page + 1)} disabled={page >= totalPages} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               Next <ChevronRight size={14} />
             </button>
           </div>
@@ -279,27 +280,30 @@ export default function KnowledgeBase() {
                 <strong>Verdict:</strong>{' '}
                 <span style={{
                   padding: '2px 8px',
-                  borderRadius: 4,
+                  borderRadius: 'var(--radius-badge)',
                   fontWeight: 600,
-                  backgroundColor: testResult.verdict === 'EXACT_MATCH' ? '#059669'
-                    : testResult.verdict === 'LEXICAL_SIMILARITY' ? '#854d0e'
-                    : testResult.verdict === 'SIMILARITY' ? '#854d0e'
-                    : testResult.verdict === 'NON_FIRMWARE' ? '#6b21a8' : '#555',
-                  color: '#fff',
+                  backgroundColor: testResult.verdict === 'EXACT_MATCH' ? 'var(--badge-created-bg)'
+                    : testResult.verdict === 'LEXICAL_SIMILARITY' ? 'var(--badge-updated-bg)'
+                    : testResult.verdict === 'SIMILARITY' ? 'var(--badge-updated-bg)'
+                    : testResult.verdict === 'NON_FIRMWARE' ? 'var(--badge-login-bg)' : 'var(--bg-input)',
+                  color: testResult.verdict === 'EXACT_MATCH' ? 'var(--badge-created-fg)'
+                    : testResult.verdict === 'LEXICAL_SIMILARITY' ? 'var(--badge-updated-fg)'
+                    : testResult.verdict === 'SIMILARITY' ? 'var(--badge-updated-fg)'
+                    : testResult.verdict === 'NON_FIRMWARE' ? 'var(--badge-login-fg)' : 'var(--text-muted)',
                 }}>
                   {testResult.verdict.replace('_', ' ')}
                 </span>
-                <span style={{ marginLeft: 12, color: '#aaa' }}>
+                <span style={{ marginLeft: 12, color: 'var(--text-muted)' }}>
                   {(testResult.score * 100).toFixed(0)}% similarity
                 </span>
               </div>
-              <div style={{ fontSize: 13, color: '#aaa', marginBottom: 4 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>
                 Matched tokens: {testResult.intersection.length > 0 ? testResult.intersection.join(', ') : '(none)'}
               </div>
-              <div style={{ fontSize: 12, color: '#666' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 KB tokens ({testResult.kb_tokens.length}): {testResult.kb_tokens.join(', ')}
               </div>
-              <div style={{ fontSize: 12, color: '#666' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                 Input tokens ({testResult.item_tokens.length}): {testResult.item_tokens.join(', ')}
               </div>
             </div>

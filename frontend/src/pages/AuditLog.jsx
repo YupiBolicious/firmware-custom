@@ -2,21 +2,7 @@ import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import RelativeTime from '../components/RelativeTime';
 import useAuditLog from './useAuditLog';
-
-const ACTION_BADGE = {
-  DOCUMENTS_UPLOADED: 'badge-muted',
-  ITEM_ADDED: 'badge-info',
-  ITEM_DELETED: 'badge-muted',
-  ITEM_REVIEWED: 'badge-success',
-  ITEM_UPDATED: 'badge-info',
-  WORK_ORDER_ANALYZED: 'badge-info',
-  WORK_ORDER_COMPLETED: 'badge-success',
-  WORK_ORDER_CREATED: 'badge-warning',
-  WORK_ORDER_FINALIZED: 'badge-warning',
-  WORK_ORDER_PRODUCTION: 'badge-warning',
-  WORK_ORDER_RESET_TO_DRAFT: 'badge-muted',
-  WORK_ORDER_UPDATED: 'badge-warning',
-};
+import actionBadgeClass from '../lib/auditBadge';
 
 function formatWorkOrder(item) {
   if (item.work_order_id) {
@@ -86,7 +72,7 @@ export default function AuditLog() {
           <h3 style={{ margin: 0 }}>
             Activity
             {hasActiveFilters && (
-              <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                 {matchingCount} of {items.length} shown
               </span>
             )}
@@ -203,7 +189,7 @@ export default function AuditLog() {
                       <td className="text-muted"><RelativeTime date={item.created_at} /></td>
                       <td>{item.user_name || <span className="text-muted">System</span>}</td>
                       <td>
-                        <span className={`badge ${ACTION_BADGE[item.action] || 'badge-muted'}`}>
+                        <span className={`badge ${actionBadgeClass(item.action)}`}>
                           {formatAction(item.action)}
                         </span>
                       </td>

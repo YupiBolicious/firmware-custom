@@ -43,6 +43,10 @@ const PG_ERROR_MESSAGES = {
 };
 
 const errorHandler = (err, req, res, next) => {
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ success: false, message: 'Malformed JSON body', errors: [] });
+  }
+
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal server error';
   const errors = err.errors || [];

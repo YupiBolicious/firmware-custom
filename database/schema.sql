@@ -235,7 +235,30 @@ CREATE TABLE IF NOT EXISTS audit_trail (
     ip_address    VARCHAR(50),
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- WORK ORDER ACCESS GRANTS (unique pair guards grantWorkOrderAccess ON CONFLICT)
+CREATE TABLE IF NOT EXISTS work_order_access (
+    id              SERIAL PRIMARY KEY,
+    work_order_id   INT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+    user_id         INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    granted_by      INT REFERENCES users(id),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (work_order_id, user_id)
+);
+
+-- IN-APP NOTIFICATIONS (event-driven, see reports/notification-flow.md)
+CREATE TABLE IF NOT EXISTS notifications (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status      VARCHAR(50),
+    message     TEXT,
+    entity_id   INT,
+    is_read     BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- PERFORMANCE INDEXES
+CREATE INDEX IF NOT EXISTS idx_work_order_access_work_order_id ON work_order_access(work_order_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_classifications_status ON classifications(status);
 CREATE INDEX IF NOT EXISTS idx_classifications_reviewed_by_status ON classifications(reviewed_by, status);
 CREATE INDEX IF NOT EXISTS idx_classifications_created_at ON classifications(created_at);

@@ -18,17 +18,19 @@ const validateChangePassword = (body) => {
   }
 };
 
-const validateLogin = (body) => {
+const validateLogin = (req, res, next) => {
+  const body = req.body || {};
   const errors = [];
-  if (!body.email || typeof body.email !== 'string') {
-    errors.push('Email is required');
+  if (!body.identifier || typeof body.identifier !== 'string' || !body.identifier.trim()) {
+    errors.push('identifier (email or username) is required');
   }
   if (!body.password || typeof body.password !== 'string') {
-    errors.push('Password is required');
+    errors.push('password is required');
   }
   if (errors.length) {
-    throw new ApiError(400, 'Validation failed', errors);
+    return next(new ApiError(400, 'Validation failed', errors));
   }
+  next();
 };
 
 module.exports = { validateChangePassword, validateLogin };

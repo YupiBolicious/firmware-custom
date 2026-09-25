@@ -1,11 +1,20 @@
 const kbRepository = require('../repositories/kbRepository');
 const classificationService = require('../services/classificationService');
 const { ApiError } = require('../middleware/errorHandler');
+const { validatePagination, paginatedPayload } = require('../utils/pagination');
 
 const list = async (req, res, next) => {
   try {
-    const data = await kbRepository.findAll();
-    res.json({ success: true, message: 'Knowledge base items retrieved', data });
+    const { page, limit } = validatePagination(req.query.page, req.query.limit);
+    const { search = '', fw_related = 'ALL', complexity_level = 'ALL' } = req.query;
+    const result = await kbRepository.findAll({
+      page, limit, search: String(search), fwRelated: String(fw_related), complexityLevel: String(complexity_level),
+    });
+    res.json({
+      success: true,
+      message: 'Knowledge base items retrieved',
+      data: paginatedPayload(result.items.map(({ total, ...rest }) => rest), result.total, page, limit),
+    });
   } catch (err) {
     next(err);
   }
@@ -60,7 +69,7 @@ const remove = async (req, res, next) => {
 const testKbItem = async (req, res, next) => {
   try {
     const { sample_text } = req.body;
-    if (!sample_text || !sample_text.trim()) {
+    if (typeof sample_text !== 'string' || !sample_text.trim()) {
       return next(new ApiError(400, 'sample_text is required'));
     }
     const result = await classificationService.testKbItem(req.params.id, sample_text);

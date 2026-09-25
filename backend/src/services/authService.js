@@ -8,19 +8,52 @@ const { ApiError } = require('../middleware/errorHandler');
 
 const BCRYPT_ROUNDS = 10;
 
-const login = async ({ identifier, password }) => {
-  const user = await authRepository.findByIdentifier(String(identifier || '').trim().toLowerCase());
+const login = async ({ identifier, password, ip_address }) => {
+  const normalized = String(identifier || '').trim().toLowerCase();
+  const user = await authRepository.findByIdentifier(normalized);
   if (!user) {
+    await auditService.log({
+      user_id: null,
+      action: 'LOGIN_FAILED',
+      entity_type: 'USER',
+      entity_id: null,
+      details: { identifier: normalized, reason: 'invalid_credentials' },
+      ip_address,
+    });
     throw new ApiError(401, 'Invalid email/username or password');
   }
   if (!user.is_active) {
+    await auditService.log({
+      user_id: user.id,
+      action: 'LOGIN_FAILED',
+      entity_type: 'USER',
+      entity_id: user.id,
+      details: { identifier: normalized, reason: 'deactivated' },
+      ip_address,
+    });
     throw new ApiError(403, 'Account is deactivated');
   }
 
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) {
+    await auditService.log({
+      user_id: user.id,
+      action: 'LOGIN_FAILED',
+      entity_type: 'USER',
+      entity_id: user.id,
+      details: { identifier: normalized, reason: 'invalid_credentials' },
+      ip_address,
+    });
     throw new ApiError(401, 'Invalid email/username or password');
   }
+
+  await auditService.log({
+    user_id: user.id,
+    action: 'USER_LOGIN',
+    entity_type: 'USER',
+    entity_id: user.id,
+    ip_address,
+  });
 
   const roles = await userRepository.findRolesByUserId(user.id);
 

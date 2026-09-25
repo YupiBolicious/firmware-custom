@@ -17,17 +17,20 @@ export default function useUserManagement() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const load = useCallback(async () => {
     try {
-      const res = await api.get('/users');
-      setUsers(res.data.data || []);
+      const res = await api.get('/users', { params: { page } });
+      setUsers(res.data.data.items || []);
+      setTotalPages(res.data.data.totalPages);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load users');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -120,6 +123,9 @@ export default function useUserManagement() {
     editingId,
     showForm,
     busyId,
+    page,
+    setPage,
+    totalPages,
     setForm,
     toggleShowForm: () => setShowForm((v) => !v),
     handleSave,

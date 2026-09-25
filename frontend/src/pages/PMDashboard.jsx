@@ -36,8 +36,9 @@ export default function PMDashboard() {
     data, error, loading, formatStatus,
     filters, showAdvanced, setShowAdvanced, setFilter, clearFilters,
     filteredQueue, matchingCount, hasActiveFilters,
+    visibleQueue, queuePage, setQueuePage, queueTotalPages,
     uniqueModels, uniqueVersions, uniqueComplexities,
-    filteredKpis, filteredStatusDistribution, filteredWorkload, filteredTrend, filteredAttention,
+    filteredKpis, filteredStatusDistribution, filteredWorkload, filteredTrend, trendUnit, trendWindow, filteredAttention,
   } = usePmDashboard();
   useValueToast(error);
 
@@ -87,7 +88,7 @@ export default function PMDashboard() {
             Work Queue
             {hasActiveFilters && (
               <span className="text-muted" style={{ fontSize: 13, fontWeight: 400, marginLeft: 8 }}>
-                {matchingCount} of {data.work_queue.length} shown
+                {matchingCount} shown
               </span>
             )}
           </h3>
@@ -107,6 +108,7 @@ export default function PMDashboard() {
         {filteredQueue.length === 0 ? (
           <div className="text-muted">No work orders match the current filters.</div>
         ) : (
+          <>
           <div className="table-scroll">
           <table>
             <thead>
@@ -123,7 +125,7 @@ export default function PMDashboard() {
               </tr>
             </thead>
             <tbody>
-              {filteredQueue.map((w) => (
+              {visibleQueue.map((w) => (
                 <tr key={w.id}>
                   <td className="num"><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
                   <td className="meta text-muted">{w.group_summary || '-'}</td>
@@ -148,6 +150,18 @@ export default function PMDashboard() {
             </tbody>
           </table>
           </div>
+          {queueTotalPages > 1 && (
+            <div className="flex justify-between align-center mt-8">
+              <span className="text-muted" style={{ fontSize: 13 }}>
+                Page {queuePage} of {queueTotalPages}
+              </span>
+              <div className="flex gap-8">
+                <button className="btn" disabled={queuePage <= 1} onClick={() => setQueuePage(queuePage - 1)}>Prev</button>
+                <button className="btn" disabled={queuePage >= queueTotalPages} onClick={() => setQueuePage(queuePage + 1)}>Next</button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
       <div className="split-2">
@@ -195,13 +209,13 @@ export default function PMDashboard() {
           return (
             <div className="work-grid">
               <div className="work-card">
-                <span className="work-bar" style={{ background: '#94a3b8' }} />
+                <span className="work-bar" style={{ background: 'var(--text-faint)' }} />
                 <div className="work-label">Queued Hours</div>
                 <div className="work-value">{queued.toFixed(1)}h</div>
                 <div className="work-sub">{queued > 0 ? `${pct(queued)}% pending backlog` : '0 pending backlog'}</div>
               </div>
               <div className="work-card">
-                <span className="work-bar" style={{ background: '#c1cf8b' }} />
+                <span className="work-bar" style={{ background: 'var(--accent)' }} />
                 <div className="work-label">In Progress Hours</div>
                 <div className="work-value">{inProgress.toFixed(1)}h</div>
                 <div className="work-sub" style={{ color: 'var(--accent)' }}>{pct(inProgress)}% active burden</div>
@@ -226,7 +240,14 @@ export default function PMDashboard() {
 
       {/* 5. Workload & Status Trend */}
       <div className="panel">
-        <h3 className="mb-16">Workload & Status Chart</h3>
+        <div className="flex justify-between align-center mb-16">
+          <h3 style={{ margin: 0 }}>Workload & Status Chart</h3>
+          {trendWindow && (
+            <span className="badge badge-muted">
+              {trendWindow.from} → {trendWindow.to}
+            </span>
+          )}
+        </div>
         {filteredTrend.length === 0 ? (
           <div className="text-muted">No trend data available.</div>
         ) : (
@@ -279,7 +300,7 @@ export default function PMDashboard() {
                 className="badge"
                 style={{
                   marginLeft: 8,
-                  background: filteredAttention.some((a) => a.priority === 'danger') ? 'rgba(244,67,54,0.2)' : 'rgba(255,152,0,0.2)',
+                  background: filteredAttention.some((a) => a.priority === 'danger') ? 'var(--badge-deleted-bg)' : 'var(--badge-updated-bg)',
                   color: filteredAttention.some((a) => a.priority === 'danger') ? 'var(--danger)' : 'var(--warning)',
                 }}
               >
@@ -308,6 +329,7 @@ export default function PMDashboard() {
           </div>
         )}
       </div>
-    </div>
+
+      </div>
   );
 }

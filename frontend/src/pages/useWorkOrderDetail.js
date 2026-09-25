@@ -276,6 +276,7 @@ export default function useWorkOrderDetail() {
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to start production');
+      if (err.response?.status === 409) { await load(); }
     } finally {
       setStartingProduction(false);
     }
@@ -292,6 +293,7 @@ export default function useWorkOrderDetail() {
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to complete work order');
+      if (err.response?.status === 409) { await load(); }
     } finally {
       setCompleting(false);
     }
@@ -307,6 +309,7 @@ export default function useWorkOrderDetail() {
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update production item');
+      if (err.response?.status === 409) { await load(); }
     } finally {
       setSavingTaskId(null);
     }
@@ -330,6 +333,7 @@ export default function useWorkOrderDetail() {
       await Promise.all([load(), loadDocuments()]);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to upload documents');
+      if (err.response?.status === 409) { await Promise.all([load(), loadDocuments()]); }
     } finally {
       setUploading(false);
     }

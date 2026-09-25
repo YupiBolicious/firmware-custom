@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
-
-const PAGE_SIZE = 10;
 
 const emptyForm = {
   kb_code: '',
@@ -36,14 +34,25 @@ export default function useKnowledgeBase() {
   const [fwFilter, setFwFilter] = useState('ALL');
   const [cxFilter, setCxFilter] = useState('ALL');
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const load = async () => {
     try {
       const [kbRes, levelsRes] = await Promise.all([
-        api.get('/kb'),
+        api.get('/kb', {
+          params: {
+            page,
+            search,
+            fw_related: fwFilter,
+            complexity_level: cxFilter,
+          },
+        }),
         api.get('/complexity-levels'),
       ]);
-      setItems(kbRes.data.data);
+      setItems(kbRes.data.data.items);
+      setTotal(kbRes.data.data.total);
+      setTotalPages(kbRes.data.data.totalPages);
       setLevels(levelsRes.data.data.filter((level) => /^L[0-5]$/.test(level.code)));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load knowledge base');
@@ -55,7 +64,7 @@ export default function useKnowledgeBase() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, search, fwFilter, cxFilter]);
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -166,21 +175,6 @@ export default function useKnowledgeBase() {
     }
   };
 
-  const filteredItems = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return items.filter((item) => {
-      if (fwFilter !== 'ALL' && String(!!item.fw_related) !== fwFilter) return false;
-      if (cxFilter !== 'ALL' && Number(item.complexity_level_id) !== Number(cxFilter)) return false;
-      if (!q) return true;
-      return ['kb_code', 'title', 'description', 'keywords']
-        .some((field) => String(item[field] || '').toLowerCase().includes(q));
-    });
-  }, [items, search, fwFilter, cxFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paginatedItems = filteredItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
@@ -214,11 +208,9 @@ export default function useKnowledgeBase() {
     setFwFilter,
     cxFilter,
     setCxFilter,
-    filteredItems,
-    paginatedItems,
-    currentPage,
-    totalPages,
+    total,
     page,
+    totalPages,
     setPage,
     resetPage,
     handleChange,

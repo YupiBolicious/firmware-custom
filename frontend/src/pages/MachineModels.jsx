@@ -60,7 +60,7 @@ export default function MachineModels() {
         </form>
       </div>
 
-      <div className="panel">
+      <div className="panel table-scroll">
         <h3>Models List</h3>
         {models.length === 0 ? (
           <div className="text-muted">No models found.</div>
@@ -99,7 +99,7 @@ export default function MachineModels() {
                   </tr>
                   {expandedId === m.id && (
                     <tr key={`${m.id}-versions`}>
-                      <td colSpan={5} style={{ padding: 12, background: '#1a1a1a' }}>
+                      <td colSpan={5} style={{ padding: 12, background: 'var(--bg-input)' }}>
                         <div style={{ marginBottom: 8, fontWeight: 600 }}>Versions for {m.model_code}</div>
                         <form onSubmit={handleSaveVersion} style={{ marginBottom: 8 }}>
                           <div className="form-grid" style={{ gridTemplateColumns: '1fr 2fr' }}>

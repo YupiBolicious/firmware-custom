@@ -1,0 +1,36 @@
+{
+  "matrixLeg": {
+    "ts": 1789886672907,
+    "killswitch": false,
+    "pass": 64,
+    "fail": 0,
+    "skipped": 0,
+    "failLines": [],
+    "skipLines": [],
+    "notes": [
+      "semantic probe (enabled): semanticHits=1 assistSuggestions=0",
+      "fill-review count=1 (corpus-driven, not a defect)",
+      "complete-no-docs message=Documentation files are required before completing (firmware items present, no documents attached) (doc guard confirmed)",
+      "static observation: WO-level title/customer PUT is NOT state-gated (items/groups are); returned 200"
+    ],
+    "woNumbers": [
+      "SF-K-1789886672907",
+      "SF-A-1789886672907",
+      "SF-R-1789886672907",
+      "SF-DUP-1789886672907"
+    ]
+  },
+  "killswitchLeg": {
+    "ts": 1789886774068,
+    "killswitch": true,
+    "pass": 8,
+    "fail": 0,
+    "skipped": 0,
+    "failLines": [],
+    "skipLines": [],
+    "notes": [],
+    "woNumbers": [
+      "SF-K-1789886774068"
+    ]
+  }
+}

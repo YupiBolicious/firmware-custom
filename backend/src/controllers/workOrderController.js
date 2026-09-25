@@ -3,7 +3,7 @@ const { ApiError } = require('../middleware/errorHandler');
 
 const list = async (req, res, next) => {
   try {
-    const data = await workOrderService.listWorkOrders();
+    const data = await workOrderService.listWorkOrders({ page: req.query.page, limit: req.query.limit });
     res.json({ success: true, message: 'Work orders retrieved', data });
   } catch (err) {
     next(err);
@@ -12,7 +12,7 @@ const list = async (req, res, next) => {
 
 const reviewQueue = async (req, res, next) => {
   try {
-    const data = await workOrderService.listCoderReviewQueue();
+    const data = await workOrderService.listCoderReviewQueue({ page: req.query.page, limit: req.query.limit });
     res.json({ success: true, message: 'Coder review queue retrieved', data });
   } catch (err) {
     next(err);
@@ -179,6 +179,7 @@ const finalize = async (req, res, next) => {
 const startProduction = async (req, res, next) => {
   try {
     const data = await workOrderService.startProduction(req.params.id, {
+      user_id: req.user.id,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Work order moved to production', data });
@@ -190,6 +191,7 @@ const startProduction = async (req, res, next) => {
 const completeProduction = async (req, res, next) => {
   try {
     const data = await workOrderService.completeProduction(req.params.id, {
+      user_id: req.user.id,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Work order completed', data });
@@ -200,7 +202,7 @@ const completeProduction = async (req, res, next) => {
 
 const completeProductionTask = async (req, res, next) => {
   try {
-    const completed = req.body.completed === undefined ? true : Boolean(req.body.completed);
+    const completed = req.body.completed === undefined ? true : req.body.completed;
     const data = await workOrderService.completeProductionTask(req.params.taskId, {
       completed,
       user_id: req.user.id,

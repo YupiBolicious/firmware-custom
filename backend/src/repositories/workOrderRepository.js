@@ -1,7 +1,7 @@
 const pool = require('../config/db');
 
 //work orders
-const findAll = async () => {
+const findAll = async ({ page = 1, limit = 15 } = {}) => {
   const result = await pool.query(
     /* wo relation with model and version has to be deleted because it would interfere the classification.
      added new relation: to groupWO to get and store ids*/
@@ -18,15 +18,18 @@ const findAll = async () => {
                LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
                WHERE g.work_order_id = wo.id
              ) g
-            ) AS group_summary
+            ) AS group_summary,
+            COUNT(*) OVER ()::int AS total
      FROM work_orders wo
      LEFT JOIN users u ON u.id = wo.created_by
      LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
      GROUP BY wo.id, u.full_name
-     ORDER BY wo.created_at DESC`
+     ORDER BY wo.created_at DESC, wo.id DESC
+     LIMIT $1 OFFSET $2`
+    , [limit, (page - 1) * limit]
   );
-  return result.rows;
+  return { items: result.rows, total: result.rows[0] ? result.rows[0].total : 0 };
 };
 
 const findById = async (id) => {
@@ -54,23 +57,31 @@ const findByWoNumber = async (woNumber) => {
   return result.rows[0] || null;
 };
 
-const findCoderReviewQueue = async () => {
+const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title,
             woi.description, wo.wo_number, wo.title AS work_order_title,
             mm.model_code AS machine_model_code, mmv.version_code AS machine_model_version,
             g.serial_number,
-            c.classification_reason, c.status, c.created_at
+            c.classification_reason, c.status, c.created_at,
+            c.assist_kb_id, c.assist_kb_code, c.assist_match_score, c.assist_semantic_margin,
+            c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
+            c.review_reason, c.assist_blocked_reason,
+            kb_s.title AS assist_kb_title, kb_s.description AS assist_kb_description,
+            kb_s.confidence_score AS assist_kb_confidence_score,
+            COUNT(*) OVER ()::int AS total
      FROM work_order_items woi
      JOIN work_order_groups g ON g.id = woi.work_order_group_id
      JOIN work_orders wo ON wo.id = woi.work_order_id
      LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
      LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
      JOIN classifications c ON c.work_order_item_id = woi.id
+     LEFT JOIN kb_items kb_s ON kb_s.id = c.assist_kb_id
      WHERE c.status = 'CODER_REVIEW'
-     ORDER BY c.created_at ASC, wo.id, woi.item_number`
+     ORDER BY c.created_at ASC, wo.id, woi.item_number
+     LIMIT $1 OFFSET $2`, [limit, (page - 1) * limit]
   );
-  return result.rows;
+  return { items: result.rows, total: result.rows[0] ? result.rows[0].total : 0 };
 };
 
 const findProductionTasksByWorkOrderId = async (workOrderId) => {
@@ -101,6 +112,8 @@ const completeProductionTask = async (taskId, completed) => {
     `UPDATE production_tasks
      SET completed = $2, updated_at = NOW()
      WHERE id = $1
+       AND EXISTS (SELECT 1 FROM work_orders
+                   WHERE id = production_tasks.work_order_id AND status = 'PRODUCTION')
      RETURNING id, task_code, work_order_id, work_order_item_id, title, description, completed,
                created_at, updated_at`,
     [taskId, completed]
@@ -311,12 +324,22 @@ const findItemsByWorkOrderId = async (workOrderId) => {
             g.machine_model_id, g.machine_model_version_id, g.serial_number,
             mm.model_code AS machine_model_code,
             mmv.version_code AS machine_model_version,
-            c.id AS classification_id, c.fw_related, c.complexity_level_id,
-            c.classification_method, c.confidence_score, c.classification_reason, c.status AS classification_status,
-            c.reviewed_by, c.input_hash, c.kb_version,
-            cl.code AS complexity_code, cl.name AS complexity_name,
-            (COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)) AS estimated_hours,
-            ie.verification_mh, ie.total_hours AS estimation_total_hours
+c.id AS classification_id, c.fw_related, c.complexity_level_id,
+             c.classification_method, c.confidence_score, c.classification_reason, c.status AS classification_status,
+             c.reviewed_by, c.input_hash, c.kb_version,
+             c.assist_kb_id, c.assist_kb_code, c.assist_match_score, c.assist_semantic_margin,
+             c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
+             c.review_reason, c.assist_blocked_reason,
+             cl.code AS complexity_code, cl.name AS complexity_name,
+             (COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)) AS estimated_hours,
+             ie.verification_mh, ie.total_hours AS estimation_total_hours,
+             kbs.title AS assist_kb_title, kbs.description AS assist_kb_context,
+             clp.code AS assist_complexity_code,
+             CASE
+               WHEN c.status = 'CODER_REVIEW' AND c.assist_complexity_level_id IS NOT NULL AND ie.id IS NULL
+               THEN COALESCE(clp.total_hours, 0) * COALESCE(woi.quantity, 1)
+               ELSE NULL
+             END AS provisional_hours
      FROM work_order_items woi
      LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
      LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
@@ -324,6 +347,8 @@ const findItemsByWorkOrderId = async (workOrderId) => {
      LEFT JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
+     LEFT JOIN kb_items kbs ON kbs.id = c.assist_kb_id
+     LEFT JOIN complexity_levels clp ON clp.id = c.assist_complexity_level_id
      WHERE woi.work_order_id = $1
      ORDER BY woi.work_order_group_id, woi.item_number`,
     [workOrderId]
@@ -391,10 +416,12 @@ const countItemsByWorkOrderId = async (workOrderId) => {
   return result.rows[0].count;
 };
 
-const updateStatus = async (id, status) => {
+const updateStatus = async (id, status, fromStatus) => {
   const result = await pool.query(
-    `UPDATE work_orders SET status = $2, updated_at = NOW() WHERE id = $1 RETURNING *`,
-    [id, status]
+    `UPDATE work_orders SET status = $2, updated_at = NOW()
+     WHERE id = $1 AND ($3::text IS NULL OR status = $3)
+     RETURNING *`,
+    [id, status, fromStatus || null]
   );
   return result.rows[0] || null;
 };

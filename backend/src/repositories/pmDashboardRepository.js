@@ -1,24 +1,8 @@
 const pool = require('../config/db');
 
-const findKpis = async () => {
-  const result = await pool.query(`
-    SELECT
-      (SELECT COUNT(*)::int FROM work_orders WHERE status IN ('DRAFT', 'ANALYZED')) AS active_wos,
-      (SELECT COUNT(*)::int FROM classifications WHERE status = 'CODER_REVIEW') AS pending_review,
-      (SELECT COUNT(*)::int FROM work_orders WHERE status = 'ANALYZED') AS in_progress,
-      (SELECT COUNT(*)::int FROM work_orders WHERE status IN ('PRODUCTION', 'COMPLETED')) AS completed,
-      (SELECT COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric
-       FROM item_estimations ie
-       JOIN work_order_items woi ON woi.id = ie.work_order_item_id) AS total_estimated_hours,
-      (SELECT COUNT(*)::int FROM classifications
-       WHERE status = 'CODER_REVIEW'
-         AND created_at < NOW() - INTERVAL '48 hours') AS overdue
-  `);
-  return result.rows[0];
-};
-
-const findWorkQueue = async () => {
-  const result = await pool.query(`
+// Per-work-order aggregation row. All dashboard panels filter against these
+// computed columns, so every query below wraps this same macro.
+const WORK_QUEUE_SQL = `
     SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title, wo.status, wo.updated_at,
            wo.customer, wo.created_at,
            (SELECT string_agg(g.label, '; ')
@@ -61,12 +45,92 @@ const findWorkQueue = async () => {
     LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
     LEFT JOIN classifications c ON c.work_order_item_id = woi.id
     GROUP BY wo.id
-    ORDER BY wo.created_at DESC
-  `);
-  return result.rows;
+`;
+
+// Client-side filters from usePmDashboard, mapped to predicates on the wrapper
+// columns. Every column it touches (complexity_code, groups, item_titles,
+// group_summary, ...) exists in WORK_QUEUE_SQL output.
+const buildFilters = (f) => {
+  const parts = [];
+  const params = [];
+  if (f.search) {
+    params.push(`%${f.search.toLowerCase()}%`);
+    const p = `$${params.length}`;
+    parts.push(`(LOWER(COALESCE(q.wo_number, '')) LIKE ${p}
+                OR LOWER(COALESCE(q.title, '')) LIKE ${p}
+                OR LOWER(COALESCE(q.customer, '')) LIKE ${p}
+                OR LOWER(COALESCE(q.group_summary, '')) LIKE ${p}
+                OR EXISTS (SELECT 1 FROM unnest(q.item_titles) t WHERE LOWER(t) LIKE ${p}))`);
+  }
+  if (f.status) {
+    params.push(f.status);
+    parts.push(`q.status = $${params.length}`);
+  }
+  if (f.model) {
+    params.push(f.model);
+    parts.push(`EXISTS (SELECT 1 FROM jsonb_array_elements(q.groups) g WHERE (g->>'machine_model_id')::int = $${params.length}::int)`);
+  }
+  if (f.version) {
+    params.push(f.version);
+    parts.push(`EXISTS (SELECT 1 FROM jsonb_array_elements(q.groups) g WHERE (g->>'machine_model_version_id')::int = $${params.length}::int)`);
+  }
+  if (f.complexity) {
+    params.push(f.complexity);
+    parts.push(`q.complexity_code = $${params.length}`);
+  }
+  if (f.fw_related === 'FW') parts.push('q.all_fw_related IS TRUE');
+  if (f.fw_related === 'NON_FW') parts.push('q.all_fw_related IS NOT TRUE');
+  if (f.date_from) {
+    params.push(f.date_from);
+    parts.push(`q.created_at >= $${params.length}::date`);
+  }
+  if (f.date_to) {
+    params.push(f.date_to);
+    parts.push(`q.created_at <= (($${params.length}::date + INTERVAL '1 day') - INTERVAL '1 microsecond')`);
+  }
+  return { where: parts.length ? `WHERE ${parts.join(' AND ')}` : '', params };
 };
 
-const findAttentionItems = async () => {
+const findKpis = async (filters) => {
+  const { where, params } = buildFilters(filters);
+  const result = await pool.query(`
+    SELECT
+      COUNT(*) FILTER (WHERE q.status IN ('DRAFT', 'ANALYZED'))::int AS active_wos,
+      COUNT(*) FILTER (WHERE q.has_pending_review)::int AS pending_review,
+      COUNT(*) FILTER (WHERE q.status = 'ANALYZED')::int AS in_progress,
+      COUNT(*) FILTER (WHERE q.status = 'PRODUCTION')::int AS production,
+      COUNT(*) FILTER (WHERE q.status = 'COMPLETED')::int AS completed,
+      COUNT(*) FILTER (WHERE q.has_overdue)::int AS overdue,
+      COALESCE(SUM(q.total_estimated_hours), 0)::numeric AS total_estimated_hours,
+      COALESCE(SUM(q.total_estimated_hours) FILTER (WHERE q.status = 'DRAFT'), 0)::numeric AS queued_hours,
+      COALESCE(SUM(q.total_estimated_hours) FILTER (WHERE q.status IN ('ANALYZED', 'FINALIZED', 'PRODUCTION')), 0)::numeric AS in_progress_hours,
+      COALESCE(SUM(q.total_estimated_hours) FILTER (WHERE q.status = 'COMPLETED'), 0)::numeric AS completed_hours
+    FROM (${WORK_QUEUE_SQL}) q
+    ${where}
+  `, params);
+  return result.rows[0];
+};
+
+const findWorkQueue = async ({ page, limit, filters }) => {
+  const { where, params } = buildFilters(filters);
+  const [countResult, result] = await Promise.all([
+    pool.query(`
+      SELECT COUNT(*)::int AS total FROM (${WORK_QUEUE_SQL}) q
+      ${where}
+    `, params),
+    pool.query(`
+      SELECT *
+      FROM (${WORK_QUEUE_SQL}) q
+      ${where}
+      ORDER BY q.created_at DESC, q.id DESC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `, [...params, limit, (page - 1) * limit]),
+  ]);
+  return { rows: result.rows, total: countResult.rows[0]?.total ?? 0 };
+};
+
+const findAttentionItems = async (filters) => {
+  const { where, params } = buildFilters(filters);
   const result = await pool.query(`
     SELECT * FROM (
       -- 1. Blocked: awaiting coder review for more than 48 hours
@@ -133,93 +197,78 @@ const findAttentionItems = async () => {
       HAVING GREATEST(COALESCE(wo.updated_at, '2000-01-01'),
                       COALESCE(MAX(c.reviewed_at), '2000-01-01')) < NOW() - INTERVAL '7 days'
     ) alerts
+    WHERE alerts.work_order_id IN (SELECT q.id FROM (${WORK_QUEUE_SQL}) q ${where})
     ORDER BY
       CASE priority WHEN 'danger' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END,
       COALESCE(age_hours, 0) DESC
-  `);
+  `, params);
   return result.rows;
 };
 
-const findStatusDistribution = async () => {
+const findStatusDistribution = async (filters) => {
+  const { where, params } = buildFilters(filters);
   const result = await pool.query(`
-    SELECT status, COUNT(*)::int AS count
-    FROM work_orders
-    GROUP BY status
-    ORDER BY CASE status
+    SELECT q.status, COUNT(*)::int AS count
+    FROM (${WORK_QUEUE_SQL}) q
+    ${where}
+    GROUP BY q.status
+    ORDER BY CASE q.status
       WHEN 'DRAFT' THEN 1
       WHEN 'ANALYZED' THEN 2
       WHEN 'FINALIZED' THEN 3
       WHEN 'PRODUCTION' THEN 4
       WHEN 'COMPLETED' THEN 5
+      ELSE 6
     END
-  `);
+  `, params);
   return result.rows;
 };
 
-const findWorkloadByStatus = async () => {
+const findWeeklyTrend = async (filters = {}, unit = 'week') => {
+  const { where, params } = buildFilters(filters);
+  const bucket = unit === 'day'
+    ? `date_trunc('day', CASE WHEN q.status = 'DRAFT' THEN q.created_at ELSE q.updated_at END)::date`
+    : `(date_trunc('week', CASE WHEN q.status = 'DRAFT' THEN q.created_at ELSE q.updated_at END + INTERVAL '1 day') - INTERVAL '1 day')::date`;
   const result = await pool.query(`
-    SELECT wo.status,
-           COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS total_hours,
-           COUNT(DISTINCT wo.id)::int AS wo_count
-    FROM work_orders wo
-    LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
-    LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-    GROUP BY wo.status
-  `);
+    SELECT ${bucket} AS week_start,
+           COALESCE(SUM(q.total_estimated_hours) FILTER (WHERE q.status = 'DRAFT'), 0)::numeric AS hours_queued,
+           COALESCE(SUM(q.total_estimated_hours) FILTER (WHERE q.status IN ('ANALYZED', 'FINALIZED', 'PRODUCTION')), 0)::numeric AS hours_in_progress,
+           COALESCE(SUM(q.total_estimated_hours) FILTER (WHERE q.status = 'COMPLETED'), 0)::numeric AS hours_completed,
+           COALESCE(COUNT(*) FILTER (WHERE q.status = 'DRAFT'), 0)::int AS items_queued,
+           COALESCE(COUNT(*) FILTER (WHERE q.status IN ('ANALYZED', 'FINALIZED', 'PRODUCTION')), 0)::int AS items_in_progress,
+           COALESCE(COUNT(*) FILTER (WHERE q.status = 'COMPLETED'), 0)::int AS items_completed
+    FROM (${WORK_QUEUE_SQL}) q
+    ${where}
+    GROUP BY 1
+    ORDER BY 1
+  `, params);
   return result.rows;
 };
 
-const findWeeklyTrend = async (weeks = 8) => {
-  const result = await pool.query(`
-    WITH weeks AS (
-      SELECT generate_series(
-        date_trunc('week', NOW() - ($1 || ' weeks')::interval),
-        date_trunc('week', NOW()),
-        '1 week'::interval
-      )::date AS week_start
-    )
-    SELECT
-      w.week_start,
-      COALESCE(queued.hrs, 0)::numeric AS hours_queued,
-      COALESCE(in_progress.hrs, 0)::numeric AS hours_in_progress,
-      COALESCE(completed.hrs, 0)::numeric AS hours_completed,
-      COALESCE(queued.cnt, 0)::int AS items_queued,
-      COALESCE(in_progress.cnt, 0)::int AS items_in_progress,
-      COALESCE(completed.cnt, 0)::int AS items_completed
-    FROM weeks w
-    LEFT JOIN (
-      SELECT date_trunc('week', wo.created_at)::date AS week_start,
-             COUNT(*)::int AS cnt,
-             COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS hrs
-      FROM work_orders wo
-      JOIN work_order_items woi ON woi.work_order_id = wo.id
-      JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-      WHERE wo.status = 'DRAFT'
-      GROUP BY week_start
-    ) queued ON queued.week_start = w.week_start
-    LEFT JOIN (
-      SELECT date_trunc('week', wo.updated_at)::date AS week_start,
-             COUNT(*)::int AS cnt,
-             COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS hrs
-      FROM work_orders wo
-      JOIN work_order_items woi ON woi.work_order_id = wo.id
-      JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-      WHERE wo.status IN ('ANALYZED', 'FINALIZED', 'PRODUCTION')
-      GROUP BY week_start
-    ) in_progress ON in_progress.week_start = w.week_start
-    LEFT JOIN (
-      SELECT date_trunc('week', wo.updated_at)::date AS week_start,
-             COUNT(*)::int AS cnt,
-             COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS hrs
-      FROM work_orders wo
-      JOIN work_order_items woi ON woi.work_order_id = wo.id
-      JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-      WHERE wo.status = 'COMPLETED'
-      GROUP BY week_start
-    ) completed ON completed.week_start = w.week_start
-    ORDER BY w.week_start ASC
-  `, [weeks]);
-  return result.rows;
+const findOptions = async (filters) => {
+  const models = await pool.query(`
+    SELECT DISTINCT g->>'machine_model_id' AS id, g->>'model_code' AS code, g->>'machine_model_name' AS name
+    FROM (${WORK_QUEUE_SQL}) q, jsonb_array_elements(q.groups) g
+    WHERE g->>'machine_model_id' IS NOT NULL
+    ORDER BY g->>'model_code'
+  `);
+  const versionParams = filters.model ? [filters.model] : [];
+  const versions = await pool.query(`
+    SELECT DISTINCT g->>'machine_model_version_id' AS id, g->>'version_code' AS code, g->>'machine_model_id' AS model_id
+    FROM (${WORK_QUEUE_SQL}) q, jsonb_array_elements(q.groups) g
+    WHERE g->>'machine_model_version_id' IS NOT NULL
+      ${filters.model ? "AND (g->>'machine_model_id')::int = $1::int" : ''}
+    ORDER BY g->>'version_code', g->>'machine_model_id'
+  `, versionParams);
+  const complexityParams = filters.model ? [filters.model] : [];
+  const complexities = await pool.query(`
+    SELECT DISTINCT q.complexity_code AS code
+    FROM (${WORK_QUEUE_SQL}) q
+    WHERE q.complexity_code IS NOT NULL
+      ${filters.model ? `AND EXISTS (SELECT 1 FROM jsonb_array_elements(q.groups) g WHERE (g->>'machine_model_id')::int = $1::int)` : ''}
+    ORDER BY q.complexity_code
+  `, complexityParams);
+  return { models: models.rows, versions: versions.rows, complexities: complexities.rows };
 };
 
 module.exports = {
@@ -227,6 +276,6 @@ module.exports = {
   findWorkQueue,
   findAttentionItems,
   findStatusDistribution,
-  findWorkloadByStatus,
   findWeeklyTrend,
+  findOptions,
 };

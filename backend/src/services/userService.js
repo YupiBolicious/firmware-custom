@@ -3,11 +3,14 @@ const userRepository = require('../repositories/userRepository');
 const auditService = require('./auditService');
 const userValidator = require('../validators/userValidator');
 const { ApiError } = require('../middleware/errorHandler');
+const { validatePagination, paginatedPayload } = require('../utils/pagination');
 
 const BCRYPT_ROUNDS = 10;
 
-const listUsers = async () => {
-  return userRepository.findAll();
+const listUsers = async ({ page = 1, limit = 15 } = {}) => {
+  const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
+  const res = await userRepository.findAll({ page: parsedPage, limit: parsedLimit });
+  return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
 };
 
 const listPmUsers = async () => {

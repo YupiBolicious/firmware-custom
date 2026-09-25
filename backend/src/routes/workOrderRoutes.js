@@ -12,6 +12,7 @@ const {
   validateItemCreate,
   validateItemUpdate,
   validateReview,
+  validateProductionTaskUpdate,
   validateAccessGrant,
 } = require('../validators/workOrderValidator');
 
@@ -61,7 +62,7 @@ router.get('/:id/access', authorize('PM', 'CODER'), requireIntegerParams('id'), 
 router.post('/:id/access', authorize('PM'), requireIntegerParams('id'), validateAccessGrant, workOrderController.grantAccess);
 router.delete('/:id/access/:userId', authorize('PM'), requireIntegerParams('id', 'userId'), workOrderController.revokeAccess);
 router.post('/:id/production', authorize('CODER'), requireIntegerParams('id'), workOrderController.startProduction);
-router.put('/:id/production/tasks/:taskId', authorize('CODER'), requireIntegerParams('id', 'taskId'), workOrderController.completeProductionTask);
+router.put('/:id/production/tasks/:taskId', authorize('CODER'), requireIntegerParams('id', 'taskId'), validateProductionTaskUpdate, workOrderController.completeProductionTask);
 router.post('/:id/production/complete', authorize('CODER'), requireIntegerParams('id'), workOrderController.completeProduction);
 
 router.get('/:id/documents', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.listDocuments);

@@ -3,14 +3,7 @@ const authService = require('../services/authService');
 const login = async (req, res, next) => {
   try {
     const { identifier, password } = req.body || {};
-    if (!identifier || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: ['identifier (email or username) and password are required'],
-      });
-    }
-    const data = await authService.login({ identifier, password });
+    const data = await authService.login({ identifier, password, ip_address: req.ip });
     res.json({ success: true, message: 'Login successful', data });
   } catch (err) {
     next(err);

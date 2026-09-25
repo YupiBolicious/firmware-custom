@@ -25,16 +25,21 @@ const buildDecidedDetails = ({ path, result, semantic, assist, lexical, decision
     block_reason: decisionBlocked ? decisionBlocked.reason : null,
     block_detail: decisionBlocked && decisionBlocked.detail !== undefined ? decisionBlocked.detail : null,
     assist_kb_code: assist ? assist.kb_code : null,
+    assist_kb_id: assist ? (assist.kb_item_id != null ? assist.kb_item_id : null) : null,
   };
 };
 
-const buildReviewedDetails = ({ classificationId, finalFw, finalComplexityId, levelCode, suggestionMethod, suggestionKbId }) => ({
+const buildReviewedDetails = ({ classificationId, finalFw, finalComplexityId, levelCode, suggestionMethod, suggestionKbId, assistShown, assistResponse, assistKbId, assistKbCode }) => ({
   classification_id: classificationId != null ? classificationId : null,
   suggestion_method: suggestionMethod || null,
   suggestion_kb_id: suggestionKbId != null ? suggestionKbId : null,
   final_fw: finalFw != null ? finalFw : null,
   final_complexity_id: finalComplexityId != null ? finalComplexityId : null,
   final_level_code: levelCode || null,
+  assist_shown: assistShown == null ? null : assistShown,
+  assist_response: assistResponse || null,
+  assist_kb_id: assistKbId != null ? assistKbId : null,
+  assist_kb_code: assistKbCode || null,
 });
 
 const scoreOutcome = ({ suggestionComplexityId, suggestionFw, finalComplexityId, finalFw }) => {

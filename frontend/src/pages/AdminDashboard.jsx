@@ -109,7 +109,7 @@ export default function AdminDashboard() {
         <div className="flex gap-16" style={{ flexWrap: 'wrap' }}>
           {Object.entries(health).map(([key, status]) => (
             <div key={key} className="flex align-center" style={{ gap: 8, fontSize: 13 }}>
-              <span className="badge" style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text)', textTransform: 'capitalize' }}>
+              <span className="badge" style={{ background: 'var(--bg-input)', color: 'var(--text)', textTransform: 'capitalize' }}>
                 {key.replace(/_/g, ' ')}
               </span>
               <span className="flex align-center" style={{ gap: 6 }}>

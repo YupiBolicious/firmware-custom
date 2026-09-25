@@ -26,11 +26,18 @@ const normalizeHours = (body) => {
   return hours;
 };
 
+const assertOptionalString = (value, field) => {
+  if (value !== undefined && value !== null && typeof value !== 'string') {
+    throw new ApiError(400, `${field} must be a string or null`);
+  }
+};
+
 const create = async (body) => {
   const code = String(body.code || '').trim().toUpperCase();
   const name = String(body.name || '').trim();
   if (!code) throw new ApiError(400, 'Code is required');
   if (!name) throw new ApiError(400, 'Name is required');
+  assertOptionalString(body.description, 'description');
   const existing = await complexityRepository.findByCode(code);
   if (existing) throw new ApiError(409, 'Complexity level code already exists');
   const hours = normalizeHours(body);
@@ -60,6 +67,7 @@ const update = async (id, body) => {
   }
 
   const hours = normalizeHours(body);
+  assertOptionalString(body.description, 'description');
 
   let name;
   if (body.name !== undefined) {
@@ -69,7 +77,10 @@ const update = async (id, body) => {
 
   let is_active;
   if (body.is_active !== undefined) {
-    is_active = body.is_active === true || body.is_active === 'true';
+    if (typeof body.is_active !== 'boolean') {
+      throw new ApiError(400, 'is_active must be a boolean');
+    }
+    is_active = body.is_active;
   }
 
   return complexityRepository.update(id, {

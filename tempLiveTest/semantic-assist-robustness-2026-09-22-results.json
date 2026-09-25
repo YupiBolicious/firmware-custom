@@ -1,0 +1,187 @@
+{
+  "generated": "2026-09-22T02:28:29.937Z",
+  "env": {
+    "margin": "0.15",
+    "assistScore": "0.60",
+    "semanticEnabled": "1"
+  },
+  "baseline": {
+    "kv_version": 174,
+    "active_kb": 32,
+    "wo_count": 8,
+    "users": 5
+  },
+  "unit": [],
+  "live": [
+    {
+      "case": "positive:e-stop",
+      "domain": "KB-1004",
+      "item": "install the panic stop pushbutton at the operator position",
+      "status": "CODER_REVIEW",
+      "assistCode": "KB-RB-1790044109937-D0",
+      "score": "0.73",
+      "margin": "0.026",
+      "topKb": "KB-RB-1790044109937-D0",
+      "topScore": 0.7271480132477969,
+      "blockReason": "ASSIST_PRESENT",
+      "expectedKb": "KB-1004"
+    },
+    {
+      "case": "positive:sash window",
+      "domain": "KB-1005",
+      "item": "add a motorized sliding sash window to the laboratory wall",
+      "status": "CODER_REVIEW",
+      "assistCode": "KB-RB-1790044109937-D1",
+      "score": "0.84",
+      "margin": "0.036",
+      "topKb": "KB-RB-1790044109937-D1",
+      "topScore": 0.8407054813173817,
+      "blockReason": "ASSIST_PRESENT",
+      "expectedKb": "KB-1005"
+    },
+    {
+      "case": "positive:particle counter",
+      "domain": "KB-1010",
+      "item": "wire the sensing inputs into the airborne particle monitor and the gas sampling unit",
+      "status": "CODER_REVIEW",
+      "assistCode": "KB-RB-1790044109937-D2",
+      "score": "0.74",
+      "margin": "0.045",
+      "topKb": "KB-RB-1790044109937-D2",
+      "topScore": 0.7364718557508351,
+      "blockReason": "ASSIST_PRESENT",
+      "expectedKb": "KB-1010"
+    },
+    {
+      "case": "positive:sentinel alarm",
+      "domain": "KB-1017",
+      "item": "install one sentinel signaling contact alongside every alert relay",
+      "status": "CODER_REVIEW",
+      "assistCode": "KB-RB-1790044109937-D3",
+      "score": "0.76",
+      "margin": "0.044",
+      "topKb": "KB-RB-1790044109937-D3",
+      "topScore": 0.7552221853031715,
+      "blockReason": "ASSIST_PRESENT",
+      "expectedKb": "KB-1017"
+    },
+    {
+      "case": "ambiguous:zolli-pair",
+      "item": "apply the servo axis lock step procedure along the conveyor line during the shift changeover 1790044109937",
+      "status": "CODER_REVIEW",
+      "assistCode": "KB-RB-1790044109937-AM-A",
+      "score": "0.87",
+      "margin": "0.000",
+      "topKb": "KB-RB-1790044109937-AM-A",
+      "topScore": 0.8699410286785529,
+      "blockReason": "ASSIST_PRESENT",
+      "expectedKb": "zolli pair"
+    },
+    {
+      "case": "negative:unrelated",
+      "item": "qipfrobnit wuzzler blix frobnicate",
+      "status": "CODER_REVIEW",
+      "assistCode": null,
+      "score": null,
+      "margin": null,
+      "topKb": "KB-1014",
+      "topScore": 0.5458377380820568,
+      "blockReason": "SCORE_BELOW_FLOOR",
+      "expectedKb": null
+    },
+    {
+      "case": "negative:codemismatch",
+      "item": "redo the gain tuning on the motion driver module, documented for MODEL-RB-21-6000 1790044109937",
+      "status": "CODER_REVIEW",
+      "assistCode": null,
+      "score": null,
+      "margin": null,
+      "topKb": "KB-RB-1790044109937-CM",
+      "topScore": 0.6508901000209935,
+      "blockReason": "CODE_GATE:MODEL_CODE_MISMATCH",
+      "expectedKb": "KB-RB-1790044109937-CM"
+    },
+    {
+      "case": "robust:deactivate-d1-twin",
+      "status": "CODER_REVIEW",
+      "assist": "KB-1004",
+      "score": "0.70",
+      "margin": "0.073",
+      "topScore": 0.7030051589978125,
+      "expectedKb": "KB-1004",
+      "blockReason": "ASSIST_PRESENT"
+    },
+    {
+      "case": "robust:reactivate-d1-twin",
+      "status": "CODER_REVIEW",
+      "assist": "KB-RB-1790044109937-D0",
+      "score": "0.73",
+      "margin": "0.024",
+      "topScore": 0.7260150854062,
+      "blockReason": "ASSIST_PRESENT"
+    }
+  ],
+  "killSwitch": {
+    "beforeKill": {
+      "pos:e-stop": "CODER_REVIEW",
+      "pos:sash window": "CLASSIFIED",
+      "pos:particle counter": "CODER_REVIEW",
+      "pos:sentinel alarm": "CODER_REVIEW",
+      "amb:zolli-pair": "CODER_REVIEW",
+      "neg:unrelated": "CODER_REVIEW",
+      "neg:codemismatch": "CODER_REVIEW"
+    },
+    "afterKill": {
+      "pos:e-stop": "CODER_REVIEW",
+      "pos:sash window": "CLASSIFIED",
+      "pos:particle counter": "CODER_REVIEW",
+      "pos:sentinel alarm": "CODER_REVIEW",
+      "amb:zolli-pair": "CODER_REVIEW",
+      "neg:unrelated": "CODER_REVIEW",
+      "neg:codemismatch": "CODER_REVIEW"
+    },
+    "sameLexical": true
+  },
+  "regressions": [],
+  "findings": [],
+  "corpusRobustness": {
+    "initial": {
+      "status": "CODER_REVIEW",
+      "assist": "KB-RB-1790044109937-D0",
+      "score": "0.73",
+      "margin": "0.026",
+      "topScore": 0.7271480132477969
+    },
+    "afterSimilarUnrelated": {
+      "status": "CODER_REVIEW",
+      "assist": "KB-RB-1790044109937-D0",
+      "score": "0.73",
+      "margin": "0.024",
+      "topScore": 0.7260150854062
+    },
+    "afterDeactivate": {
+      "status": "CODER_REVIEW",
+      "assist": "KB-1004",
+      "score": "0.70",
+      "margin": "0.073",
+      "topScore": 0.7030051589978125
+    },
+    "afterReactivate": {
+      "status": "CODER_REVIEW",
+      "assist": "KB-RB-1790044109937-D0",
+      "score": "0.73",
+      "margin": "0.024",
+      "topScore": 0.7260150854062
+    }
+  },
+  "verdict": "CONTRACT PASSED — clean standalone run: 67 PASS / 0 GAP / 0 FAIL, cleanup dynamic 32->32, 0 leftover",
+  "summary": {
+    "pass": 67,
+    "gap": 0,
+    "fail": 0
+  },
+  "notes": [
+    "Regression suites removed from harness so it runs standalone (no concurrent DB pollution); run them separately.",
+    "Fixed sweep kbrb bug: step passed p:['x'] to a parameterless DELETE (pg bind error, swallowed into removed map) — loop now binds params only when SQL has placeholders."
+  ]
+}

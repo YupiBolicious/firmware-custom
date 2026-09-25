@@ -12,19 +12,44 @@ const bumpCorpusVersion = async () => {
   return result.rows[0].version;
 };
 
-// Fetch all KB items
-const findAll = async () => {
+// Fetch all KB items (paged + filtered; fwRelated: 'ALL'|'true'|'false', complexityLevel: 'ALL'|level id)
+const findAll = async ({ page = 1, limit = 15, search = '', fwRelated = 'ALL', complexityLevel = 'ALL' } = {}) => {
+  const conds = [];
+  const params = [];
+  if (search && String(search).trim()) {
+    params.push(`%${String(search).trim().replace(/[\\%_]/g, '\\$&')}%`);
+    conds.push(`(kb.kb_code ILIKE $${params.length} OR kb.title ILIKE $${params.length}
+      OR kb.description ILIKE $${params.length} OR kb.keywords ILIKE $${params.length})`);
+  }
+  if (fwRelated === 'true' || fwRelated === 'false') {
+    params.push(fwRelated === 'true');
+    conds.push(`kb.fw_related = $${params.length}`);
+  }
+  if (Number.isInteger(Number(complexityLevel))) {
+    params.push(Number(complexityLevel));
+    conds.push(`kb.complexity_level_id = $${params.length}`);
+  }
+  params.push(limit);
+  const limitPh = `$${params.length}`;
+  params.push((page - 1) * limit);
+  const offsetPh = `$${params.length}`;
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+
   const result = await pool.query(
     `SELECT kb.id, kb.kb_code, kb.title, kb.description, kb.keywords,
             kb.fw_related, kb.complexity_level_id, kb.confidence_score,
             kb.source, kb.is_active, kb.created_at, kb.updated_at,
             kb.machine_model_id, kb.machine_model_version_id,
-            cl.code AS complexity_code, cl.name AS complexity_name
+            cl.code AS complexity_code, cl.name AS complexity_name,
+            COUNT(*) OVER ()::int AS total
      FROM kb_items kb
      LEFT JOIN complexity_levels cl ON cl.id = kb.complexity_level_id
-     ORDER BY kb.kb_code`
+     ${where}
+     ORDER BY kb.kb_code
+     LIMIT ${limitPh} OFFSET ${offsetPh}`,
+    params
   );
-  return result.rows;
+  return { items: result.rows, total: result.rows.length ? result.rows[0].total : 0 };
 };
 
 const findById = async (id) => {
@@ -56,23 +81,21 @@ const create = async ({
   return result.rows[0];
 };
 
-const update = async (id, {
-  kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score, is_active,
-}) => {
+const UPDATE_FIELDS = ['kb_code', 'title', 'description', 'keywords', 'fw_related', 'complexity_level_id', 'confidence_score', 'is_active'];
+
+const update = async (id, body = {}) => {
+  const sets = [];
+  const values = [id];
+  for (const field of UPDATE_FIELDS) {
+    if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+    values.push(body[field] === undefined ? null : body[field]);
+    sets.push(`${field} = $${values.length}`);
+  }
+  if (sets.length === 0) return findById(id);
+  sets.push('updated_at = NOW()');
   const result = await pool.query(
-    `UPDATE kb_items
-     SET kb_code = $2,
-         title = $3,
-         description = $4,
-         keywords = $5,
-         fw_related = $6,
-         complexity_level_id = $7,
-         confidence_score = $8,
-         is_active = $9,
-         updated_at = NOW()
-     WHERE id = $1
-     RETURNING *`,
-    [id, kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score, is_active]
+    `UPDATE kb_items SET ${sets.join(', ')} WHERE id = $1 RETURNING *`,
+    values
   );
   if (result.rows[0]) await bumpCorpusVersion();
   return result.rows[0] || null;

@@ -16,17 +16,20 @@ const findUserWithRolesById = async (userId) => {
   return result.rows[0] || null;
 };
 
-const findAll = async () => {
+const findAll = async ({ page = 1, limit = 15 } = {}) => {
   const result = await pool.query(
     `SELECT ${USER_COLUMNS},
-            COALESCE(array_agg(r.code ORDER BY r.code) FILTER (WHERE r.code IS NOT NULL), '{}') AS roles
+            COALESCE(array_agg(r.code ORDER BY r.code) FILTER (WHERE r.code IS NOT NULL), '{}') AS roles,
+            COUNT(*) OVER ()::int AS total
      FROM users u
      LEFT JOIN user_roles ur ON ur.user_id = u.id
      LEFT JOIN roles r ON r.id = ur.role_id
      GROUP BY u.id
-     ORDER BY u.id`
+     ORDER BY u.id
+     LIMIT $1 OFFSET $2`,
+    [limit, (page - 1) * limit]
   );
-  return result.rows;
+  return { items: result.rows, total: result.rows.length ? result.rows[0].total : 0 };
 };
 
 const findAllByRole = async (roleCode) => {

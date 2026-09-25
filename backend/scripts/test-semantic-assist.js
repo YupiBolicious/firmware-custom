@@ -18,18 +18,42 @@ const item = (title) => ({ title, description: '', quantity: 1, machine_model_id
   eq(good.status, 'CODER_REVIEW', 'positive: still requires review (no auto-claim)');
   ok(good.fw_related === null && good.complexity_level_id === null, 'positive: no level asserted');
   ok(good.kb_item_id != null && good.match_score > 0.6, 'positive: candidate attached');
-  ok(good.semantic_margin >= 0.15, 'positive: margin meets floor');
   console.log(`positive: kb=${good.kb_item_id} score=${good.match_score.toFixed(3)} margin=${good.semantic_margin.toFixed(3)}`);
+
+  // Deterministic assist-gate boundary (no embeddings): the absolute score
+  // floor 0.60 splits the observed ~0.57 false candidate from a real candidate
+  // even when top-vs-second margin is tiny — margin never blocks assist.
+  const rowStub = { id: 9001, kb_code: 'KB-BOUNDARY', title: 'zolli servo axis alignment', description: 'calibration routine' };
+  const applyRule = (score, margin, row) => semanticAssist.evaluateAssistRule({
+    itemText: 'zolli servo axis alignment calibration procedure',
+    lexicalStatus: 'CODER_REVIEW',
+    matches: [{ kbCode: 'KB-BOUNDARY', score }],
+    margin,
+    scoreFloor: 0.60,
+    resolveRow: async () => row,
+  });
+  const false57 = await applyRule(0.57, 0.001, rowStub);
+  ok(false57.suggestion === null && false57.blocked.reasons.includes('SCORE_BELOW_FLOOR'), 'boundary: ~0.57 false candidate blocked (SCORE_BELOW_FLOOR)');
+  const highLowMargin = await applyRule(0.63, 0.001, rowStub);
+  ok(highLowMargin.suggestion !== null, 'boundary: 0.63 low-margin still suggests');
+  eq(highLowMargin.suggestion.match_score, 0.63, 'boundary: suggestion carries raw top score');
+  eq(highLowMargin.suggestion.semantic_margin, 0.001, 'boundary: margin carried as info, not a blocker');
+  const unresolved = await applyRule(0.95, 0.001, null);
+  ok(unresolved.suggestion === null && unresolved.blocked.reasons.includes('ROW_UNRESOLVED'), 'boundary: unresolved row blocked (ROW_UNRESOLVED)');
+  const notReview = await semanticAssist.evaluateAssistRule({
+    itemText: 'x', lexicalStatus: 'CLASSIFIED', matches: [{ kbCode: 'X', score: 0.99 }], margin: 1, scoreFloor: 0, resolveRow: async () => null,
+  });
+  eq(notReview, { suggestion: null, blocked: null }, 'lexical-confident: rule short-circuits pre-gate');
 
   const confident = await semanticAssist.assistWithSemantic(
     item('Motorized Sash Window'),
     { status: 'CLASSIFIED', classification_method: 'EXACT_MATCH', match_score: 1 });
   eq(confident, null, 'lexical-confident: no assist when lexical already decided');
 
-  const marginFail = await semanticAssist.assistWithSemantic(item('Motorized Sash Window'), weak, { marginFloor: 0.99 });
-  eq(marginFail, null, 'margin: null below floor');
+  const scoreFail = await semanticAssist.assistWithSemantic(item('Motorized Sash Window'), weak, { scoreFloor: 0.99 });
+  ok(scoreFail === null, 'score-gate: null below floor');
 
-  const codeCase = await semanticAssist.assistWithSemantic(item('Merge Point'), weak, { marginFloor: 0 });
+  const codeCase = await semanticAssist.assistWithSemantic(item('Merge Point'), weak, { scoreFloor: 0 });
   eq(codeCase, null, 'code-gate: null when candidate carries codes the item lacks');
   const matrix = await semanticStore.getMatrix();
   const vecs = await embedder.embed(['Merge Point']);

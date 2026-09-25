@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import useWorkOrderDetail from './useWorkOrderDetail';
 import { Pencil, Trash2 } from 'lucide-react';
+import { reviewReasonLabel, blockReasonLabel } from '../lib/reviewLabels';
 
 const ALLOWED_EXTENSIONS = '.pdf,.doc,.docx,.zip,.7z';
 
@@ -115,7 +116,7 @@ export default function WorkOrderDetail() {
         </div>
       </div>
 
-      <div className="panel">
+      <div className="panel mb-16">
         <h3>Work Order Details</h3>
         <div className="form-grid">
           <div><span className="text-muted">Status:</span> <StatusBadge status={wo.status} />
@@ -144,8 +145,8 @@ export default function WorkOrderDetail() {
 
       {/* Access Management */}
       {canManageAccess && (
-        <div className="panel">
-          <div className="flex justify-between align-center mb-16">
+        <div className="panel table-scroll mb-16">
+          <div className="flex justify-between align-center">
             <h3 style={{ margin: 0 }}>Shared Access</h3>
           </div>
           <div className="flex gap-8 mb-16">
@@ -200,7 +201,7 @@ export default function WorkOrderDetail() {
       )}
 
       {/* models & Items */}
-      <div className="panel">
+      <div className="panel table-scroll mb-16">
         <div className="flex justify-between align-center mb-8">
           <h3>Models and Custom Items</h3>
           {canEdit && (
@@ -274,7 +275,7 @@ export default function WorkOrderDetail() {
 
         {/* Add / Edit Model */}
         {canEdit && showAddGroup && (
-          <div className="panel" style={{ marginTop: 12, marginBottom: 12 }}>
+          <div className="panel table-scroll" style={{ marginTop: 12, marginBottom: 12 }}>
             <h3>{editingGroupId ? 'Edit Model' : 'Add Model'}</h3>
             <form onSubmit={handleSubmitGroup}>
               <div className="form-grid">
@@ -331,7 +332,6 @@ export default function WorkOrderDetail() {
                       <th>Qty</th>
                       <th>Firmware</th>
                       <th>Complexity</th>
-                      <th>Confidence</th>
                       <th>Hours</th>
                       <th>Status</th>
                       {canEdit && <th>Actions</th>}
@@ -348,7 +348,6 @@ export default function WorkOrderDetail() {
                           {item.fw_related === true ? 'YES' : item.fw_related === false ? 'NO' : '-'}
                         </td>
                         <td>{item.complexity_code || '-'}</td>
-                        <td>{item.confidence_score != null ? `${item.confidence_score}%` : '-'}</td>
                         <td>{item.estimated_hours != null ? `${item.estimated_hours}h` : 'N/A'}</td>
                         <td><StatusBadge status={item.classification_status} stale={item.verdict_stale === true} /></td>
                         {canEdit && <td>
@@ -373,7 +372,7 @@ export default function WorkOrderDetail() {
 
       {/* Estimation Preview */}
       {analysis && (
-        <div className="panel">
+        <div className="panel table-scroll">
           <h3>Estimation Preview</h3>
           <div className="stats-grid compact">
             <div className="stat">
@@ -406,15 +405,19 @@ export default function WorkOrderDetail() {
                 <th>Title</th>
                 <th>Firmware</th>
                 <th>Complexity</th>
-                <th>Confidence</th>
                 <th>Hours</th>
                 <th>Qty</th>
                 <th>Status</th>
-                <th>Reason</th>
+                <th>Review</th>
+                <th>Assistance</th>
+                <th>Quality</th>
               </tr>
             </thead>
             <tbody>
-              {analysis.results.map((r) => (
+              {analysis.results.map((r) => {
+                const inReview = r.status === 'CODER_REVIEW';
+                const marginPct = r.assist_semantic_margin != null ? `${(Number(r.assist_semantic_margin) * 100).toFixed(1)}` : null;
+                return (
                 <tr key={r.item_id}>
                   <td>{r.item_number}</td>
                   <td>
@@ -422,24 +425,53 @@ export default function WorkOrderDetail() {
                   </td>
                   <td>{r.title}</td>
                   <td>{r.fw_related === true ? 'YES' : r.fw_related === false ? 'NO' : 'Pending'}</td>
-                  <td>{r.complexity_code || '-'}</td>
-                  <td>{r.confidence_score != null ? `${Number(r.confidence_score).toFixed(1)}%` : '-'}</td>
-                  <td>{r.estimated_hours != null ? `${r.estimated_hours}h` : 'N/A'}</td>
+                  <td>
+                    {inReview && r.assist_complexity_code
+                      ? `${r.assist_complexity_code} (Prov.)`
+                      : r.complexity_code || '-'}
+                  </td>
+                  <td>
+                    {r.estimated_hours != null
+                      ? `${r.estimated_hours}h`
+                      : inReview
+                        ? (r.provisional_hours != null ? `${r.provisional_hours}h (Prov.)` : 'Awaiting Coder Review')
+                        : 'N/A'}
+                  </td>
                   <td>{r.quantity || '-'}</td>
                   <td><StatusBadge status={r.status} /></td>
-                  <td className="text-muted">{r.classification_reason}</td>
+                  <td>
+                    {inReview
+                      ? (reviewReasonLabel(r.review_reason) || r.classification_reason || '-')
+                      : '-'}
+                  </td>
+                  <td>
+                    {inReview && r.assist_kb_code
+                      ? <div style={{ fontSize: 12 }}>
+                          <span className="badge badge-info">{r.assist_kb_code}</span>
+                          {r.assist_kb_title ? <div className="text-muted">{r.assist_kb_title}</div> : null}
+                        </div>
+                      : inReview && r.assist_blocked_reason
+                        ? <span className="text-muted">{blockReasonLabel(r.assist_blocked_reason) || '-'}</span>
+                        : '-'}
+                  </td>
+                  <td>
+                    {inReview && r.assist_match_score != null
+                      ? `${r.assist_match_score}% sim${marginPct != null ? ` · margin ${marginPct}` : ''}`
+                      : '-'}
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
       {productionTasks.length > 0 && ['FINALIZED', 'PRODUCTION', 'COMPLETED'].includes(wo.status) && (
-        <div className="panel">
+        <div className="panel table-scroll mb-16">
           <h3 className="mb-16">
             Production Tasks
-            <span style={{ fontSize: 13, fontWeight: 400, color: '#aaa', marginLeft: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
               {productionTasks.filter((t) => t.completed).length} of {productionTasks.length} completed
             </span>
           </h3>
@@ -447,7 +479,6 @@ export default function WorkOrderDetail() {
             <thead>
               <tr>
                 <th>Task Code</th>
-                {/* <th>Item</th> */}
                 <th>Title</th>
                 <th>Status</th>
                 {isCoder && wo.status === 'PRODUCTION' && <th></th>}
@@ -457,7 +488,6 @@ export default function WorkOrderDetail() {
               {productionTasks.map((task) => (
                 <tr key={task.id}>
                   <td>{task.task_code}</td>
-                  {/* <td>{task.work_order_item_id}</td> */}
                   <td>{task.title}</td>
                   <td>
                     {task.completed
@@ -484,7 +514,7 @@ export default function WorkOrderDetail() {
 
       {/* Documents */}
       {(wo.status === 'PRODUCTION' || wo.status === 'COMPLETED') && (
-        <div className="panel">
+        <div className="panel table-scroll">
           <h3 className="mb-16">Documentation File</h3>
           {isCoder && wo.status === 'PRODUCTION' && (
             <DocumentUpload uploading={uploading} onUpload={handleUploadDocuments} />
