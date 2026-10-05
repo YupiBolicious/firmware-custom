@@ -63,10 +63,7 @@ export default function KnowledgeBase() {
       <div className="text-muted mb-16">
         KB items are matched against work order items during analysis. New or edited items take effect on the next Analyze.
       </div>
-
       
-      
-
       {showForm && (
         <div className="panel">
           <h3>{editingId ? 'Edit KB Item' : 'Add KB Item'}</h3>

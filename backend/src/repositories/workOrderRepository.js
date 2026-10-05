@@ -9,7 +9,7 @@ const findAll = async ({ page = 1, limit = 15 } = {}) => {
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
             COUNT(woi.id)::int AS item_count,
-            COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0) AS total_estimated_hours,
+            COALESCE(SUM(COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)), 0) AS total_estimated_hours,
             (SELECT string_agg(g.label, '; ')
              FROM (
                SELECT DISTINCT CONCAT_WS(' ', mm.model_code, mmv.version_code, NULLIF(g.serial_number, '')) AS label
@@ -34,13 +34,13 @@ const findAll = async ({ page = 1, limit = 15 } = {}) => {
 
 const findById = async (id) => {
   const result = await pool.query(
-    `SELECT wo.id, wo.wo_number, wo.title, wo.description, wo.customer, wo.status,
+    `SELECT wo.id, wo.wo_number, wo.title, wo.description, wo.customer, wo.status, wo.notes,
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
-            COALESCE((SELECT SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1))
-                      FROM work_order_items woi
-                      JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-                      WHERE woi.work_order_id = wo.id), 0) AS total_estimated_hours
+COALESCE((SELECT SUM(COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0))
+                       FROM work_order_items woi
+                       JOIN item_estimations ie ON ie.work_order_item_id = woi.id
+                       WHERE woi.work_order_id = wo.id), 0) AS total_estimated_hours
      FROM work_orders wo
      LEFT JOIN users u ON u.id = wo.created_by
      WHERE wo.id = $1`,
@@ -71,7 +71,7 @@ const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
             kb_s.confidence_score AS assist_kb_confidence_score,
             COUNT(*) OVER ()::int AS total
      FROM work_order_items woi
-     JOIN work_order_groups g ON g.id = woi.work_order_group_id
+     LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
      JOIN work_orders wo ON wo.id = woi.work_order_id
      LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
      LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
@@ -185,51 +185,76 @@ const finalizeWithProductionTasks = async (workOrderId) => {
   }
 };
 
-const createWithGroups = async ({ wo_number, title, description, customer, created_by, groups }) => {
+const createWithGroups = async ({ wo_number, description, customer, created_by, groups, items }) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const woResult = await client.query(
-      `INSERT INTO work_orders (wo_number, title, description, customer, created_by)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO work_orders (wo_number, description, customer, created_by)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [wo_number, title, description || null, customer, created_by]
+      [wo_number, description || null, customer, created_by]
     );
     const wo = woResult.rows[0];
 
     const createdGroups = [];
     for (const group of groups || []) {
       const groupResult = await client.query(
-        `INSERT INTO work_order_groups (work_order_id, machine_model_id, machine_model_version_id, serial_number)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO work_order_groups (work_order_id, machine_model_id, serial_number)
+         VALUES ($1, $2, $3)
          RETURNING *`,
-        [wo.id, group.machine_model_id, group.machine_model_version_id, group.serial_number || null]
+        [wo.id, group.machine_model_id, group.serial_number || null]
       );
       createdGroups.push(groupResult.rows[0]);
     }
 
+    const createdItems = [];
+    const usedNumbers = [];
+    for (const item of items || []) {
+      let { item_number } = item;
+      if (!item_number) {
+        let idx = 1;
+        do {
+          item_number = `i${idx}`;
+          idx += 1;
+        } while (usedNumbers.includes(item_number));
+      }
+      usedNumbers.push(item_number);
+      const itemResult = await client.query(
+        `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, description, quantity, documentation_readiness)
+         VALUES ($1, NULL, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [wo.id, item_number, item.title, item.description || null, item.quantity || 1, item.documentation_readiness ?? null]
+      );
+      createdItems.push(itemResult.rows[0]);
+    }
+
     await client.query('COMMIT');
-    return { ...wo, groups: createdGroups };
+    return { ...wo, groups: createdGroups, items: createdItems };
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.code === '23505') {
+      const { ApiError } = require('../middleware/errorHandler');
+      throw new ApiError(409, 'A group with this model/serial number already exists on the work order');
+    }
     throw err;
   } finally {
     client.release();
   }
 };
 
-const update = async (id, { title, description, customer, status }) => {
+const update = async (id, { description, customer, status, notes }) => {
   const result = await pool.query(
     `UPDATE work_orders
-     SET title = COALESCE($2, title),
-         description = COALESCE($3, description),
-         customer = COALESCE($4, customer),
-         status = COALESCE($5, status),
+     SET description = COALESCE($2, description),
+         customer = COALESCE($3, customer),
+         status = COALESCE($4, status),
+         notes = COALESCE($5, notes),
          updated_at = NOW()
      WHERE id = $1
      RETURNING *`,
-    [id, title, description, customer, status]
+    [id, description, customer, status, notes]
   );
   return result.rows[0] || null;
 };
@@ -260,34 +285,33 @@ const findGroupById = async (id, workOrderId) => {
   return result.rows[0] || null;
 };
 
-const createGroup = async ({ work_order_id, machine_model_id, machine_model_version_id, serial_number }) => {
+const createGroup = async ({ work_order_id, machine_model_id, serial_number }) => {
   try {
     const result = await pool.query(
-      `INSERT INTO work_order_groups (work_order_id, machine_model_id, machine_model_version_id, serial_number)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO work_order_groups (work_order_id, machine_model_id, serial_number)
+       VALUES ($1, $2, $3)
        RETURNING *`,
-      [work_order_id, machine_model_id, machine_model_version_id, serial_number || null]
+      [work_order_id, machine_model_id, serial_number || null]
     );
     return result.rows[0];
   } catch (err) {
     if (err.code === '23505') {
       const { ApiError } = require('../middleware/errorHandler');
-      throw new ApiError(409, 'This group (model/version/serial number) already exists on the work order');
+      throw new ApiError(409, 'This group (model/serial number) already exists on the work order');
     }
     throw err;
   }
 };
 
-const updateGroup = async (id, workOrderId, { machine_model_id, machine_model_version_id, serial_number }) => {
+const updateGroup = async (id, workOrderId, { machine_model_id, serial_number }) => {
   const result = await pool.query(
     `UPDATE work_order_groups
      SET machine_model_id = $3,
-         machine_model_version_id = $4,
-         serial_number = $5,
+         serial_number = $4,
          updated_at = NOW()
      WHERE id = $1 AND work_order_id = $2
      RETURNING *`,
-    [id, workOrderId, machine_model_id, machine_model_version_id, serial_number || null]
+    [id, workOrderId, machine_model_id, serial_number || null]
   );
   return result.rows[0] || null;
 };
@@ -316,14 +340,19 @@ const findItemNumbersByGroupId = async (groupId) => {
   return result.rows.map((r) => r.item_number);
 };
 
+const findItemNumbersByWorkOrderId = async (workOrderId) => {
+  const result = await pool.query(
+    `SELECT item_number FROM work_order_items WHERE work_order_id = $1`,
+    [workOrderId]
+  );
+  return result.rows.map((r) => r.item_number);
+};
+
 // ---------- Work Order Items ----------
 const findItemsByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
     `SELECT woi.id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title, woi.description,
             woi.quantity, woi.documentation_readiness, woi.created_at, woi.updated_at,
-            g.machine_model_id, g.machine_model_version_id, g.serial_number,
-            mm.model_code AS machine_model_code,
-            mmv.version_code AS machine_model_version,
 c.id AS classification_id, c.fw_related, c.complexity_level_id,
              c.classification_method, c.confidence_score, c.classification_reason, c.status AS classification_status,
              c.reviewed_by, c.input_hash, c.kb_version,
@@ -331,26 +360,23 @@ c.id AS classification_id, c.fw_related, c.complexity_level_id,
              c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
              c.review_reason, c.assist_blocked_reason,
              cl.code AS complexity_code, cl.name AS complexity_name,
-             (COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)) AS estimated_hours,
+             (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) AS estimated_hours,
              ie.verification_mh, ie.total_hours AS estimation_total_hours,
              kbs.title AS assist_kb_title, kbs.description AS assist_kb_context,
              clp.code AS assist_complexity_code,
              CASE
                WHEN c.status = 'CODER_REVIEW' AND c.assist_complexity_level_id IS NOT NULL AND ie.id IS NULL
-               THEN COALESCE(clp.total_hours, 0) * COALESCE(woi.quantity, 1)
+               THEN COALESCE(clp.total_hours, 0)
                ELSE NULL
              END AS provisional_hours
      FROM work_order_items woi
-     LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
-     LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
-     LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
      LEFT JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
      LEFT JOIN kb_items kbs ON kbs.id = c.assist_kb_id
      LEFT JOIN complexity_levels clp ON clp.id = c.assist_complexity_level_id
      WHERE woi.work_order_id = $1
-     ORDER BY woi.work_order_group_id, woi.item_number`,
+     ORDER BY woi.item_number`,
     [workOrderId]
   );
   return result.rows;
@@ -446,6 +472,7 @@ module.exports = {
   deleteGroup,
   countItemsByGroupId,
   findItemNumbersByGroupId,
+  findItemNumbersByWorkOrderId,
   findItemsByWorkOrderId,
   findItemById,
   findItemWithWorkOrder,

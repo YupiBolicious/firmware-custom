@@ -233,7 +233,7 @@ export default function CoderDashboard() {
                   <td><Link to={`/work-orders/${r.work_order_id}`}>{r.wo_number}</Link></td>
                   <td>{r.title}</td>
                   <td>
-                    {[r.machine_model_code, r.machine_model_version, r.serial_number ? `SN: ${r.serial_number}` : null].filter(Boolean).join(' / ') || '-'}
+                    {[r.machine_model_code, r.serial_number ? `SN: ${r.serial_number}` : null].filter(Boolean).join(' / ') || '-'}
                   </td>
                   <td>{r.quantity}</td>
                   <td>{r.confidence_score != null ? `${r.confidence_score}%` : '-'}</td>

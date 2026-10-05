@@ -42,28 +42,6 @@ const findOrCreateByCode = async (code) => {
   }
 };
 
-const findVersionByModelAndCode = async (modelId, code) => {
-  const result = await pool.query(
-    `SELECT * FROM machine_model_ver WHERE machine_model_id = $1 AND UPPER(version_code) = UPPER($2)`,
-    [modelId, code]
-  );
-  return result.rows[0] || null;
-};
-
-const findOrCreateVersion = async (modelId, code) => {
-  const existing = await findVersionByModelAndCode(modelId, code);
-  if (existing) return existing;
-  try {
-    return await createVersion({ machine_model_id: modelId, version_code: code, description: null });
-  } catch (err) {
-    if (err.code === '23505') {
-      const recheck = await findVersionByModelAndCode(modelId, code);
-      if (recheck) return recheck;
-    }
-    throw err;
-  }
-};
-
 const createModel = async ({ model_code, name, description }) => {
   const result = await pool.query(
     `INSERT INTO machine_model (model_code, name, description)
@@ -153,8 +131,6 @@ module.exports = {
   removeModel,
   findVersionsByModelId,
   findVersionById,
-  findVersionByModelAndCode,
-  findOrCreateVersion,
   createVersion,
   updateVersion,
   removeVersion,

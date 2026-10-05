@@ -26,7 +26,7 @@ const WORK_QUEUE_SQL = `
             ) jg
            ) AS groups,
            COUNT(woi.id)::int AS item_count,
-           COALESCE(SUM(COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)), 0)::numeric AS total_estimated_hours,
+           COALESCE(SUM(COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)), 0)::numeric AS total_estimated_hours,
            COUNT(DISTINCT woi.id) FILTER (
              WHERE c.status IN ('CLASSIFIED', 'NON_FIRMWARE')
            )::int AS items_classified,

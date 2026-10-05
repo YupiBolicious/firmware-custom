@@ -40,7 +40,6 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
   const reason = notes?.trim()
     ? `Coder review: ${notes.trim()}`
     : `Coder review confirmed ${level.code} (${level.name})`;
-  const group = await workOrderRepository.findGroupById(item.work_order_group_id, item.work_order_id);
   const saved = await classificationRepository.reviewClassification({
     work_order_item_id: itemId,
     fw_related: isFirmware,
@@ -50,9 +49,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
     input_hash: inputHash({
       title: item.title,
       description: item.description,
-      quantity: item.quantity,
-      machine_model_id: group ? group.machine_model_id : null,
-      machine_model_version_id: group ? group.machine_model_version_id : null,
+      documentation_readiness: item.documentation_readiness ?? null,
     }),
     kb_version: await kbRepository.getCorpusVersion(),
     assist_response: assistResponse,
@@ -126,8 +123,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
     complexity_code: level.code,
     complexity_name: level.name,
     estimated_hours: estimation && estimation.breakdown
-      ? Number(estimation.breakdown.verification_mh)
-        + Number(estimation.breakdown.other_mh) * (item.quantity || 1)
+      ? Number(estimation.breakdown.other_mh)
       : null,
     learned_kb_code: learnedKbItem.kb_code,
   };

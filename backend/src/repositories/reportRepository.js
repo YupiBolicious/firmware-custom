@@ -1,8 +1,7 @@
 const pool = require('../config/db');
 
-// Per-item estimated hours, mirroring the PM dashboard formula
-// (verification_mh + (total_hours - verification_mh) * quantity).
-const HOURS_EXPR = 'COALESCE(ie.verification_mh, 0) + (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) * COALESCE(woi.quantity, 1)';
+// Per-item estimated hours = Complexity Level Hours (quantity/model count never factor in).
+const HOURS_EXPR = 'COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)';
 
 // Quarter buckets over [from, to] inclusive (to semantics: created_at < to + 1 day).
 // Buckets that have no work orders still appear, zero-filled. Statuses are the

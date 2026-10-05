@@ -77,7 +77,7 @@ export default function App() {
         <Route path="/change-password" element={<ChangePassword />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
     </ToastProvider>
   );

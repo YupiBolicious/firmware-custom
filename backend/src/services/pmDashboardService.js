@@ -47,9 +47,7 @@ const addDays = (d, n) => {
   return x;
 };
 
-// Chart 1: buckets over the global From/To window (rolling 90 days when the
-// filter is empty). Daily when the window spans <= 45 days, otherwise
-// Sunday-start weeks (the SQL convention). Missing buckets stay zeroed.
+// Chart 1: buckets over the global From/To window
 const buildTrend = (rows, filters) => {
   const byDay = new Map(rows.map((r) => [formatLocalDate(new Date(r.week_start)), r]));
   const pick = (r) => ({

@@ -9,9 +9,6 @@ const inputHash = (item) => {
   const parts = [
     normalize(item.title || ''),
     normalize(item.description || ''),
-    String(item.quantity || 1),
-    item.machine_model_id == null ? '' : String(item.machine_model_id),
-    item.machine_model_version_id == null ? '' : String(item.machine_model_version_id),
     item.documentation_readiness || '',
   ];
   return crypto.createHash('sha256').update(parts.join('|')).digest('hex').slice(0, 64);

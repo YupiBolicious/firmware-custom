@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
     description     TEXT,
     customer        VARCHAR(200),
     status          VARCHAR(30) NOT NULL DEFAULT 'DRAFT',  -- DRAFT | ANALYZED | FINALIZED | PRODUCTION | COMPLETED
+    notes           TEXT,
     created_by      INT REFERENCES users(id),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -134,14 +135,13 @@ CREATE TABLE IF NOT EXISTS work_order_groups (
 CREATE TABLE IF NOT EXISTS work_order_items (
     id                  SERIAL PRIMARY KEY,
     work_order_id       INT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
-    work_order_group_id INT NOT NULL REFERENCES work_order_groups(id) ON DELETE CASCADE,
+    work_order_group_id INT REFERENCES work_order_groups(id) ON DELETE SET NULL,  -- legacy per-group scope; new items are WO-level (NULL)
     item_number         VARCHAR(50) NOT NULL,
     title               VARCHAR(300) NOT NULL,
     description         TEXT,
-    quantity            INT NOT NULL DEFAULT 1,
+    quantity            INT NOT NULL DEFAULT 1,  -- business info only; never factors into man-hours
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (work_order_group_id, item_number)
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- CLASSFDICATIONS TO CHECK LEVEL
 CREATE TABLE IF NOT EXISTS classifications (

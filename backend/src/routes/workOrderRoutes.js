@@ -14,6 +14,7 @@ const {
   validateReview,
   validateProductionTaskUpdate,
   validateAccessGrant,
+  validateWorkOrderNotes,
 } = require('../validators/workOrderValidator');
 
 const router = express.Router();
@@ -65,9 +66,11 @@ router.post('/:id/production', authorize('CODER'), requireIntegerParams('id'), w
 router.put('/:id/production/tasks/:taskId', authorize('CODER'), requireIntegerParams('id', 'taskId'), validateProductionTaskUpdate, workOrderController.completeProductionTask);
 router.post('/:id/production/complete', authorize('CODER'), requireIntegerParams('id'), workOrderController.completeProduction);
 
-router.get('/:id/documents', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.listDocuments);
-router.get('/:id/documents/:docId/download', authorize('PM', 'CODER'), requireIntegerParams('id', 'docId'), workOrderController.downloadDocument);
-router.post('/:id/documents', authorize('CODER'), requireIntegerParams('id'), upload.array('files', 10), workOrderController.uploadDocuments);
-router.delete('/:id/documents/:docId', authorize('CODER'), requireIntegerParams('id', 'docId'), workOrderController.deleteDocument);
+router.put('/:id/notes', authorize('CODER'), requireIntegerParams('id'), validateWorkOrderNotes, workOrderController.updateNotes);
+
+// router.get('/:id/documents', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.listDocuments);
+// router.get('/:id/documents/:docId/download', authorize('PM', 'CODER'), requireIntegerParams('id', 'docId'), workOrderController.downloadDocument);
+// router.post('/:id/documents', authorize('CODER'), requireIntegerParams('id'), upload.array('files', 10), workOrderController.uploadDocuments);
+// router.delete('/:id/documents/:docId', authorize('CODER'), requireIntegerParams('id', 'docId'), workOrderController.deleteDocument);
 
 module.exports = router;

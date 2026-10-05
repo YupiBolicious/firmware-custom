@@ -86,22 +86,6 @@ export default function FilterSearch({
                 </select>
               </div>
             )}
-            {/* {uniqueVersions?.length > 0 && (
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">Version</label>
-                <select
-                  className="filter-control"
-                  value={filters.versionFilter}
-                  onChange={(e) => setFilter('versionFilter', e.target.value)}
-                  disabled={filters.modelFilter === 'ALL'}
-                >
-                  <option value="ALL">All</option>
-                  {uniqueVersions.map((v) => (
-                    <option key={v.id} value={v.id}>{v.code}</option>
-                  ))}
-                </select>
-              </div>
-            )} */}
             {uniqueComplexities?.length > 0 && (
               <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
                 <label className="filter-label">Complexity</label>

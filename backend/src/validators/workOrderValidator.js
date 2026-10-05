@@ -5,38 +5,45 @@ const isModelValue = (value) => {
   return typeof value === 'string' && value.trim().length >= 1 && value.trim().length <= 50;
 };
 
-const isOptionalModelValue = (value) => {
-  if (value === undefined || value === null) return true;
-  if (typeof value === 'string' && value.trim() === '') return true;
-  return isModelValue(value);
-};
-
 const validateWorkOrderCreate = (req, res, next) => {
-  const { wo_number, title, customer, groups } = req.body || {};
+  const { wo_number, description, customer, groups, items } = req.body || {};
   const errors = [];
 
   if (!wo_number || typeof wo_number !== 'string' || !wo_number.trim()) {
     errors.push('wo_number is required');
   }
-  if (title !== undefined && (typeof title !== 'string' || !title.trim())) {
-    errors.push('title must be a non-empty string');
+  if (description !== undefined && typeof description !== 'string') {
+    errors.push('description must be a string');
   }
   if (!customer || typeof customer !== 'string' || !customer.trim()) {
     errors.push('customer is required');
   }
   if (!Array.isArray(groups) || groups.length === 0) {
-    errors.push('groups is required (at least one Model/Version group)');
+    errors.push('groups is required (at least one Model group)');
   } else {
     groups.forEach((group, index) => {
       if (!group || !isModelValue(group.machine_model_id)) {
         errors.push(`groups[${index}].machine_model_id is required (id or model code)`);
       }
-      if (group && !isOptionalModelValue(group.machine_model_version_id)) {
-        errors.push(`groups[${index}].machine_model_version_id must be an id or version code`);
-      }
       if (group && group.serial_number !== undefined && group.serial_number !== null
           && (typeof group.serial_number !== 'string' || group.serial_number.length > 100)) {
         errors.push(`groups[${index}].serial_number must be a string of max 100 characters`);
+      }
+    });
+  }
+  if (items !== undefined && !Array.isArray(items)) {
+    errors.push('items must be an array');
+  } else if (Array.isArray(items)) {
+    items.forEach((item, index) => {
+      if (!item || typeof item.title !== 'string' || !item.title.trim()) {
+        errors.push(`items[${index}].title is required`);
+      }
+      if (item && item.quantity !== undefined && (!Number.isInteger(item.quantity) || item.quantity < 1)) {
+        errors.push(`items[${index}].quantity must be a positive integer`);
+      }
+      if (item && item.documentation_readiness !== undefined && item.documentation_readiness !== null
+          && !['READY', 'MISSING'].includes(item.documentation_readiness)) {
+        errors.push(`items[${index}].documentation_readiness must be READY or MISSING`);
       }
     });
   }
@@ -71,14 +78,11 @@ const validateWorkOrderUpdate = (req, res, next) => {
 };
 
 const validateGroupCreate = (req, res, next) => {
-  const { machine_model_id, machine_model_version_id, serial_number } = req.body || {};
+  const { machine_model_id, serial_number } = req.body || {};
   const errors = [];
 
   if (!isModelValue(machine_model_id)) {
     errors.push('machine_model_id is required (id or model code)');
-  }
-  if (!isOptionalModelValue(machine_model_version_id)) {
-    errors.push('machine_model_version_id must be an id or version code');
   }
   if (serial_number !== undefined && serial_number !== null
       && (typeof serial_number !== 'string' || serial_number.length > 100)) {
@@ -94,12 +98,9 @@ const validateGroupCreate = (req, res, next) => {
 const validateGroupUpdate = validateGroupCreate;
 
 const validateItemCreate = (req, res, next) => {
-  const { title, work_order_group_id, quantity, documentation_readiness } = req.body || {};
+  const { title, quantity, documentation_readiness } = req.body || {};
   const errors = [];
 
-  if (!Number.isInteger(work_order_group_id) || work_order_group_id < 1) {
-    errors.push('work_order_group_id is required');
-  }
   if (!title || typeof title !== 'string' || !title.trim()) {
     errors.push('title is required');
   }
@@ -192,6 +193,22 @@ const validateAccessGrant = (req, res, next) => {
   next();
 };
 
+const validateWorkOrderNotes = (req, res, next) => {
+  const { notes } = req.body || {};
+  const errors = [];
+
+  if (typeof notes !== 'string') {
+    errors.push('notes is required');
+  } else if (notes.length > 4000) {
+    errors.push('notes must be a string of max 4000 characters');
+  }
+
+  if (errors.length > 0) {
+    return next(new ApiError(400, 'Validation failed', errors));
+  }
+  next();
+};
+
 module.exports = {
   validateWorkOrderCreate,
   validateWorkOrderUpdate,
@@ -202,4 +219,5 @@ module.exports = {
   validateReview,
   validateProductionTaskUpdate,
   validateAccessGrant,
+  validateWorkOrderNotes,
 };

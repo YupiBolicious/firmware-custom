@@ -113,7 +113,7 @@ const upsertCoderLearning = async ({
   const grp = await pool.query(
     `SELECT g.machine_model_id, g.machine_model_version_id
      FROM work_order_items woi
-     JOIN work_order_groups g ON g.id = woi.work_order_group_id
+     LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
      WHERE woi.id = $1`,
     [item_id]
   );

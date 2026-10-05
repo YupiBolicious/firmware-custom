@@ -38,8 +38,6 @@ function formatAction(action, details) {
 const initialFilters = {
   search: '',
   complexityFilter: 'ALL',
-  // confidenceMin: '',
-  // confidenceMax: '',
   classificationStatusFilter: 'ALL',
   statusFilter: 'ALL',
   dateFrom: '',
