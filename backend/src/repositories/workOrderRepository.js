@@ -9,7 +9,7 @@ const findAll = async ({ page = 1, limit = 15 } = {}) => {
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
             COUNT(woi.id)::int AS item_count,
-            COALESCE(SUM(COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)), 0) AS total_estimated_hours,
+            COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0) AS total_estimated_hours,
             (SELECT string_agg(g.label, '; ')
              FROM (
                SELECT DISTINCT CONCAT_WS(' ', mm.model_code, mmv.version_code, NULLIF(g.serial_number, '')) AS label
@@ -37,7 +37,7 @@ const findById = async (id) => {
     `SELECT wo.id, wo.wo_number, wo.title, wo.customer, wo.status, wo.notes,
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
-COALESCE((SELECT SUM(COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0))
+COALESCE((SELECT SUM(COALESCE(ie.total_hours, 0))
                        FROM work_order_items woi
                        JOIN item_estimations ie ON ie.work_order_item_id = woi.id
                        WHERE woi.work_order_id = wo.id), 0) AS total_estimated_hours
@@ -360,7 +360,7 @@ c.id AS classification_id, c.fw_related, c.complexity_level_id,
              c.review_reason, c.assist_blocked_reason,
              cl.code AS complexity_code, cl.name AS complexity_name,
              g.serial_number, mm.model_code AS machine_model_code,
-             (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) AS estimated_hours,
+             COALESCE(ie.total_hours, 0) AS estimated_hours,
              ie.verification_mh, ie.total_hours AS estimation_total_hours,
              kbs.title AS assist_kb_title,
              clp.code AS assist_complexity_code,

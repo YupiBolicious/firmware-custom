@@ -123,7 +123,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
     complexity_code: level.code,
     complexity_name: level.name,
     estimated_hours: estimation && estimation.breakdown
-      ? Number(estimation.breakdown.other_mh)
+      ? Number(estimation.breakdown.total_hours)
       : null,
     learned_kb_code: learnedKbItem.kb_code,
   };

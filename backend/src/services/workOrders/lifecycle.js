@@ -287,11 +287,12 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       confidence_score: classification.confidence_score,
       classification_reason: classification.classification_reason,
       status: classification.status,
-      // ponytail: official hours are the Complexity Level total only. Never multiplied by
-      // quantity or SN count; verification_mh is informational and excluded. Matches the
-      // estimated_hours the item query returns, so analyze and GET agree.
+      // ponytail: official hours = item_estimations.total_hours, i.e. Complexity Level hours
+      // PLUS verification_mh (the 8/24/40 tier, including the documentation_readiness MISSING
+      // tier). Never multiplied by quantity or SN count. Matches the estimated_hours the item
+      // query returns, so analyze and GET agree.
       estimated_hours: estimation && estimation.breakdown
-        ? Number(estimation.breakdown.other_mh)
+        ? Number(estimation.breakdown.total_hours)
         : null,
       provisional_hours: classification.status === 'CODER_REVIEW' && saved.assist_complexity_level_id != null
         ? Number(levelById.get(saved.assist_complexity_level_id)?.total_hours) || 0

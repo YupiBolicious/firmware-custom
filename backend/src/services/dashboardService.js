@@ -6,7 +6,7 @@ const getDashboard = async () => {
     pool.query(`SELECT COUNT(*)::int AS count FROM work_order_items`),
     pool.query(`SELECT COUNT(*)::int AS count FROM classifications WHERE status IN ('CLASSIFIED', 'NON_FIRMWARE')`),
     pool.query(`SELECT COUNT(*)::int AS count FROM classifications WHERE status = 'CODER_REVIEW'`),
-    pool.query(`SELECT COALESCE(SUM(COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)), 0) AS total FROM item_estimations ie JOIN work_order_items woi ON woi.id = ie.work_order_item_id`),
+    pool.query(`SELECT COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0) AS total FROM item_estimations ie JOIN work_order_items woi ON woi.id = ie.work_order_item_id`),
   ]);
 
   return {
