@@ -9,7 +9,7 @@ async function migrate() {
     await client.query('ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS machine_model_version_id INT REFERENCES machine_model_ver(id)');
     console.log('Added machine_model_version_id column');
 
-    await client.query(`INSERT INTO machine_model (model_code, name, description) VALUES
+    await client.query(`INSERT INTO machine_model (model_code, name) VALUES
       ('FWX-100', 'FWX-100 Series', 'Base firmware platform for standard production units'),
       ('FWX-200', 'FWX-200 Series', 'Advanced platform with expanded I/O and connectivity'),
       ('FWX-300', 'FWX-300 Series', 'High-performance platform for industrial applications')
@@ -34,7 +34,7 @@ async function migrate() {
       if (!mid) continue;
       for (const [vc, desc] of vers) {
         await client.query(
-          'INSERT INTO machine_model_ver (machine_model_id, version_code, description) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+          'INSERT INTO machine_model_ver (machine_model_id, version_code) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
           [mid, vc, desc]
         );
       }

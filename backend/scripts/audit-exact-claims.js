@@ -12,8 +12,8 @@ const kbCache = require('../src/services/kbCache');
   const ctx = { machine_model_id: 1, machine_model_version_id: 1 };
 
   const inputs = [
-    ...probes.map((p) => ({ id: `probe-${p.id}`, title: p.title, desc: p.desc || '' })),
-    ...set.cases.map((c) => ({ id: c.id, title: c.title, desc: c.description || '' })),
+    ...probes.map((p) => ({ id: `probe-${p.id}`, title: p.title })),
+    ...set.cases.map((c) => ({ id: c.id, title: c.title })),
   ];
 
   let total = 0;
@@ -27,9 +27,9 @@ const kbCache = require('../src/services/kbCache');
     if (!best || best.score < 0.6) continue;
     total++;
     const normItem = normalize(`${inp.title} ${inp.desc}`);
-    const normKb = normalize(`${best.kb.title} ${best.kb.description || ''}`);
+    const normKb = normalize(`${best.kb.title} || ''}`);
     const itemTokens = tokenize(`${inp.title} ${inp.desc}`);
-    const kbTokens = tokenize(`${best.kb.title} ${best.kb.description || ''} ${best.kb.keywords || ''}`);
+    const kbTokens = tokenize(`${best.kb.title} ${best.kb.keywords || ''}`);
     const inter = [...itemTokens].filter((t) => kbTokens.has(t));
     const detail = `${inp.id} score=${best.score.toFixed(2)} jac=${jaccard(itemTokens, kbTokens).toFixed(2)} ` +
       `shared=${inter.length}/${new Set([...itemTokens, ...kbTokens]).size} ` +

@@ -5,7 +5,7 @@ const findAll = async ({ page = 1, limit = 15 } = {}) => {
   const result = await pool.query(
     /* wo relation with model and version has to be deleted because it would interfere the classification.
      added new relation: to groupWO to get and store ids*/
-    `SELECT wo.id, wo.wo_number, wo.title, wo.description, wo.customer, wo.status,
+    `SELECT wo.id, wo.wo_number, wo.title, wo.customer, wo.status,
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
             COUNT(woi.id)::int AS item_count,
@@ -34,7 +34,7 @@ const findAll = async ({ page = 1, limit = 15 } = {}) => {
 
 const findById = async (id) => {
   const result = await pool.query(
-    `SELECT wo.id, wo.wo_number, wo.title, wo.description, wo.customer, wo.status, wo.notes,
+    `SELECT wo.id, wo.wo_number, wo.title, wo.customer, wo.status, wo.notes,
             wo.created_by, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
 COALESCE((SELECT SUM(COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0))
@@ -67,7 +67,7 @@ const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
             c.assist_kb_id, c.assist_kb_code, c.assist_match_score, c.assist_semantic_margin,
             c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
             c.review_reason, c.assist_blocked_reason,
-            kb_s.title AS assist_kb_title, kb_s.description AS assist_kb_description,
+            kb_s.title AS assist_kb_title,
             kb_s.confidence_score AS assist_kb_confidence_score,
             COUNT(*) OVER ()::int AS total
      FROM work_order_items woi
@@ -86,7 +86,7 @@ const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
 
 const findProductionTasksByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
-    `SELECT id, task_code, work_order_id, work_order_item_id, title, description, completed,
+    `SELECT id, task_code, work_order_id, work_order_item_id, title, completed,
             created_at, updated_at
      FROM production_tasks
      WHERE work_order_id = $1
@@ -98,7 +98,7 @@ const findProductionTasksByWorkOrderId = async (workOrderId) => {
 
 const findProductionTaskById = async (taskId) => {
   const result = await pool.query(
-    `SELECT id, task_code, work_order_id, work_order_item_id, title, description, completed,
+    `SELECT id, task_code, work_order_id, work_order_item_id, title, completed,
             created_at, updated_at
      FROM production_tasks
      WHERE id = $1`,
@@ -114,7 +114,7 @@ const completeProductionTask = async (taskId, completed) => {
      WHERE id = $1
        AND EXISTS (SELECT 1 FROM work_orders
                    WHERE id = production_tasks.work_order_id AND status = 'PRODUCTION')
-     RETURNING id, task_code, work_order_id, work_order_item_id, title, description, completed,
+     RETURNING id, task_code, work_order_id, work_order_item_id, title, completed,
                created_at, updated_at`,
     [taskId, completed]
   );
@@ -155,7 +155,7 @@ const finalizeWithProductionTasks = async (workOrderId) => {
 
     const taskResult = await client.query(
       `INSERT INTO production_tasks
-         (task_code, work_order_id, work_order_item_id, title, description)
+         (task_code, work_order_id, work_order_item_id, title)
        SELECT wo.wo_number || '-' || woi.id AS task_code,
               wo.id,
               woi.id,
@@ -168,9 +168,8 @@ const finalizeWithProductionTasks = async (workOrderId) => {
        ON CONFLICT (work_order_item_id)
        DO UPDATE SET
          title = EXCLUDED.title,
-         description = EXCLUDED.description,
          updated_at = NOW()
-       RETURNING id, task_code, work_order_id, work_order_item_id, title, description, completed,
+       RETURNING id, task_code, work_order_id, work_order_item_id, title, completed,
                  created_at, updated_at`,
       [workOrderId]
     );
@@ -185,16 +184,16 @@ const finalizeWithProductionTasks = async (workOrderId) => {
   }
 };
 
-const createWithGroups = async ({ wo_number, description, customer, created_by, groups, items }) => {
+const createWithGroups = async ({ wo_number, customer, created_by, groups, items }) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const woResult = await client.query(
-      `INSERT INTO work_orders (wo_number, description, customer, created_by)
+      `INSERT INTO work_orders (wo_number, customer, created_by)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [wo_number, description || null, customer, created_by]
+      [wo_number, customer, created_by]
     );
     const wo = woResult.rows[0];
 
@@ -222,10 +221,10 @@ const createWithGroups = async ({ wo_number, description, customer, created_by, 
       }
       usedNumbers.push(item_number);
       const itemResult = await client.query(
-        `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, description, quantity, documentation_readiness)
+        `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, quantity, documentation_readiness)
          VALUES ($1, NULL, $2, $3, $4, $5, $6)
          RETURNING *`,
-        [wo.id, item_number, item.title, item.description || null, item.quantity || 1, item.documentation_readiness ?? null]
+        [wo.id, item_number, item.title, item.quantity || 1]
       );
       createdItems.push(itemResult.rows[0]);
     }
@@ -244,7 +243,7 @@ const createWithGroups = async ({ wo_number, description, customer, created_by, 
   }
 };
 
-const update = async (id, { description, customer, status, notes }) => {
+const update = async (id, { customer, status, notes }) => {
   const result = await pool.query(
     `UPDATE work_orders
      SET description = COALESCE($2, description),
@@ -351,7 +350,7 @@ const findItemNumbersByWorkOrderId = async (workOrderId) => {
 // ---------- Work Order Items ----------
 const findItemsByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
-    `SELECT woi.id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title, woi.description,
+    `SELECT woi.id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title, 
             woi.quantity, woi.documentation_readiness, woi.created_at, woi.updated_at,
 c.id AS classification_id, c.fw_related, c.complexity_level_id,
              c.classification_method, c.confidence_score, c.classification_reason, c.status AS classification_status,
@@ -360,9 +359,10 @@ c.id AS classification_id, c.fw_related, c.complexity_level_id,
              c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
              c.review_reason, c.assist_blocked_reason,
              cl.code AS complexity_code, cl.name AS complexity_name,
+             g.serial_number, mm.model_code AS machine_model_code,
              (COALESCE(ie.total_hours, 0) - COALESCE(ie.verification_mh, 0)) AS estimated_hours,
              ie.verification_mh, ie.total_hours AS estimation_total_hours,
-             kbs.title AS assist_kb_title, kbs.description AS assist_kb_context,
+             kbs.title AS assist_kb_title,
              clp.code AS assist_complexity_code,
              CASE
                WHEN c.status = 'CODER_REVIEW' AND c.assist_complexity_level_id IS NOT NULL AND ie.id IS NULL
@@ -370,6 +370,8 @@ c.id AS classification_id, c.fw_related, c.complexity_level_id,
                ELSE NULL
              END AS provisional_hours
      FROM work_order_items woi
+     LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
+     LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
      LEFT JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
@@ -401,21 +403,20 @@ const findItemWithWorkOrder = async (id) => {
   return result.rows[0] || null;
 };
 
-const createItem = async ({ work_order_id, work_order_group_id, item_number, title, description, quantity, documentation_readiness }) => {
+const createItem = async ({ work_order_id, work_order_group_id, item_number, title, quantity, documentation_readiness }) => {
   const result = await pool.query(
-    `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, description, quantity, documentation_readiness)
+    `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, quantity, documentation_readiness)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [work_order_id, work_order_group_id, item_number, title, description || null, quantity || 1, documentation_readiness || null]
+    [work_order_id, work_order_group_id, item_number, title, quantity || 1, documentation_readiness || null]
   );
   return result.rows[0];
 };
 
-const updateItem = async (id, { title, description, quantity, documentation_readiness }) => {
+const updateItem = async (id, { title, quantity, documentation_readiness }) => {
   const result = await pool.query(
     `UPDATE work_order_items
      SET title = COALESCE($2, title),
-         description = COALESCE($3, description),
          quantity = COALESCE($4, quantity),
          documentation_readiness = COALESCE($5, documentation_readiness),
          updated_at = NOW()

@@ -27,7 +27,12 @@ export default function WorkOrderCreate() {
           
           <div className="form-row">
             <label style={{ marginBottom: 4 }}>Model Code</label>
-            <input className="wo-input-text sn-input" name="model" value={form.model} onChange={handleChange} placeholder="e.g. FWX-100" required />
+            <input className="wo-input-text sn-input" name="model" value={form.model} onChange={handleChange} placeholder="e.g. FWX-100" required readOnly={isEditMode} />
+            {isEditMode && (
+              <small className="form-help" style={{color: '#6b7280', opacity: 0.7, fontWeight: 500}}>
+                Managed on the Work Order page.
+              </small>
+            )}
           </div>
           <div className="form-row">
             <label style={{ marginBottom: 4 }}>Serial Number(s)</label>
@@ -37,16 +42,15 @@ export default function WorkOrderCreate() {
               value={form.serial_numbers || ''}
               onChange={handleChange}
               placeholder="e.g. SN001, SN002, SN003"
+              required
+              readOnly={isEditMode}
             />
-            <small className="form-help">
-              Enter multiple serial numbers separated by commas.
+            <small className="form-help" style={{color: '#6b7280', opacity: 0.7, fontWeight: 500}}>
+              {isEditMode
+                ? 'Managed on the Work Order page: add, edit or remove serial numbers individually.'
+                : 'Enter multiple serial numbers separated by commas.'}
             </small>
           </div>
-
-          {/* <div className="form-row">
-            <label>Customization Items</label>
-            <textarea className="wo-input-text" name="description" value={form.description} onChange={handleChange} />
-          </div> */}
 
           <div className="form-row">
             <label htmlFor="itemsText">Customization Items</label>
@@ -58,9 +62,12 @@ export default function WorkOrderCreate() {
               onChange={handleChange}
               placeholder="Item one, Item two, Item three"
               rows={4}
+              readOnly={isEditMode}
             />
-            <small className="form-help">
-              Separate items with commas. Remove an item by deleting its text.
+            <small className="form-help" style={{color: '#6b7280', opacity: 0.7, fontWeight: 500}}>
+              {isEditMode
+                ? 'Managed on the Work Order page: add, edit or remove custom items individually.'
+                : 'Separate items with commas.'}
             </small>
           </div>
           <div className="form-row">

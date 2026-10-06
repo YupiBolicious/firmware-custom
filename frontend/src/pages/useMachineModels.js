@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 
-const emptyModel = { model_code: '', name: '', description: '' };
-const emptyVersion = { version_code: '', description: '' };
+const emptyModel = { model_code: '', name: '' };
 
 export default function useMachineModels() {
   const [models, setModels] = useState([]);
@@ -82,7 +81,7 @@ export default function useMachineModels() {
 
   const handleEditModel = useCallback((model) => {
     setEditingModelId(model.id);
-    setModelForm({ model_code: model.model_code, name: model.name, description: model.description || '' });
+    setModelForm({ model_code: model.model_code, name: model.name});
   }, []);
 
   const handleCancelEditModel = useCallback(() => {
@@ -122,7 +121,7 @@ export default function useMachineModels() {
 
   const handleEditVersion = useCallback((version) => {
     setEditingVersionId(version.id);
-    setVersionForm({ version_code: version.version_code, description: version.description || '' });
+    setVersionForm({ version_code: version.version_code });
   }, []);
 
   const handleCancelEditVersion = useCallback(() => {

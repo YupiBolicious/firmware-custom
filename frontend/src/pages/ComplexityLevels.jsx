@@ -35,9 +35,6 @@ export default function ComplexityLevels() {
   return (
     <div className="glass-page">
       <h1>Complexity Levels</h1>
-      {/* <div className="text-muted mb-16">
-        Fixed estimation hours
-      </div> */}
       
 
       {isAdmin && (
@@ -59,10 +56,6 @@ export default function ComplexityLevels() {
                   <label>Name</label>
                   <input className="wo-input-text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
                 </div>
-              </div>
-              <div className="form-row">
-                <label>Description</label>
-                <input className="wo-input-text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
               <div className="form-grid">
                 {hourFields.map((f) => (
@@ -99,7 +92,6 @@ export default function ComplexityLevels() {
               <tr>
                 <th>Code</th>
                 <th>Name</th>
-                <th>Description</th>
                 <th>Req. Review</th>
                 <th>Code Dev</th>
                 <th>Peer Review</th>
@@ -115,7 +107,6 @@ export default function ComplexityLevels() {
                 <tr key={l.id} className={l.is_active ? '' : 'row-inactive'}>
                   <td><strong>{l.code}</strong></td>
                   <td>{l.name}</td>
-                  <td className="text-muted">{l.description || '-'}</td>
                   <td>{l.requirement_review_h}</td>
                   <td>{l.code_development_h}</td>
                   <td>{l.peer_review_fixing_h}</td>

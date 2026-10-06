@@ -11,7 +11,7 @@ const pool = new Pool({
 
 (async () => {
   const r = await pool.query(
-    `SELECT woi.id, woi.item_number, woi.title, woi.description,
+    `SELECT woi.id, woi.item_number, woi.title, woi.description
             c.fw_related, cl.code AS cx
      FROM classifications c
      JOIN work_order_items woi ON woi.id = c.work_order_item_id

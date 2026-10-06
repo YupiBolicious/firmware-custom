@@ -26,11 +26,11 @@ export default function WOModelSerial({
         {canEdit && (
           <div className="item-actions">
             <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || (wo.status !== 'DRAFT' && wo.status !== 'ANALYZED')}>
-              {analyzing ? 'Analyzing...' : 'Estimate Work Order'}
+              {analyzing ? 'Analyzing...' : 'Estimate'}
             </button>
             {groupsEditable && groups.length > 0 && (
               <button className="btn btn-secondary" type="button" onClick={openAddGroup}>
-                + Add Serial Number
+                + Add New
               </button>
             )}
           </div>
@@ -74,7 +74,7 @@ export default function WOModelSerial({
           <form onSubmit={handleSubmitGroup}>
             <div className="form-grid">
               <div className="form-row">
-                <label>Machine Model</label>
+                <label>Model Code</label>
                 <input
                   className="wo-input-text sn-input"
                   name="machine_model_id"
@@ -98,6 +98,7 @@ export default function WOModelSerial({
           </form>
         </div>
       )}
-    </div>
+
+      </div>
   );
 }

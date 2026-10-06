@@ -15,12 +15,12 @@ const pool = new Pool({
 
 (async () => {
   const kb = (await pool.query(
-    `SELECT kb_code, title, description, keywords, fw_related, complexity_level_id,
+    `SELECT kb_code, title, keywords, fw_related, complexity_level_id,
             machine_model_id, machine_model_version_id
      FROM kb_items WHERE is_active = TRUE`
   )).rows;
   const items = (await pool.query(
-    `SELECT woi.id, woi.item_number, woi.title, woi.description,
+    `SELECT woi.id, woi.item_number, woi.title,
             g.machine_model_id, g.machine_model_version_id, g.serial_number,
             mm.model_code, mmv.version_code,
             c.fw_related AS true_fw, c.complexity_level_id AS true_cx
@@ -35,17 +35,17 @@ const pool = new Pool({
   const overruled = new Set([67, 69, 66]);
   let unexpected = 0;
   for (const it of items) {
-    const soupOld = legacy.tokenize(`${it.title} ${it.description || ''} ${it.model_code || ''} ${it.version_code || ''} ${it.serial_number || ''}`);
+    const soupOld = legacy.tokenize(`${it.title} ${it.model_code || ''} ${it.version_code || ''} ${it.serial_number || ''}`);
     let oldBest = { score: -1, kb: null };
     for (const k of kb) {
-      const s = jaccard(soupOld, legacy.tokenize(`${k.title} ${k.description || ''} ${k.keywords || ''}`));
+      const s = jaccard(soupOld, legacy.tokenize(`${k.title} ${k.keywords || ''}`));
       if (s > oldBest.score) oldBest = { score: s, kb: k };
     }
-    const newText = `${it.title} ${it.description || ''}`;
+    const newText = `${it.title}`;
     const ctx = { machine_model_id: it.machine_model_id, machine_model_version_id: it.machine_model_version_id };
     let newBest = { score: -1, kb: null, bonus: 0 };
     for (const k of kb) {
-      const r = scorePair(it.title, it.description, k, ctx);
+      const r = scorePair(it.title, k, ctx);
       if (r.score > newBest.score) newBest = { score: r.score, kb: k, bonus: r.bonus };
     }
     const agree = (b) => b.kb && b.kb.fw_related === it.true_fw &&

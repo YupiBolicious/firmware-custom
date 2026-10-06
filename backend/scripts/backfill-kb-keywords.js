@@ -15,14 +15,14 @@ const apply = process.argv.includes('--apply');
 
 (async () => {
   const rows = (await pool.query(
-    `SELECT id, kb_code, title, description, keywords FROM kb_items WHERE is_active = TRUE ORDER BY kb_code`
+    `SELECT id, kb_code, title, keywords FROM kb_items WHERE is_active = TRUE ORDER BY kb_code`
   )).rows;
 
   let changed = 0;
   for (const row of rows) {
     const oldWords = (row.keywords || '').split(',')
       .flatMap((s) => policy.normalize(s).split(' ').filter(Boolean));
-    const fresh = new Set(policy.buildKeywords(row.title, row.description, '').split(',').filter(Boolean));
+    const fresh = new Set(policy.buildKeywords(row.title).split(',').filter(Boolean));
     const merged = new Set([
       ...oldWords.map((t) => policy.canonicalize(t)).filter((t) => t && !policy.FUNCTIONAL.has(t) && !policy.isNoise(t)),
       ...fresh,

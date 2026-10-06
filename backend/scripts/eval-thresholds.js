@@ -19,12 +19,12 @@ const jaccard = (a, b) => {
 
 (async () => {
   const kb = (await pool.query(
-    `SELECT id, kb_code, title, description, keywords, fw_related, complexity_level_id
+    `SELECT id, kb_code, title, keywords, fw_related, complexity_level_id
      FROM kb_items WHERE is_active = TRUE`
-  )).rows.map((k) => ({ ...k, tokens: policy.tokenize(`${k.title} ${k.description || ''} ${k.keywords || ''}`) }));
+  )).rows.map((k) => ({ ...k, tokens: policy.tokenize(`${k.title} ${k.keywords || ''}`) }));
 
   const reviewed = (await pool.query(
-    `SELECT woi.id, woi.item_number, woi.title, woi.description,
+    `SELECT woi.id, woi.item_number, woi.title,
             c.fw_related AS true_fw, c.complexity_level_id AS true_cx
      FROM classifications c
      JOIN work_order_items woi ON woi.id = c.work_order_item_id
@@ -36,7 +36,7 @@ const jaccard = (a, b) => {
 
   const samples = [];
   for (const r of reviewed) {
-    const it = policy.tokenize(`${r.title} ${r.description || ''}`);
+    const it = policy.tokenize(`${r.title}`);
     let best = null; let bestScore = -1;
     for (const k of kb) {
       if (k.kb_code === `KB-CODER-${r.id}`) continue;

@@ -3,11 +3,11 @@ import { useParams } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import useWOAccess from '../hooks/work-order/useWOAccess';
-import useWOModelSerial from '../hooks/work-order/useWOModelSerial';
 import useWOAnalysis from '../hooks/work-order/useWOAnalysis';
+import useWOModelSerial from '../hooks/work-order/useWOModelSerial';
 import useWOProductionNotes from '../hooks/work-order/useWOProductionNotes';
 
-const emptyItemForm = { title: '', description: '', quantity: 1 };
+const emptyItemForm = { title: '', quantity: 1, documentation_readiness: '' };
 
 export default function useWorkOrderDetail() {
   const { id } = useParams();
@@ -75,8 +75,8 @@ export default function useWorkOrderDetail() {
       await api.post(`/work-orders/${id}/items`, {
         ...itemForm,
         title: capitalizeWords(itemForm.title),
-        description: capitalizeWords(itemForm.description),
         quantity: parseInt(itemForm.quantity, 10) || 1,
+        documentation_readiness: itemForm.documentation_readiness || null,
         });
       setItemForm(emptyItemForm);      
       setAnalysis(null);
@@ -93,8 +93,8 @@ export default function useWorkOrderDetail() {
     setEditingItemId(item.id);
     setItemForm({
       title: item.title,
-      description: item.description || '',
       quantity: item.quantity,
+      documentation_readiness: item.documentation_readiness || '',
     });
   };
 
@@ -104,8 +104,8 @@ export default function useWorkOrderDetail() {
     try {
       await api.put(`/work-orders/items/${editingItemId}`, {
         title: capitalizeWords(itemForm.title),
-        description: capitalizeWords(itemForm.description),
         quantity: parseInt(itemForm.quantity, 10) || 1,
+        documentation_readiness: itemForm.documentation_readiness || null,
       });
       setEditingItemId(null);
       setItemForm(emptyItemForm);
@@ -198,7 +198,6 @@ export default function useWorkOrderDetail() {
     startingProduction,
     completing,
     savingTaskId,
-    analysis,
     message,
     itemForm,
     editingItemId,

@@ -15,7 +15,7 @@ const RULES = {
   const prepared = await kbCache.getPreparedKb();
   const titleOf = (code) => {
     const r = prepared.rows.find((x) => x.kb_code === code);
-    return r ? `${r.title} ${r.description || ''}` : '';
+    return r ? `${r.title}` : '';
   };
   const { Pool } = require('pg');
   require('dotenv').config();
@@ -82,7 +82,7 @@ const RULES = {
     // Safety control: the 9 engaged business cases (expected: no level) must stay blocked.
     let controlWrong = 0;
     for (const c of engaged) {
-      const ev = await evaluate(c.title, c.description, null, null);
+      const ev = await evaluate(c.title, null, null);
       const out = applyRule(ev, rule);
       if (out === 'SUGGEST') { controlWrong++; }
     }

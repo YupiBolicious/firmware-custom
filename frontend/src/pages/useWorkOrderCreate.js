@@ -35,7 +35,6 @@ export default function useWorkOrderCreate() {
         const workOrder = response.data.data;
         setForm({
           wo_number: workOrder.wo_number,
-          // description: workOrder.description || '',
           itemsText: (workOrder.items || [])
             .map((item) => item.title)
             .filter(Boolean)
@@ -85,17 +84,9 @@ export default function useWorkOrderCreate() {
         quantity: 1,
     }));
     
-    // const items = form.items
-    // .filter((item) => item.title.trim())
-    // .map((item) => ({
-    //   title: capitalizeWords(item.title),
-    //   description: capitalizeWords(item.description),
-    //   quantity: parseInt(item.quantity, 10) || 1,
-    // }));
 
     const formattedForm = {
       wo_number: form.wo_number.trim().toUpperCase(),
-      // description: capitalizeWords(form.description),
       customer: form.customer?.trim()
         ? capitalizeWords(form.customer)
         : '',

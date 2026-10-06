@@ -29,7 +29,7 @@ const semanticAssist = require('../src/services/semanticAssist');
     const p = c.prediction;
     if (!p || p.status !== 'CODER_REVIEW') continue;
     engaged++;
-    const item = { title: c.title, description: c.description || '', quantity: 1,
+    const item = { title: c.title || '', quantity: 1,
       machine_model_id: 1, machine_model_version_id: 1 };
     const weak = { status: p.status, classification_method: p.method, match_score: p.match_score };
     const assist = await semanticAssist.assistWithSemantic(item, weak);

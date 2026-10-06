@@ -10,9 +10,10 @@ export default function WorkOrderDetail() {
   const { hasRole } = useAuth();
   const isCoder = hasRole('CODER');
   const { 
-    wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, analysis, message, 
+    wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message, 
     handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
     showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
+    itemForm, editingItemId,
     handleStartProduction, handleCompleteProduction, handleCompleteTask,
     groupForm, editingGroupId, showAddGroup, woModelCode, handleGroupFormChange, openAddGroup, openEditGroup,
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
@@ -40,6 +41,7 @@ export default function WorkOrderDetail() {
 
   const groups = wo.groups || [];
   const groupsEditable = wo.status === 'DRAFT' || wo.status === 'ANALYZED';
+  const itemsEditable = groupsEditable;
   const staleVerdicts = wo.status === 'DRAFT' && items.some((i) => i.verdict_stale === true);
 
   return (
@@ -89,7 +91,23 @@ export default function WorkOrderDetail() {
         cancelGroupForm={cancelGroupForm}
       />
 
-      <WOEstimationPreview analysis={analysis} />
+      <WOEstimationPreview
+        items={items}
+        totalEstimatedHours={wo.total_estimated_hours}
+        groups={groups}
+        canEdit={canEdit}
+        itemsEditable={itemsEditable}
+        showAddItemForm={showAddItemForm}
+        openAddItem={openAddItem}
+        handleAddItem={handleAddItem}
+        itemForm={itemForm}
+        handleItemChange={handleItemChange}
+        editingItemId={editingItemId}
+        handleEditItem={handleEditItem}
+        handleUpdateItem={handleUpdateItem}
+        cancelEdit={cancelEdit}
+        handleDeleteItem={handleDeleteItem}
+      />
 
       <WOProductionNotes 
         wo={wo}
