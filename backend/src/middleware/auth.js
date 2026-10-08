@@ -25,7 +25,7 @@ const authenticate = async (req, res, next) => {
     if (!user.is_active) {
       return next(new ApiError(403, 'Account is deactivated'));
     }
-    req.user = { id: user.id, email: user.email, full_name: user.full_name, roles: user.roles };
+    req.user = { id: user.id, username: user.username, email: user.email, full_name: user.full_name, roles: user.roles };
     next();
   } catch (err) {
     next(err);

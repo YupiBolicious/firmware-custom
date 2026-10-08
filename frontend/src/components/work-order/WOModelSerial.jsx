@@ -36,38 +36,7 @@ export default function WOModelSerial({
           </div>
         )}
       </div>
-
-      {groups.length === 0 ? (
-        <div className="text-muted">
-          No Model yet. Use Edit on this work order to set the model and its serial numbers.
-        </div>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Model Code</th>
-              <th>Serial Number</th>
-              {canEdit && <th>Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {groups.map((group) => (
-              <tr key={group.id}>
-                <td>{group.machine_model_code || '—'}</td>
-                <td>{group.serial_number || '—'}</td>
-                {canEdit && (
-                  <td>
-                    <button className="icon-btn" onClick={() => openEditGroup(group)} disabled={!groupsEditable} title="Edit serial number" aria-label="Edit serial number"><Pencil size={16} strokeWidth={1.5} /></button>
-                    <button className="icon-btn icon-btn-danger" onClick={() => handleDeleteGroup(group.id)} disabled={!groupsEditable || group.item_count > 0} title={group.item_count > 0 ? 'Serial number still referenced by legacy items' : 'Delete serial number'} aria-label="Delete serial number"><Trash2 size={16} strokeWidth={1.5} /></button>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {/* Add / Edit Serial Number */}
+{/* Add / Edit Serial Number */}
       {canEdit && showAddGroup && (
         <div className="glass-card" style={{ marginTop: 12 }}>
           <h3>{editingGroupId ? 'Edit Serial Number' : 'Add Serial Number'}</h3>
@@ -98,7 +67,35 @@ export default function WOModelSerial({
           </form>
         </div>
       )}
-
-      </div>
+      {groups.length === 0 ? (
+        <div className="text-muted">
+          No Model yet. Use Edit on this work order to set the model and its serial numbers.
+        </div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Model Code</th>
+              <th>Serial Number</th>
+              {canEdit && <th>Actions</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map((group) => (
+              <tr key={group.id}>
+                <td>{group.machine_model_code || '—'}</td>
+                <td>{group.serial_number || '—'}</td>
+                {canEdit && (
+                  <td>
+                    <button className="icon-btn" onClick={() => openEditGroup(group)} disabled={!groupsEditable} title="Edit serial number" aria-label="Edit serial number"><Pencil size={16} strokeWidth={1.5} /></button>
+                    <button className="icon-btn icon-btn-danger" onClick={() => handleDeleteGroup(group.id)} disabled={!groupsEditable || group.item_count > 0} title={group.item_count > 0 ? 'Serial number still referenced by legacy items' : 'Delete serial number'} aria-label="Delete serial number"><Trash2 size={16} strokeWidth={1.5} /></button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 }

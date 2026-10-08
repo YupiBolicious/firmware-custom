@@ -35,24 +35,19 @@ const NAV_ITEMS = [
     roles: ['ADMIN'],
     icon: <BarChart3 size={16} strokeWidth={1.5} />,
   },
-  {
-    to: '/machine-models',
-    label: 'Machine Models',
-    roles: ['ADMIN'],
-    icon: <Settings size={16} strokeWidth={1.5} />,
-  },
+  
   {
     to: '/users',
     label: 'Users',
     roles: ['ADMIN'],
     icon: <Users size={16} strokeWidth={1.5} />,
   },
-  {
-    to: '/knowledge-base',
-    label: 'Knowledge Base',
-    roles: ['ADMIN'],
-    icon: <BookOpen size={16} strokeWidth={1.5} />,
-  },
+  // {
+  //   to: '/knowledge-base',
+  //   label: 'Knowledge Base',
+  //   roles: ['ADMIN'],
+  //   icon: <BookOpen size={16} strokeWidth={1.5} />,
+  // },
   {
     to: '/audit-log',
     label: 'Audit Log',

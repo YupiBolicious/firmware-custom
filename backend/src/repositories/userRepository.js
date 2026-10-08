@@ -89,16 +89,17 @@ const create = async ({ username, email, password_hash, full_name }) => {
   return result.rows[0];
 };
 
-const update = async (id, { username, full_name, is_active }) => {
+const update = async (id, { username, email, full_name, is_active }) => {
   const result = await pool.query(
     `UPDATE users
      SET username = COALESCE($2, username),
-         full_name = COALESCE($3, full_name),
-         is_active = COALESCE($4, is_active),
+         email = COALESCE($3, email),
+         full_name = COALESCE($4, full_name),
+         is_active = COALESCE($5, is_active),
          updated_at = NOW()
      WHERE id = $1
      RETURNING id`,
-    [id, username, full_name, is_active]
+    [id, username, email, full_name, is_active]
   );
   return result.rows[0] || null;
 };

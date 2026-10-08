@@ -67,7 +67,7 @@ export default function WOProductionNotes({
 
       {(wo.status === 'PRODUCTION' || wo.status === 'COMPLETED') && (
         <div className="panel table-scroll">
-          <h3 className="mb-16">Notes</h3>
+          <h3 className="mb-16">Notes (Optional)</h3>
           {isCoder ? (
             editing ? (
               <>

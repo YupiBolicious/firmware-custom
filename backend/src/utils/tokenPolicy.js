@@ -121,6 +121,7 @@ const isCodeToken = (raw) => {
   if (!raw || raw.length < 2) return false;
   if (/^\d{1,3}$/.test(raw)) return false;
   if (/^\d+$/.test(raw)) return false;
+  if (/^\d+x$/i.test(raw)) return false;
   const t = raw.toLowerCase();
   if (/[a-z]\d|\d[a-z]/i.test(t)) return true;
   if (/[-./]/.test(t) && /[a-z0-9].*[a-z0-9]/i.test(t)) return true;

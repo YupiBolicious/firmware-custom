@@ -22,16 +22,13 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function CoderDashboard() {
   const {
-    data, error, loading, formatAction,
+    data, error, loading,
     filters, showAdvanced, setShowAdvanced, setFilter, clearFilters,
     filteredReviewQueue, filteredWorkQueue, filteredKpis, filteredWorkload, filteredTrend,
     matchingCount, totalCount, hasActiveFilters,
     uniqueComplexities,
-    coderActivity, newWorkOrders,
-    activityPage, setActivityPage, newWoPage, setNewWoPage,
     workOrderQueue, workOrderQueueTotal, workOrderQueueTotalPages,
     workOrderPage, setWorkOrderPage,
-    coderActivityTotalPages, newWorkOrdersTotalPages,
     CLASSIFICATION_STATUS_LABELS,
   } = useCoderDashboard();
   useValueToast(error);
@@ -139,7 +136,6 @@ export default function CoderDashboard() {
               <thead>
                 <tr>
                   <th>Work Order</th>
-                  <th>Title</th>
                   <th>Customer</th>
                   <th>Status</th>
                   <th>Open Items</th>
@@ -151,7 +147,6 @@ export default function CoderDashboard() {
                 {workOrderQueue.map((w) => (
                   <tr key={w.id}>
                     <td><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
-                    <td>{w.title || '-'}</td>
                     <td className="text-muted">{w.customer || '-'}</td>
                     <td><StatusBadge status={w.status} /></td>
                     <td>
@@ -251,7 +246,7 @@ export default function CoderDashboard() {
 
       {/* 6. Workload Trend */}
       <div className="panel mb-16">
-        <h3 className="mb-16">Workload Trend (8 Weeks)</h3>
+        <h3 className="mb-16">Workload Trend (90 Days)</h3>
         {filteredTrend.length === 0 ? (
           <div className="text-muted">No trend data available.</div>
         ) : (
@@ -289,116 +284,6 @@ export default function CoderDashboard() {
         )}
       </div>
 
-      {/* 7. Recent Activity & New Work Orders — side by side */}
-      <div className="split-2">
-        <div className="panel panel-accent-amber">
-          <h3 className="mb-16">Recent Activity</h3>
-          {coderActivity.length === 0 ? (
-            <div className="text-muted">No recent coder activity.</div>
-          ) : (
-            <>
-              <div className="table-scroll table-scroll--fit">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Action</th>
-                    <th>User</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {coderActivity.map((a) => (
-                    <tr key={a.id}>
-                      <td>{formatAction(a.action, a.details)}</td>
-                      <td>{a.user_name}</td>
-                      <td className="text-muted"><RelativeTime date={a.created_at} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-              {coderActivityTotalPages > 1 && (
-                <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
-                  <span className="text-muted" style={{ fontSize: 13 }}>
-                    Page {activityPage} of {coderActivityTotalPages}
-                  </span>
-                  <div className="flex gap-8">
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setActivityPage(activityPage - 1)}
-                      disabled={activityPage <= 1}
-                    >
-                      Prev
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setActivityPage(activityPage + 1)}
-                      disabled={activityPage >= coderActivityTotalPages}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="panel panel-accent-green">
-          <h3 className="mb-16">New Work Orders</h3>
-          {newWorkOrders.length === 0 ? (
-            <div className="text-muted">No new work orders.</div>
-          ) : (
-            <>
-              <div className="table-scroll table-scroll--fit">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Work Order</th>
-                    <th>Title</th>
-                    <th>Created By</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {newWorkOrders.map((wo) => (
-                    <tr key={wo.id}>
-                      <td><strong>{wo.details?.wo_number || '-'}</strong></td>
-                      <td>{wo.details?.title || '-'}</td>
-                      <td>{wo.user_name}</td>
-                      <td className="text-muted"><RelativeTime date={wo.created_at} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-              {newWorkOrdersTotalPages > 1 && (
-                <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
-                  <span className="text-muted" style={{ fontSize: 13 }}>
-                    Page {newWoPage} of {newWorkOrdersTotalPages}
-                  </span>
-                  <div className="flex gap-8">
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setNewWoPage(newWoPage - 1)}
-                      disabled={newWoPage <= 1}
-                    >
-                      Prev
-                    </button>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setNewWoPage(newWoPage + 1)}
-                      disabled={newWoPage >= newWorkOrdersTotalPages}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
     </div>
   );
 

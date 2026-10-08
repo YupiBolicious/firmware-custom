@@ -73,4 +73,15 @@ const validatePasswordReset = (body) => {
   if (errors.length) fail(errors);
 };
 
-module.exports = { validateUserCreate, validateUserUpdate, validatePasswordReset, VALID_ROLES };
+const validateProfile = (body) => {
+  const errors = [];
+  if (!validateEmail(body.email)) {
+    errors.push('A valid email is required');
+  }
+  if (!body.full_name || String(body.full_name).trim() === '') {
+    errors.push('Full name is required');
+  }
+  if (errors.length) fail(errors);
+};
+
+module.exports = { validateUserCreate, validateUserUpdate, validatePasswordReset, validateProfile, VALID_ROLES };

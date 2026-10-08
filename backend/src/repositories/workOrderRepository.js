@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+﻿const pool = require('../config/db');
 
 //work orders
 const findAll = async ({ page = 1, limit = 15 } = {}) => {
@@ -12,10 +12,9 @@ const findAll = async ({ page = 1, limit = 15 } = {}) => {
             COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0) AS total_estimated_hours,
             (SELECT string_agg(g.label, '; ')
              FROM (
-               SELECT DISTINCT CONCAT_WS(' ', mm.model_code, mmv.version_code, NULLIF(g.serial_number, '')) AS label
+               SELECT DISTINCT CONCAT_WS(' ', mm.model_code) AS label
                FROM work_order_groups g
                LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
-               LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
                WHERE g.work_order_id = wo.id
              ) g
             ) AS group_summary,
@@ -61,7 +60,7 @@ const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title,
             woi.description, wo.wo_number, wo.title AS work_order_title,
-            mm.model_code AS machine_model_code, mmv.version_code AS machine_model_version,
+            mm.model_code AS machine_model_code,
             g.serial_number,
             c.classification_reason, c.status, c.created_at,
             c.assist_kb_id, c.assist_kb_code, c.assist_match_score, c.assist_semantic_margin,
@@ -74,7 +73,6 @@ const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
      LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
      JOIN work_orders wo ON wo.id = woi.work_order_id
      LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
-     LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
      JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN kb_items kb_s ON kb_s.id = c.assist_kb_id
      WHERE c.status = 'CODER_REVIEW'
@@ -155,7 +153,7 @@ const finalizeWithProductionTasks = async (workOrderId) => {
 
     const taskResult = await client.query(
       `INSERT INTO production_tasks
-         (task_code, work_order_id, work_order_item_id, title)
+         (task_code, work_order_id, work_order_item_id, title, description)
        SELECT wo.wo_number || '-' || woi.id AS task_code,
               wo.id,
               woi.id,
@@ -168,8 +166,9 @@ const finalizeWithProductionTasks = async (workOrderId) => {
        ON CONFLICT (work_order_item_id)
        DO UPDATE SET
          title = EXCLUDED.title,
+         description = excluded.description,
          updated_at = NOW()
-       RETURNING id, task_code, work_order_id, work_order_item_id, title, completed,
+       RETURNING id, task_code, work_order_id, work_order_item_id, title, description, completed,
                  created_at, updated_at`,
       [workOrderId]
     );
@@ -191,7 +190,7 @@ const createWithGroups = async ({ wo_number, customer, created_by, groups, items
 
     const woResult = await client.query(
       `INSERT INTO work_orders (wo_number, customer, created_by)
-       VALUES ($1, $2, $3, $4)
+       VALUES ($1, $2, $3)
        RETURNING *`,
       [wo_number, customer, created_by]
     );
@@ -221,10 +220,10 @@ const createWithGroups = async ({ wo_number, customer, created_by, groups, items
       }
       usedNumbers.push(item_number);
       const itemResult = await client.query(
-        `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, quantity, documentation_readiness)
-         VALUES ($1, NULL, $2, $3, $4, $5, $6)
+        `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, description, quantity)
+         VALUES ($1, NULL, $2, $3, $4, $5)
          RETURNING *`,
-        [wo.id, item_number, item.title, item.quantity || 1]
+        [wo.id, item_number, item.title, item.description ?? null, item.quantity || 1]
       );
       createdItems.push(itemResult.rows[0]);
     }
@@ -243,32 +242,30 @@ const createWithGroups = async ({ wo_number, customer, created_by, groups, items
   }
 };
 
-const update = async (id, { customer, status, notes }) => {
+const update = async (id, { title, description, customer, status, notes }) => {
   const result = await pool.query(
     `UPDATE work_orders
-     SET description = COALESCE($2, description),
-         customer = COALESCE($3, customer),
-         status = COALESCE($4, status),
-         notes = COALESCE($5, notes),
+     SET title = COALESCE($2, title),
+         description = COALESCE($3, description),
+         customer = COALESCE($4, customer),
+         status = COALESCE($5, status),
+         notes = COALESCE($6, notes),
          updated_at = NOW()
      WHERE id = $1
      RETURNING *`,
-    [id, description, customer, status, notes]
+    [id, title, description, customer, status, notes]
   );
   return result.rows[0] || null;
 };
-
 // ---------- Work Order Groups ----------
 const findGroupsByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
-    `SELECT g.id, g.work_order_id, g.machine_model_id, g.machine_model_version_id,
+    `SELECT g.id, g.work_order_id, g.machine_model_id,
             g.serial_number, g.created_at, g.updated_at,
             mm.model_code AS machine_model_code, mm.name AS machine_model_name,
-            mmv.version_code AS machine_model_version,
             (SELECT COUNT(*)::int FROM work_order_items woi WHERE woi.work_order_group_id = g.id) AS item_count
      FROM work_order_groups g
      LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
-     LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
      WHERE g.work_order_id = $1
      ORDER BY g.id`,
     [workOrderId]
@@ -413,10 +410,11 @@ const createItem = async ({ work_order_id, work_order_group_id, item_number, tit
   return result.rows[0];
 };
 
-const updateItem = async (id, { title, quantity, documentation_readiness }) => {
+const updateItem = async (id, { title, description, quantity, documentation_readiness }) => {
   const result = await pool.query(
     `UPDATE work_order_items
      SET title = COALESCE($2, title),
+         description = COALESCE($3, description),
          quantity = COALESCE($4, quantity),
          documentation_readiness = COALESCE($5, documentation_readiness),
          updated_at = NOW()

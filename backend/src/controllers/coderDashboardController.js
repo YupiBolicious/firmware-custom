@@ -12,9 +12,6 @@ const getCoderDashboard = async (req, res, next) => {
     assertOptionalDate('date_from', dateFrom);
     assertOptionalDate('date_to', dateTo);
     const data = await coderDashboardService.getCoderDashboard(req.user.id, {
-      activityPage: toInt(req.query.activity_page, 1),
-      newWoPage: toInt(req.query.new_wo_page, 1),
-      limit: Math.min(toInt(req.query.limit, 15), 100),
       workOrderPage: toInt(req.query.work_order_page, 1),
       workOrderSearch: typeof req.query.work_order_search === 'string' ? req.query.work_order_search.trim() : '',
       workOrderStatus: typeof req.query.work_order_status === 'string' && req.query.work_order_status ? req.query.work_order_status : 'ALL',

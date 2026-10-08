@@ -1,4 +1,5 @@
 const workOrderService = require('../services/workOrderService');
+const workOrderUploadService = require('../services/workOrderUploadService');
 const { ApiError } = require('../middleware/errorHandler');
 
 const list = async (req, res, next) => {
@@ -232,57 +233,97 @@ const completeProductionTask = async (req, res, next) => {
   }
 };
 
-/* FILE UPLOAD FUNC ON CODER SIDE */
-//   const uploadDocuments = async (req, res, next) => {
-//   try {
-//     if (!req.files || req.files.length === 0) {
-//       return next(new ApiError(400, 'No files uploaded'));
-//     }
-//     const data = await workOrderService.uploadDocuments(req.params.id, req.files, {
-//       user_id: req.user.id,
-//       description: req.body.description,
-//       ip_address: req.ip,
-//     });
-//     res.status(201).json({ success: true, message: 'Documents uploaded', data });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+const previewWorkOrder = async (req, res, next) => {
+  try {
+    if (!req.file) throw new ApiError(400, 'No file uploaded');
 
-// const listDocuments = async (req, res, next) => {
-//   try {
-//     const data = await workOrderService.listDocuments(req.params.id);
-//     res.json({ success: true, message: 'Documents retrieved', data });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+    // 1. Parse PDF only — nothing is written until the user confirms the preview.
+    const fields = await workOrderUploadService.parseWorkOrderPdf(req.file.buffer);
 
-// const deleteDocument = async (req, res, next) => {
-//   try {
-//     const data = await workOrderService.deleteDocument(req.params.docId, {
-//       user_id: req.user.id,
-//       ip_address: req.ip,
-//     });
-//     res.json({ success: true, message: 'Document deleted', data });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+    if (!fields.wo_number) {
+      throw new ApiError(422, 'Could not extract required fields', ['wo_number']);
+    }
 
-// const downloadDocument = async (req, res, next) => {
-//   try {
-//     const documentRepository = require('../repositories/documentRepository');
-//     const doc = await documentRepository.findById(req.params.docId);
-//     if (!doc) return next(new ApiError(404, 'Document not found'));
-//     const filePath = require('path').join(__dirname, '..', '..', 'uploads', doc.filename);
-//     const fs = require('fs');
-//     if (!fs.existsSync(filePath)) return next(new ApiError(404, 'File not found on disk'));
-//     res.download(filePath, doc.original_name);
-//   } catch (err) {
-//     next(err);
-//   }
-// };
+    // 2. Evaluasi Warnings
+    const warnings = [];
+    if (!fields.customer) warnings.push('customer');
+    if (!fields.model_code) warnings.push('model_code');
+    if (!fields.serial_numbers.length) warnings.push('serial_numbers');
+
+    return res.json({
+      success: true,
+      message: 'PDF parsed for preview',
+      extracted: fields,
+      warnings,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const confirmUploadWorkOrder = async (req, res, next) => {
+  try {
+    const {
+      wo_number,
+      customer,
+      model_code,
+      serial_numbers = [],
+      customize_with = [],
+    } = req.body || {};
+
+    if (!wo_number || typeof wo_number !== 'string' || !wo_number.trim()) {
+      throw new ApiError(422, 'Work order number is required to import', ['wo_number']);
+    }
+
+    // Evaluasi Warnings
+    const warnings = [];
+    if (!customer) warnings.push('customer');
+    if (!model_code) warnings.push('model_code');
+    if (!serial_numbers || serial_numbers.length === 0) warnings.push('serial_numbers');
+
+    // Mapping Groups (Model & Serial Numbers)
+    const groups = model_code
+      ? (serial_numbers && serial_numbers.length
+        ? serial_numbers.map((sn) => ({
+            machine_model_id: model_code,
+            serial_number: sn,
+          }))
+        : [{ machine_model_id: model_code }])
+      : [];
+
+    // Mapping Customize Items (title + quantity, defaulted to 1)
+    const items = (customize_with || []).map((item) => ({
+      title: item.title,
+      quantity: Number.isInteger(item.quantity) && item.quantity >= 1 ? item.quantity : 1,
+    }));
+
+    // Save Work Order ke Database
+    const wo = await workOrderService.createWorkOrder({
+      wo_number: wo_number.trim(),
+      customer: customer || null,
+      groups,
+      items,
+      created_by: req.user.id,
+      ip_address: req.ip,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: warnings.length ? 'Work order imported with warnings' : 'Successfully uploaded work order',
+      data: wo,
+      warnings,
+      extracted: {
+        wo_number: wo.wo_number,
+        model_code,
+        serial_numbers,
+        customize_with: items,
+        customer,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 const listAccess = async (req, res, next) => {
   try {
@@ -330,6 +371,8 @@ module.exports = {
   reviewItem,
   getById,
   create,
+  previewWorkOrder,
+  confirmUploadWorkOrder,
   update,
   updateNotes,
   addGroup,
@@ -343,10 +386,6 @@ module.exports = {
   startProduction,
   completeProduction,
   completeProductionTask,
-  // uploadDocuments,
-  // listDocuments,
-  // deleteDocument,
-  // downloadDocument,
   listAccess,
   grantAccess,
   revokeAccess,

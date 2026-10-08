@@ -29,4 +29,17 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { login, me, changePassword };
+const updateProfile = async (req, res, next) => {
+  try {
+    const data = await authService.updateProfile({
+      userId: req.user.id,
+      body: req.body,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Profile updated', data: { user: data } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { login, me, changePassword, updateProfile };

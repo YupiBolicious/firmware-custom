@@ -1,12 +1,14 @@
-import { useValueToast } from '../components/Toast';
-import { useEffect, useState } from 'react';
+import { useValueToast, useToast } from '../components/Toast';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
+import UploadPreviewModal from '../components/work-order/UploadPreviewModal';
 
 export default function WorkOrderList() {
   const { hasRole } = useAuth();
+  const { toast } = useToast();
   const [workOrders, setWorkOrders] = useState([]);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState('');
@@ -15,24 +17,29 @@ export default function WorkOrderList() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [totalPages, setTotalPages] = useState(1);
+  const fileInputRef = useRef(null);
+  const [preview, setPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState('');
+
+  const loadWorkOrders = useCallback(async () => {
+    try {
+      const res = await api.get('/work-orders', { params: { page } });
+      setWorkOrders(res.data.data.items);
+      setTotal(res.data.data.total);
+      setPageSize(res.data.data.limit);
+      setTotalPages(res.data.data.totalPages);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load work orders');
+    } finally {
+      setLoading(false);
+    }
+  }, [page]);
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        // server rendered
-        const res = await api.get('/work-orders', { params: { page } });
-        setWorkOrders(res.data.data.items);
-        setTotal(res.data.data.total);
-        setPageSize(res.data.data.limit);
-        setTotalPages(res.data.data.totalPages);
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load work orders');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [page]);
+    loadWorkOrders();
+  }, [loadWorkOrders]);
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Work order list unavailable.</div>;
@@ -40,6 +47,53 @@ export default function WorkOrderList() {
   const itemCount = workOrders.length;
   const from = itemCount > 0 ? (page - 1) * pageSize + 1 : 0;
   const to = itemCount > 0 ? Math.min(page * pageSize, total) : 0;
+
+  const handleUploadClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (event) => {
+    const selectedFile = event.target.files[0];
+    if (!selectedFile) return;
+
+    if (selectedFile.type !== 'application/pdf') {
+      toast({ variant: 'destructive', description: 'Please upload a PDF file.' });
+      event.target.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    setUploading(true);
+    setConfirmError('');
+    try {
+      const res = await api.post('/work-orders/upload', formData);
+      setPreview({ extracted: res.data.extracted, warnings: res.data.warnings || [] });
+    } catch (err) {
+      toast({ variant: 'destructive', description: err.response?.data?.message || 'Failed to process PDF file' });
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleConfirmUpload = async (payload) => {
+    setConfirming(true);
+    setConfirmError('');
+    try {
+      const res = await api.post('/work-orders/upload/confirm', payload);
+      setPreview(null);
+      toast({ variant: 'success', description: `Work order ${res.data.data.wo_number} imported.` });
+      await loadWorkOrders();
+    } catch (err) {
+      setConfirmError(err.response?.data?.message || 'Failed to import work order');
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleCancelUpload = () => setPreview(null);
 
   return (
     <div className="glass-page wo-glass">
@@ -51,7 +105,17 @@ export default function WorkOrderList() {
           </h1>
         </div>
         {hasRole('PM') && (
-          <Link className="btn wo-create-btn" to="/work-orders/new">Create Work Order</Link>
+          <div className='wo-btn-group'>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="application/pdf"
+              style={{ display: 'none' }}
+            />
+            <Link className="wo-create-btn" to="/work-orders/new">Create</Link>
+            <button type="button" className="wo-create-btn" onClick={handleUploadClick} disabled={uploading}>{uploading ? 'Uploading...' : 'Upload'}</button>
+          </div>
         )}
       </div>
       {workOrders.length === 0 ? (
@@ -64,7 +128,6 @@ export default function WorkOrderList() {
               <tr>
                 <th>WO Number</th>
                 <th>Model</th>
-                <th>Title</th>
                 <th>Customer</th>
                 <th className="text-center">Status</th>
                 <th className="text-center">Items</th>
@@ -78,7 +141,6 @@ export default function WorkOrderList() {
                 <tr key={wo.id}>
                   <td className="num"><Link className="wo-link" to={`/work-orders/${wo.id}`}>{wo.wo_number}</Link></td>
                   <td className="meta"><span className="wo-model-chip">{wo.group_summary || '-'}</span></td>
-                  <td className="title-cell">{wo.title || '-'}</td>
                   <td className="meta">{wo.customer || '-'}</td>
                   <td><StatusBadge status={wo.status} /></td>
                   <td className="num text-center">{wo.item_count}</td>
@@ -100,6 +162,16 @@ export default function WorkOrderList() {
           </div>
         </div>
         </>
+      )}
+      {preview && (
+        <UploadPreviewModal
+          extracted={preview.extracted}
+          warnings={preview.warnings}
+          confirming={confirming}
+          error={confirmError}
+          onConfirm={handleConfirmUpload}
+          onCancel={handleCancelUpload}
+        />
       )}
     </div>
   );

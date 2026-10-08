@@ -5,7 +5,8 @@ import { useAuth } from '../context/AuthContext';
 const emptyForm = {
   kb_code: '',
   title: '',
-  keywords: '',
+  description:'',
+  // keywords: '',
   fw_related: true,
   complexity_level_id: '',
   confidence_score: 95,
@@ -86,7 +87,7 @@ export default function useKnowledgeBase() {
     setForm({
       kb_code: item.kb_code,
       title: item.title,
-      keywords: item.keywords || '',
+      description: item.description || '',
       fw_related: item.fw_related,
       complexity_level_id: item.complexity_level_id || '',
       confidence_score: Number(item.confidence_score),

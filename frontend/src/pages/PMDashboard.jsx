@@ -115,7 +115,6 @@ export default function PMDashboard() {
               <tr>
                 <th>WO Number</th>
                 <th>Model</th>
-                <th>Title</th>
                 <th>Customer</th>
                 <th>Items</th>
                 <th>Status</th>
@@ -129,7 +128,6 @@ export default function PMDashboard() {
                 <tr key={w.id}>
                   <td className="num"><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
                   <td className="meta text-muted">{w.group_summary || '-'}</td>
-                  <td className="title-cell">{w.title || '-'}</td>
                   <td className="meta text-muted">{w.customer || '-'}</td>
                   <td className="num">{w.item_count}</td>
                   <td><StatusBadge status={w.status} /></td>

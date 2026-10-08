@@ -1,4 +1,4 @@
-const workOrderRepository = require('../../repositories/workOrderRepository');
+﻿const workOrderRepository = require('../../repositories/workOrderRepository');
 const workOrderResetRepository = require('../../repositories/workOrderResetRepository');
 const auditService = require('../auditService');
 const notificationRepository = require('../../repositories/notificationRepository');
@@ -49,7 +49,7 @@ const createWorkOrder = async ({ wo_number, customer, created_by, groups, items,
     const targets = await resolveGroupTargets(group.machine_model_id);
     resolvedGroups.push({ ...targets, serial_number: group.serial_number });
   }
-  const wo = await workOrderRepository.createWithGroups({ wo_number, description, customer, created_by, groups: resolvedGroups, items });
+  const wo = await workOrderRepository.createWithGroups({ wo_number, customer, created_by, groups: resolvedGroups, items });
   await auditService.log({
     user_id: created_by,
     action: 'WORK_ORDER_CREATED',

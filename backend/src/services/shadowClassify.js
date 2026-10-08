@@ -48,6 +48,14 @@ const classifyWithShadow = async (item, refs, precomputedLexical) => {
 };
 
 const evaluateAssist = async (item, lexical, semantic) => {
+  try {
+    return await computeAssist(item, lexical, semantic);
+  } catch {
+    return { suggestion: null, blocked: null };
+  }
+};
+
+const computeAssist = async (item, lexical, semantic) => {
   const prepared = await kbCache.getPreparedKb();
   const resolveRow = (top) => (top ? prepared.rows.find((r) => r.kb_code === top.kbCode) || null : null);
   const { suggestion, blocked } = await evaluateAssistRule({

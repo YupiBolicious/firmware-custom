@@ -5,7 +5,7 @@ const { isRealDate } = require('../utils/validation');
 function defaultRange() {
   const to = new Date();
   const from = new Date(to);
-  from.setDate(from.getDate() - 8 * 7);
+  from.setDate(from.getDate() - 90);
   return {
     from: from.toISOString().slice(0, 10),
     to: to.toISOString().slice(0, 10),

@@ -1,23 +1,12 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import api from '../api/client';
 
-const ACTION_LABELS = {
-  ITEM_REVIEWED: 'Classification confirmed',
-  WORK_ORDER_ANALYZED: 'Work order analyzed',
-  WORK_ORDER_FINALIZED: 'Work order finalized',
-  WORK_ORDER_CREATED: 'Work order created',
-  ITEM_ADDED: 'Custom item added',
-};
-
 const CLASSIFICATION_STATUS_LABELS = {
   CLASSIFIED: 'Classified',
   NON_FIRMWARE: 'Non-Firmware',
   CODER_REVIEW: 'Coder Review',
   PENDING: 'Pending',
 };
-
-const ACTIVITY_PAGE_SIZE = 15;
-const NEW_WO_PAGE_SIZE = 15;
 
 const WORK_ORDER_STATUS_LABELS = {
   DRAFT: 'Draft',
@@ -26,14 +15,6 @@ const WORK_ORDER_STATUS_LABELS = {
   PRODUCTION: 'Production',
   COMPLETED: 'Completed',
 };
-
-function formatAction(action, details) {
-  const label = ACTION_LABELS[action] || action;
-  if (details?.complexity_code) return `${label} (${details.complexity_code})`;
-  if (details?.wo_number) return `${label} — ${details.wo_number}`;
-  if (details?.item_number) return `${label} — ${details.item_number}`;
-  return label;
-}
 
 const initialFilters = {
   search: '',
@@ -66,8 +47,6 @@ export default function useCoderDashboard() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(initialFilters);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [activityPage, setActivityPage] = useState(1);
-  const [newWoPage, setNewWoPage] = useState(1);
   const [workOrderPage, setWorkOrderPage] = useState(1);
 
   useEffect(() => {
@@ -79,9 +58,6 @@ export default function useCoderDashboard() {
       try {
         const res = await api.get('/coder-dashboard', {
           params: {
-            activity_page: activityPage,
-            new_wo_page: newWoPage,
-            limit: ACTIVITY_PAGE_SIZE,
             work_order_page: workOrderPage,
             work_order_search: filters.search,
             work_order_status: filters.statusFilter,
@@ -99,7 +75,7 @@ export default function useCoderDashboard() {
       }
     };
     load();
-  }, [activityPage, newWoPage, workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
+  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => {
@@ -116,12 +92,6 @@ export default function useCoderDashboard() {
   const reviewQueue = data?.review_queue || [];
   const workQueue = data?.work_queue || [];
 
-  const coderActivity = data?.coder_activity?.items || [];
-  const newWorkOrders = data?.new_work_orders?.items || [];
-  const coderActivityTotal = data?.coder_activity?.total || 0;
-  const newWorkOrdersTotal = data?.new_work_orders?.total || 0;
-  const coderActivityTotalPages = Math.max(1, Math.ceil(coderActivityTotal / ACTIVITY_PAGE_SIZE));
-  const newWorkOrdersTotalPages = Math.max(1, Math.ceil(newWorkOrdersTotal / NEW_WO_PAGE_SIZE));
   const workOrderQueue = data?.work_order_queue?.items || [];
   const workOrderQueueTotal = data?.work_order_queue?.total || 0;
   const workOrderQueueTotalPages = Math.max(1, Math.ceil(workOrderQueueTotal / 10));
@@ -198,44 +168,60 @@ export default function useCoderDashboard() {
     return { queued_hours: queued, in_progress_hours: inProgress, completed_hours: completed };
   }, [filteredWorkQueue]);
 
+  const TREND_DAYS = 90;
   const filteredTrend = useMemo(() => {
     const weeks = [];
-    for (let i = 7; i >= 0; i--) {
+    for (let i = 11; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - d.getDay() - (i * 7));
       d.setHours(0, 0, 0, 0);
       weeks.push({ week: formatLocalDate(d), items_queued: 0, items_completed: 0, hours_queued: 0, hours_completed: 0 });
     }
-
+    // Alternatively, build 90-day span? But chart is weekly buckets. Using 12 full weeks before current week to cover ~90 days
+    const filteredWeeks = [];
+    for (let i = 12; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - d.getDay() - (i * 7));
+      d.setHours(0, 0, 0, 0);
+      filteredWeeks.push({ week: formatLocalDate(d), items_queued: 0, items_completed: 0, hours_queued: 0, hours_completed: 0 });
+    }
+    filteredWeeks.forEach((w) => weeks.push(w));
+    // deduplicate
+    const map = new Map();
+    weeks.forEach((w) => map.set(w.week, { ...map.get(w.week) || { week: w.week, items_queued: 0, items_completed: 0, hours_queued: 0, hours_completed: 0 }, items_queued: map.get(w.week)?.items_queued || w.items_queued, items_completed: map.get(w.week)?.items_completed || w.items_completed, hours_queued: Number(map.get(w.week)?.hours_queued || 0) + Number(w.hours_queued || 0), hours_completed: Number(map.get(w.week)?.hours_completed || 0) + Number(w.hours_completed || 0) }));
+    // simpler
+    const wk = [];
+    for (let i = 12; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - d.getDay() - (i * 7));
+      d.setHours(0, 0, 0, 0);
+      wk.push({ week: formatLocalDate(d), items_queued: 0, items_completed: 0, hours_queued: 0, hours_completed: 0 });
+    }
+    // fill
+    const byWeek = new Map(wk.map((x) => [x.week, { ...x }]));
     filteredReviewQueue.forEach((r) => {
       if (!r.created_at) return;
-      const wk = getWeekStart(r.created_at);
-      const bucket = weeks.find((b) => b.week === wk);
-      if (bucket) {
-        bucket.items_queued += 1;
-        bucket.hours_queued += r.estimated_hours;
+      const ws = getWeekStart(r.created_at);
+      if (byWeek.has(ws)) {
+        byWeek.get(ws).items_queued += 1;
+        byWeek.get(ws).hours_queued += r.estimated_hours || 0;
       }
     });
-
     filteredWorkQueue.forEach((r) => {
       if (!r.created_at) return;
-      const wk = getWeekStart(r.created_at);
-      const bucket = weeks.find((b) => b.week === wk);
-      if (!bucket) return;
-      if (['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)) {
-        bucket.items_completed += 1;
-        bucket.hours_completed += r.estimated_hours;
+      const ws = getWeekStart(r.created_at);
+      if (byWeek.has(ws) && ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)) {
+        byWeek.get(ws).items_completed += 1;
+        byWeek.get(ws).hours_completed += r.estimated_hours || 0;
       }
     });
-
-    return weeks;
+    return [...byWeek.values()];
   }, [filteredReviewQueue, filteredWorkQueue]);
 
   return {
     data,
     error,
     loading,
-    formatAction,
     filters,
     showAdvanced,
     setShowAdvanced,
@@ -250,19 +236,11 @@ export default function useCoderDashboard() {
     totalCount,
     hasActiveFilters,
     uniqueComplexities,
-    coderActivity,
-    newWorkOrders,
-    activityPage,
-    setActivityPage,
-    newWoPage,
-    setNewWoPage,
     workOrderQueue,
     workOrderQueueTotal,
     workOrderQueueTotalPages,
     workOrderPage,
     setWorkOrderPage,
-    coderActivityTotalPages,
-    newWorkOrdersTotalPages,
     CLASSIFICATION_STATUS_LABELS,
     WORK_ORDER_STATUS_LABELS,
   };

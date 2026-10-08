@@ -1,18 +1,14 @@
 const coderDashboardRepository = require('../repositories/coderDashboardRepository');
 
-const getCoderDashboard = async (userId, { activityPage = 1, newWoPage = 1, limit = 15, workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL', complexity = 'ALL', classificationStatus = 'ALL', dateFrom = '', dateTo = '' } = {}) => {
+const getCoderDashboard = async (userId, { workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL', complexity = 'ALL', classificationStatus = 'ALL', dateFrom = '', dateTo = '' } = {}) => {
   const WORK_ORDER_LIMIT = 10;
-  const [kpis, reviewQueue, workQueue, workOrderQueue, workOrderQueueTotal, coderActivity, coderActivityTotal, newWorkOrders, newWorkOrdersTotal, trend] = await Promise.all([
+  const [kpis, reviewQueue, workQueue, workOrderQueue, workOrderQueueTotal, trend] = await Promise.all([
     coderDashboardRepository.findKpis(userId),
     coderDashboardRepository.findReviewQueue(),
     coderDashboardRepository.findWorkQueue(),
     coderDashboardRepository.findWorkOrderQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo }),
     coderDashboardRepository.countWorkOrderQueue({ search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo }),
-    coderDashboardRepository.findCoderActivity(activityPage, limit),
-    coderDashboardRepository.countCoderActivity(),
-    coderDashboardRepository.findNewWorkOrders(newWoPage, limit),
-    coderDashboardRepository.countNewWorkOrders(),
-    coderDashboardRepository.findWeeklyTrend(8),
+    coderDashboardRepository.findWeeklyTrend(13),
   ]);
 
   return {
@@ -85,31 +81,6 @@ const getCoderDashboard = async (userId, { activityPage = 1, newWoPage = 1, limi
         .filter((r) => r.work_order_status !== 'FINALIZED')
         .reduce((sum, r) => sum + (Number(r.estimated_hours) || 0), 0),
       completed_hours: Number(kpis.completed_hours) || 0,
-    },
-    coder_activity: {
-      items: coderActivity.map((r) => ({
-        id: r.id,
-        action: r.action,
-        entity_type: r.entity_type,
-        entity_id: r.entity_id,
-        details: r.details,
-        user_name: r.user_name || 'System',
-        created_at: r.created_at,
-      })),
-      page: activityPage,
-      limit,
-      total: Number(coderActivityTotal) || 0,
-    },
-    new_work_orders: {
-      items: newWorkOrders.map((r) => ({
-        id: r.id,
-        details: r.details,
-        user_name: r.user_name || 'System',
-        created_at: r.created_at,
-      })),
-      page: newWoPage,
-      limit,
-      total: Number(newWorkOrdersTotal) || 0,
     },
     trend: trend.map((r) => ({
       week: r.week_start,

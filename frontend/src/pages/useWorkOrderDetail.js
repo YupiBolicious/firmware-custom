@@ -138,6 +138,8 @@ export default function useWorkOrderDetail() {
 
   const woModelCode = wo && wo.groups && wo.groups.length > 0 ? wo.groups[0].machine_model_code || '' : '';
 
+  // const [finalizeConfirm, setFinalizeConfirm] = useState(false);
+
   const handleFinalize = async () => {
     if (!window.confirm('Finalize this work order?')) return;
     setError('');
@@ -152,6 +154,19 @@ export default function useWorkOrderDetail() {
     } finally {
       setFinalizing(false);
     }
+  //     setFinalizeConfirm(false);
+  //   }
+  // };
+
+  // const openFinalizeConfirm = () => {
+  //   setError('');
+  //   setMessage('');
+  //   setFinalizeConfirm(true);
+  // };
+
+  // const closeFinalizeConfirm = () => {
+  //   if (finalizing) return;
+  //   setFinalizeConfirm(false);
   };
 
   const handleStartProduction = async () => {
@@ -234,6 +249,9 @@ export default function useWorkOrderDetail() {
     handleDeleteGroup,
     handleAnalyze,
     handleFinalize,
+    // openFinalizeConfirm,
+    // closeFinalizeConfirm,
+    // finalizeConfirm,
     handleStartProduction,
     handleCompleteProduction,
     handleCompleteTask: (taskId, completed) => handleCompleteTask(taskId, completed, load),

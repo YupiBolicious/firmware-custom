@@ -160,57 +160,7 @@ const findWorkOrderQueue = async ({ page = 1, limit = 10, ...filters } = {}) => 
   return result.rows;
 };
 
-const countCoderActivity = async () => {
-  const result = await pool.query(
-    `SELECT COUNT(*)::int AS count
-     FROM audit_trail
-     WHERE action IN ('ITEM_REVIEWED', 'ITEM_ADDED')`
-  );
-  return result.rows[0].count;
-};
-
-const findCoderActivity = async (page = 1, limit = 15) => {
-  const offset = (page - 1) * limit;
-  const result = await pool.query(
-    `SELECT at.id, at.action, at.details, at.entity_type, at.entity_id,
-             at.created_at,
-            u.full_name AS user_name
-     FROM audit_trail at
-     LEFT JOIN users u ON u.id = at.user_id
-     WHERE at.action IN ('ITEM_REVIEWED', 'ITEM_ADDED')
-     ORDER BY at.created_at DESC
-     LIMIT $1 OFFSET $2`,
-    [limit, offset]
-  );
-  return result.rows;
-};
-
-const countNewWorkOrders = async () => {
-  const result = await pool.query(
-    `SELECT COUNT(*)::int AS count
-     FROM audit_trail
-     WHERE action = 'WORK_ORDER_CREATED'`
-  );
-  return result.rows[0].count;
-};
-
-const findNewWorkOrders = async (page = 1, limit = 15) => {
-  const offset = (page - 1) * limit;
-  const result = await pool.query(
-    `SELECT at.id, at.action, at.entity_type, at.entity_id,
-            at.details, at.created_at,
-            u.full_name AS user_name
-     FROM audit_trail at
-     LEFT JOIN users u ON u.id = at.user_id
-     WHERE at.action = 'WORK_ORDER_CREATED'
-     ORDER BY at.created_at DESC
-     LIMIT $1 OFFSET $2`,
-    [limit, offset]
-  );
-  return result.rows;
-};
-
-const findWeeklyTrend = async (weeks = 8) => {
+const findWeeklyTrend = async (weeks = 13) => {
   const result = await pool.query(
     `WITH weeks AS (
        SELECT generate_series(
@@ -259,9 +209,5 @@ module.exports = {
   findWorkQueue,
   findWorkOrderQueue,
   countWorkOrderQueue,
-  countCoderActivity,
-  findCoderActivity,
-  countNewWorkOrders,
-  findNewWorkOrders,
   findWeeklyTrend,
 };

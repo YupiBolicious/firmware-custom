@@ -71,9 +71,6 @@ export default function WOStatusAccess({
           <div><span className="text-muted">Customer:</span> {wo.customer || '-'}</div>
           <div><span className="text-muted">Created By:</span> {wo.created_by_name || '-'}</div>
           <div><span className="text-muted">Created At:</span> {new Date(wo.created_at).toLocaleString()}</div>
-          {['ANALYZED', 'FINALIZED'].includes(wo.status) && (
-            <div><span className="text-muted">Total Estimated Hours:</span> {wo.total_estimated_hours}h</div>
-          )}
         </div>
         {wo.description && <div className="mt-8 text-muted">{wo.description}</div>}
       </div>

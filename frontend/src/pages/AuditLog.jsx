@@ -2,7 +2,6 @@ import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import RelativeTime from '../components/RelativeTime';
 import useAuditLog from './useAuditLog';
-import actionBadgeClass from '../lib/auditBadge';
 
 function formatWorkOrder(item) {
   if (item.work_order_id) {
@@ -138,7 +137,7 @@ export default function AuditLog() {
                   <option value="ALL">All</option>
                   {uniqueWorkOrders.map((wo) => (
                     <option key={wo.work_order_id} value={wo.work_order_id}>
-                      {wo.wo_number} - {wo.wo_title || ''}
+                      {wo.wo_number}
                     </option>
                   ))}
                 </select>
@@ -178,7 +177,6 @@ export default function AuditLog() {
                   <th>User</th>
                   <th>Action</th>
                   <th>Work Orders</th>
-                  <th>Detail</th>
                 </tr>
               </thead>
               <tbody>
@@ -189,9 +187,7 @@ export default function AuditLog() {
                       <td className="text-muted"><RelativeTime date={item.created_at} /></td>
                       <td>{item.user_name || <span className="text-muted">System</span>}</td>
                       <td>
-                        <span className={`badge ${actionBadgeClass(item.action)}`}>
-                          {formatAction(item.action)}
-                        </span>
+                        <span>{formatAction(item.action)}</span>
                       </td>
                       <td>
                         {wo ? (
@@ -201,10 +197,6 @@ export default function AuditLog() {
                         ) : (
                           <span className="text-muted">-</span>
                         )}
-                      </td>
-                      {/* <td>{formatEntity(item)}</td> */}
-                      <td className="text-muted title-cell" title={formatDetail(item) || '-'}>
-                        {formatDetail(item) || '-'}
                       </td>
                     </tr>
                   );

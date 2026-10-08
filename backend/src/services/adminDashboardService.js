@@ -4,7 +4,7 @@ function pickGranularity(from, to) {
   const fromMs = new Date(from).getTime();
   const toMs = new Date(to).getTime();
   const spanDays = (toMs - fromMs) / 86400000;
-  if (spanDays <= 42) return 'day';
+  if (spanDays <= 90) return 'week';
   if (spanDays <= 200) return 'week';
   return 'month';
 }

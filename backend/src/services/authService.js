@@ -4,6 +4,7 @@ const authRepository = require('../repositories/authRepository');
 const userRepository = require('../repositories/userRepository');
 const auditService = require('./auditService');
 const { validateChangePassword } = require('../validators/authValidator');
+const { validateProfile } = require('../validators/userValidator');
 const { ApiError } = require('../middleware/errorHandler');
 
 const BCRYPT_ROUNDS = 10;
@@ -104,4 +105,38 @@ const changePassword = async ({ userId, current_password, new_password, actorId,
   return { id: user.id, email: user.email };
 };
 
-module.exports = { login, changePassword };
+const updateProfile = async ({ userId, body, ip_address }) => {
+  validateProfile(body);
+
+  const existing = await userRepository.findUserWithRolesById(userId);
+  if (!existing) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  const email = String(body.email || '').trim().toLowerCase();
+  const full_name = String(body.full_name || '').trim();
+
+  const emailOwner = await userRepository.findByEmailId(email);
+  if (emailOwner && emailOwner.id !== userId) {
+    throw new ApiError(409, 'Email is already in use');
+  }
+
+  const updated = await userRepository.update(userId, { email, full_name });
+  if (!updated) throw new ApiError(404, 'User not found');
+
+  await auditService.log({
+    user_id: userId,
+    action: 'USER_PROFILE_UPDATED',
+    entity_type: 'USER',
+    entity_id: String(userId),
+    details: {
+      prior: { email: existing.email, full_name: existing.full_name },
+      current: { email, full_name },
+    },
+    ip_address,
+  });
+
+  return userRepository.findUserWithRolesById(userId);
+};
+
+module.exports = { login, changePassword, updateProfile };

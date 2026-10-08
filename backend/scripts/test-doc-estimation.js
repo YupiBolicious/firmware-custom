@@ -55,11 +55,11 @@ const levelInfo = async (code) =>
     const num = (v) => Number(v);
 
     let r = await run(L2.id, null);
-    eq(r.verification_code, 'V2', 'L2: tier V2');
-    eq(num(r.breakdown.verification_mh), 24, 'L2: verification 24 MH');
+    eq(r.verification_code, 'V1', 'L2: tier V1');
+    eq(num(r.breakdown.verification_mh), 8, 'L2: verification 8 MH');
     eq(num(r.breakdown.other_mh), num(L2.total_hours), 'L2: other = complexity total, unchanged');
-    eq(num(r.breakdown.total_hours), 24 + num(L2.total_hours), 'L2: total = 24 + other');
-    eq(num(r.total_hours), 24 + num(L2.total_hours), 'L2: stored total matches');
+    eq(num(r.breakdown.total_hours), 8 + num(L2.total_hours), 'L2: total = 8 + other');
+    eq(num(r.total_hours), 8 + num(L2.total_hours), 'L2: stored total matches');
     eq('documentation_mh' in r.breakdown, false, 'L2: no documentation key in breakdown');
 
     r = await run(L1.id, null);
@@ -87,7 +87,7 @@ const levelInfo = async (code) =>
        WHERE ie.work_order_item_id = $1`,
       [item.id]
     );
-    eq(num(line.rows[0].line_total), 24 + num(L2.total_hours) * 2, 'L2 qty2: line = ver once + other x qty');
+    eq(num(line.rows[0].line_total), 8 + num(L2.total_hours) * 2, 'L2 qty2: line = ver once + other x qty');
 
     const cols = await pool.query(`SELECT COUNT(*)::int AS n FROM complexity_levels WHERE code IN ('L1','L2','L4')`);
     eq(cols.rows[0].n, 3, 'complexity rows intact');

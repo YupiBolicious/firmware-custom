@@ -29,7 +29,7 @@ export default function useWorkOrderCreate() {
   useEffect(() => {
     if (!isEditMode) return;
 
-    const load = async () => {
+    const load = async () => { 
       try {
         const response = await api.get(`/work-orders/${id}`);
         const workOrder = response.data.data;
@@ -87,6 +87,7 @@ export default function useWorkOrderCreate() {
 
     const formattedForm = {
       wo_number: form.wo_number.trim().toUpperCase(),
+      // description: capitalizeWords(form.description),
       customer: form.customer?.trim()
         ? capitalizeWords(form.customer)
         : '',

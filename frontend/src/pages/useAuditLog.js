@@ -1,21 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '../api/client';
 
-const ACTION_LABELS = {
-  DOCUMENTS_UPLOADED: 'Documents uploaded',
-  ITEM_ADDED: 'Item added',
-  ITEM_DELETED: 'Item deleted',
-  ITEM_REVIEWED: 'Item reviewed',
-  ITEM_UPDATED: 'Item updated',
-  WORK_ORDER_ANALYZED: 'Work order analyzed',
-  WORK_ORDER_COMPLETED: 'Work order completed',
-  WORK_ORDER_CREATED: 'Work order created',
-  WORK_ORDER_FINALIZED: 'Work order finalized',
-  WORK_ORDER_PRODUCTION: 'Work order production',
-  WORK_ORDER_RESET_TO_DRAFT: 'Work order reset to draft',
-  WORK_ORDER_UPDATED: 'Work order updated',
-};
-
 const initialFilters = {
   search: '',
   actionFilter: 'ALL',
@@ -105,7 +90,9 @@ export default function useAuditLog() {
     PAGE_SIZE,
     matchingCount,
     hasActiveFilters,
-    ACTION_LABELS,
-    formatAction: (action) => ACTION_LABELS[action] || action,
+    formatAction: (action) => {
+      const s = (action || '').toLowerCase().replace(/_/g, ' ');
+      return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+    },
   };
 }

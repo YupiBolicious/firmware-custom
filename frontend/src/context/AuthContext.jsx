@@ -52,13 +52,18 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (nextUser) => {
+    localStorage.setItem('user', JSON.stringify(nextUser));
+    setUser(nextUser);
+  };
+
   const hasRole = (...roles) => {
     if (!user) return false;
     return roles.some((r) => user.roles.includes(r));
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, hasRole, authLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, hasRole, authLoading }}>
       {children}
     </AuthContext.Provider>
   );

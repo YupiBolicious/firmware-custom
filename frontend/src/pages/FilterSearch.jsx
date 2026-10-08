@@ -81,7 +81,7 @@ export default function FilterSearch({
                 >
                   <option value="ALL">All</option>
                   {uniqueModels.map((m) => (
-                    <option key={m.id} value={m.id}>{m.code} - {m.name}</option>
+                    <option key={m.id} value={m.id}>{m.code}</option>
                   ))}
                 </select>
               </div>

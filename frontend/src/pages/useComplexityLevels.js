@@ -67,6 +67,7 @@ export default function useComplexityLevels() {
     setForm({
       code: level.code,
       name: level.name,
+      description:level.description || '',
       requirement_review_h: level.requirement_review_h,
       code_development_h: level.code_development_h,
       peer_review_fixing_h: level.peer_review_fixing_h,

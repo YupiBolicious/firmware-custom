@@ -7,21 +7,17 @@ const WORK_QUEUE_SQL = `
            wo.customer, wo.created_at,
            (SELECT string_agg(g.label, '; ')
             FROM (
-              SELECT DISTINCT CONCAT_WS(' ', mm.model_code, mmv.version_code, NULLIF(g.serial_number, '')) AS label
+              SELECT DISTINCT CONCAT_WS(' ', mm.model_code) AS label
               FROM work_order_groups g
               LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
-              LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
               WHERE g.work_order_id = wo.id
             ) g
            ) AS group_summary,
            (SELECT COALESCE(jsonb_agg(to_jsonb(jg)), '[]'::jsonb)
             FROM (
-              SELECT DISTINCT g.id, g.machine_model_id, g.machine_model_version_id,
-                     g.serial_number, mm.model_code, mm.name AS machine_model_name,
-                     mmv.version_code
+              SELECT DISTINCT g.id, g.machine_model_id, g.serial_number, mm.model_code, mm.name AS machine_model_name
               FROM work_order_groups g
               LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
-              LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
               WHERE g.work_order_id = wo.id
             ) jg
            ) AS groups,
@@ -48,8 +44,6 @@ const WORK_QUEUE_SQL = `
 `;
 
 // Client-side filters from usePmDashboard, mapped to predicates on the wrapper
-// columns. Every column it touches (complexity_code, groups, item_titles,
-// group_summary, ...) exists in WORK_QUEUE_SQL output.
 const buildFilters = (f) => {
   const parts = [];
   const params = [];
@@ -69,10 +63,6 @@ const buildFilters = (f) => {
   if (f.model) {
     params.push(f.model);
     parts.push(`EXISTS (SELECT 1 FROM jsonb_array_elements(q.groups) g WHERE (g->>'machine_model_id')::int = $${params.length}::int)`);
-  }
-  if (f.version) {
-    params.push(f.version);
-    parts.push(`EXISTS (SELECT 1 FROM jsonb_array_elements(q.groups) g WHERE (g->>'machine_model_version_id')::int = $${params.length}::int)`);
   }
   if (f.complexity) {
     params.push(f.complexity);
@@ -252,14 +242,13 @@ const findOptions = async (filters) => {
     WHERE g->>'machine_model_id' IS NOT NULL
     ORDER BY g->>'model_code'
   `);
-  const versionParams = filters.model ? [filters.model] : [];
-  const versions = await pool.query(`
-    SELECT DISTINCT g->>'machine_model_version_id' AS id, g->>'version_code' AS code, g->>'machine_model_id' AS model_id
-    FROM (${WORK_QUEUE_SQL}) q, jsonb_array_elements(q.groups) g
-    WHERE g->>'machine_model_version_id' IS NOT NULL
-      ${filters.model ? "AND (g->>'machine_model_id')::int = $1::int" : ''}
-    ORDER BY g->>'version_code', g->>'machine_model_id'
-  `, versionParams);
+  // const versionParams = filters.model ? [filters.model] : [];
+  // const versions = await pool.query(`
+  //   SELECT DISTINCT g->>'machine_model_id' AS model_id
+  //   FROM (${WORK_QUEUE_SQL}) q, jsonb_array_elements(q.groups) g
+  //   WHERE g->>'machine_model_id' ::int = $1::int" : ''
+  //   ORDER BY g->>'machine_model_id'
+  // `, versionParams);
   const complexityParams = filters.model ? [filters.model] : [];
   const complexities = await pool.query(`
     SELECT DISTINCT q.complexity_code AS code
@@ -268,7 +257,7 @@ const findOptions = async (filters) => {
       ${filters.model ? `AND EXISTS (SELECT 1 FROM jsonb_array_elements(q.groups) g WHERE (g->>'machine_model_id')::int = $1::int)` : ''}
     ORDER BY q.complexity_code
   `, complexityParams);
-  return { models: models.rows, versions: versions.rows, complexities: complexities.rows };
+  return { models: models.rows, complexities: complexities.rows };
 };
 
 module.exports = {

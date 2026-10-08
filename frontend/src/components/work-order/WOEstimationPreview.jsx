@@ -72,7 +72,29 @@ export default function WOEstimationPreview({
           <div className="value">{summary.total_estimated_hours} hours</div>
         </div>
       </div>
-
+      {/* IS EDIT CUSTOM ITEM == OK */}
+      {editable && (showAddItemForm || editingItemId) && (
+              <div className="glass-card" style={{ marginTop: 12 }}>
+                <h3>{editingItemId ? 'Edit Custom Item' : 'Add Custom Item'}</h3>
+                <form onSubmit={editingItemId ? handleUpdateItem : handleAddItem}>
+                  <div className="form-grid">
+                    <div className="form-row">
+                      <label>Customization Item</label>
+                      <input className="wo-input-text" name="title" value={itemForm.title} onChange={handleItemChange} required />
+                    </div>
+                    <div className="form-row">
+                      <label>Quantity</label>
+                      <input className="wo-input-text" name="quantity" type="number" min="1" step="1" value={itemForm.quantity} onChange={handleItemChange} />
+                    </div>
+                    
+                  </div>
+                  <div className="flex gap-8">
+                    <button className="btn" type="submit">{editingItemId ? 'Update' : 'Add'}</button>
+                    <button className="btn btn-secondary" type="button" onClick={cancelEdit}>Cancel</button>
+                  </div>
+                </form>
+              </div>
+        )}
       <table>
         <thead>
           <tr>
@@ -136,29 +158,6 @@ export default function WOEstimationPreview({
           )}
         </tbody>
       </table>
-
-      {editable && (showAddItemForm || editingItemId) && (
-        <div className="glass-card" style={{ marginTop: 12 }}>
-          <h3>{editingItemId ? 'Edit Custom Item' : 'Add Custom Item'}</h3>
-          <form onSubmit={editingItemId ? handleUpdateItem : handleAddItem}>
-            <div className="form-grid">
-              <div className="form-row">
-                <label>Customization Item</label>
-                <input className="wo-input-text" name="title" value={itemForm.title} onChange={handleItemChange} required />
-              </div>
-              <div className="form-row">
-                <label>Quantity</label>
-                <input className="wo-input-text" name="quantity" type="number" min="1" step="1" value={itemForm.quantity} onChange={handleItemChange} />
-              </div>
-              
-            </div>
-            <div className="flex gap-8">
-              <button className="btn" type="submit">{editingItemId ? 'Update' : 'Add'}</button>
-              <button className="btn btn-secondary" type="button" onClick={cancelEdit}>Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
     </div>
   );
 }

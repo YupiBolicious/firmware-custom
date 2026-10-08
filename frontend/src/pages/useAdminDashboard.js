@@ -2,9 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/client';
 
 export const RANGE_PRESETS = [
-  { key: '8W', label: '8W', days: 8 * 7 },
-  { key: '3M', label: '3M', days: 3 * 30 },
-  { key: '6M', label: '6M', days: 6 * 30 },
+  { key: '3M', label: '3M', days: 90 },
+  { key: '6M', label: '6M', days: 180 },
   { key: '1Y', label: '1Y', days: 365 },
 ];
 
@@ -26,7 +25,7 @@ export default function useAdminDashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [preset, setPreset] = useState('8W');
+  const [preset, setPreset] = useState('3M');
   const [trendRefreshing, setTrendRefreshing] = useState(false);
   const [trendError, setTrendError] = useState('');
   const firstRender = useRef(true);
@@ -57,7 +56,7 @@ export default function useAdminDashboard() {
     setTrendError('');
     const load = async () => {
       try {
-        const { from, to } = rangeFromPreset(RANGE_PRESETS.find((p) => p.key === preset)?.days || (8 * 7));
+        const { from, to } = rangeFromPreset(RANGE_PRESETS.find((p) => p.key === preset)?.days || 90);
         const res = await api.get(`/admin-dashboard?from=${from}&to=${to}`);
         if (!cancelled) setData((prev) => (prev ? { ...prev, trend: res.data.data.trend } : prev));
       } catch (err) {

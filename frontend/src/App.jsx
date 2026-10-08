@@ -14,8 +14,8 @@ import WorkOrderCreate from './pages/WorkOrderCreate';
 import WorkOrderDetail from './pages/WorkOrderDetail';
 import ComplexityLevels from './pages/ComplexityLevels';
 import ReviewQueue from './pages/ReviewQueue';
-import MachineModels from './pages/MachineModels';
 import KnowledgeBase from './pages/KnowledgeBase';
+import MachineModels from './pages/MachineModels';
 import AuditLog from './pages/AuditLog';
 import QuarterlyReport from './pages/QuarterlyReport';
 import HistoricalReport from './pages/HistoricalReport';
@@ -34,7 +34,7 @@ export default function App() {
   return (
     <ToastProvider>
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/login" element={user ? <Navigate to="/login" replace /> : <Login />} />
 
       <Route
         element={
@@ -51,6 +51,7 @@ export default function App() {
         <Route element={<RoleRoute roles={['PM']} />}>
           <Route path="/work-orders/new" element={<WorkOrderCreate />} />
           <Route path="/work-orders/:id/edit" element={<WorkOrderCreate />} />
+          {/* <Route path="/work-orders/upload" element={<WorkOrderUpload/>}/> */}
         </Route>
         <Route element={<RoleRoute roles={['PM', 'CODER', 'ADMIN']} />}>
           <Route path="/work-orders/:id" element={<WorkOrderDetail />} />

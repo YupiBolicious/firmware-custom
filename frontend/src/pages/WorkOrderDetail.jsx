@@ -5,6 +5,7 @@ import WOStatusAccess from '../components/work-order/WOStatusAccess';
 import WOModelSerial from '../components/work-order/WOModelSerial';
 import WOEstimationPreview from '../components/work-order/WOEstimationPreview';
 import WOProductionNotes from '../components/work-order/WOProductionNotes';
+// import ConfirmModal from '../components/ConfirmModal';
 
 export default function WorkOrderDetail() {
   const { hasRole } = useAuth();
@@ -13,9 +14,10 @@ export default function WorkOrderDetail() {
     wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message, 
     handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
     showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
+    
     itemForm, editingItemId,
     handleStartProduction, handleCompleteProduction, handleCompleteTask,
-    groupForm, editingGroupId, showAddGroup, woModelCode, handleGroupFormChange, openAddGroup, openEditGroup,
+    groupForm, editingGroupId, showAddGroup,woModelCode, handleGroupFormChange, openAddGroup, openEditGroup,
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
     access, accessBusy, users, canEdit, canManageAccess, isOwner, isAdmin,
     notes, setNotes, savingNotes, editing, setEditing, handleSaveNotes,
@@ -122,6 +124,17 @@ export default function WorkOrderDetail() {
         handleSaveNotes={handleSaveNotes}
         savingNotes={savingNotes}
       />
+
+      {/* <ConfirmModal
+        isOpen={finalizeConfirm}
+        onClose={closeFinalizeConfirm}
+        onConfirm={handleFinalize}
+        title="Finalize Work Order?"
+        message="Are you sure you want to finalize this work order? This action cannot be undone."
+        confirmLabel="Finalize"
+        loading={finalizing}
+        confirmVariant="primary"
+      /> */}
     </div>
   );
 }
