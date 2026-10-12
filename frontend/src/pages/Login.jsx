@@ -78,13 +78,13 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <div className="login-demo">
+        {/* <div className="login-demo">
           <div className="login-demo-title">Demo accounts</div>
           <div className="login-demo-row"><span>pm@demo.com</span><span>PM</span></div>
           <div className="login-demo-row"><span>coder@demo.com</span><span>Coder</span></div>
           <div className="login-demo-row"><span>admin@demo.com</span><span>Admin</span></div>
           <div className="login-demo-row"><span>Password for all</span><span>password123</span></div>
-        </div>
+        </div> */}
         <div className="login-foot">Authorized use only</div>
       </div>
     </div>
