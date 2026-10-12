@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://firmware-custom-production.up.railway.app/api',
+  baseURL: '/api',
   timeout: 30000,});
 
 // Attach JWT token to every request
