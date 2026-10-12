@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'firmware-custom-production.up.railway.app',
+  baseURL: 'https://firmware-custom-production.up.railway.app/api',
   timeout: 30000,
 });
 
