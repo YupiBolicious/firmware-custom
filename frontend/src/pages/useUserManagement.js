@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 
+const RESET_PASSWORD = 'CustomRequest123';
+
 const emptyForm = {
   username: '',
   email: '',
@@ -19,6 +21,7 @@ export default function useUserManagement() {
   const [busyId, setBusyId] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [message, setMessage] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -40,7 +43,7 @@ export default function useUserManagement() {
     try {
       if (editingId) {
         await api.put(`/users/${editingId}`, {
-          username: form.username,
+          email: form.email,
           full_name: form.full_name,
           roles: form.roles,
         });
@@ -95,14 +98,12 @@ export default function useUserManagement() {
   }, [load]);
 
   const handleResetPassword = useCallback(async (user) => {
-    const newPassword = window.prompt(`New password for ${user.email} (at least 8 characters):`);
-    if (!newPassword) return;
     setError('');
+    setMessage('');
     setBusyId(user.id);
     try {
-      await api.post(`/users/${user.id}/reset-password`, { new_password });
-      setForm(emptyForm);
-      setEditingId(null);
+      await api.post(`/users/${user.id}/reset-password`, { new_password: RESET_PASSWORD });
+      setMessage(`Password for ${user.email} reset to ${RESET_PASSWORD}`);
     } catch (err) {
       const errors = err.response?.data?.errors;
       setError(
@@ -119,6 +120,7 @@ export default function useUserManagement() {
     users,
     loading,
     error,
+    message,
     form,
     editingId,
     showForm,

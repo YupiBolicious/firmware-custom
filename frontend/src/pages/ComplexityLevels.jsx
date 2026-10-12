@@ -74,7 +74,7 @@ export default function ComplexityLevels() {
             </form>
           </div>
         ) : (
-          <div className="mb-16">
+          <div className="mb-16 flex justify-end">
             <button className="btn" type="button" onClick={toggleShowForm}>
               <Plus size={16} /> Add Complexity Level
             </button>
@@ -82,7 +82,7 @@ export default function ComplexityLevels() {
         )
       )}
 
-      <div className="panel">
+      <div className="panel table-scroll">
         <h3>Levels List</h3>
         {levels.length === 0 ? (
           <div className="text-muted">No complexity levels found.</div>
@@ -98,7 +98,6 @@ export default function ComplexityLevels() {
                 <th>Bench Test</th>
                 <th>Unit Test</th>
                 <th>Total Hours</th>
-                <th>Status</th>
                 {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
@@ -113,7 +112,6 @@ export default function ComplexityLevels() {
                   <td>{l.bench_testing_h}</td>
                   <td>{l.unit_testing_h}</td>
                   <td><strong>{l.total_hours}</strong></td>
-                  <td>{l.is_active ? <span className="badge badge-success">Active</span> : <span className="badge">Inactive</span>}</td>
                   {isAdmin && (
                     <td>
                       <span className="icon-actions">

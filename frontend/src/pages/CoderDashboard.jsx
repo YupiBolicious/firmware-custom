@@ -246,7 +246,7 @@ export default function CoderDashboard() {
 
       {/* 6. Workload Trend */}
       <div className="panel mb-16">
-        <h3 className="mb-16">Workload Trend (90 Days)</h3>
+        <h3 className="mb-16">Workload</h3>
         {filteredTrend.length === 0 ? (
           <div className="text-muted">No trend data available.</div>
         ) : (

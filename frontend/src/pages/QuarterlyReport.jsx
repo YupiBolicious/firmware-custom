@@ -13,7 +13,7 @@ export default function QuarterlyReport() {
     <div className="dashboard">
       <div className="panel">
         <div className="flex justify-between align-center mb-16">
-          <h3 style={{ margin: 0 }}>Quarterly Report</h3>
+          <h1 style={{ margin: 0 }}>Quarterly Report</h1>
           {report?.range?.from && (
             <span className="badge badge-muted">
               Range {report.range.from} → {report.range.to} · quarterly

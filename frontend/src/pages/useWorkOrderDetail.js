@@ -154,19 +154,6 @@ export default function useWorkOrderDetail() {
     } finally {
       setFinalizing(false);
     }
-  //     setFinalizeConfirm(false);
-  //   }
-  // };
-
-  // const openFinalizeConfirm = () => {
-  //   setError('');
-  //   setMessage('');
-  //   setFinalizeConfirm(true);
-  // };
-
-  // const closeFinalizeConfirm = () => {
-  //   if (finalizing) return;
-  //   setFinalizeConfirm(false);
   };
 
   const handleStartProduction = async () => {
@@ -249,9 +236,6 @@ export default function useWorkOrderDetail() {
     handleDeleteGroup,
     handleAnalyze,
     handleFinalize,
-    // openFinalizeConfirm,
-    // closeFinalizeConfirm,
-    // finalizeConfirm,
     handleStartProduction,
     handleCompleteProduction,
     handleCompleteTask: (taskId, completed) => handleCompleteTask(taskId, completed, load),

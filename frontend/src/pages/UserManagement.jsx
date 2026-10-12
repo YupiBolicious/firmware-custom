@@ -13,6 +13,7 @@ export default function UserManagement() {
     users,
     loading,
     error,
+    message,
     form,
     editingId,
     showForm,
@@ -29,6 +30,7 @@ export default function UserManagement() {
     handleResetPassword,
   } = useUserManagement();
   useValueToast(error);
+  useValueToast(message, 'success');
 
   const toggleRole = (code) => {
     setForm({
@@ -58,11 +60,11 @@ export default function UserManagement() {
             <div className="form-grid">
               <div className="form-row">
                 <label>Username</label>
-                <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="e.g. user1@pm (lowercase)" required />
+                <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="e.g. user1@pm (lowercase)" disabled={!!editingId} required />
               </div>
               <div className="form-row">
                 <label>Email</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} disabled={!!editingId} required />
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
               </div>
             </div>
             <div className="form-row">
@@ -95,7 +97,7 @@ export default function UserManagement() {
           </form>
         </div>
       ) : (
-        <div className="mb-16">
+        <div className="mb-16 flex justify-end">
           <button className="btn" type="button" onClick={toggleShowForm}>
             <Plus size={16} /> Add User
           </button>
@@ -137,7 +139,7 @@ export default function UserManagement() {
                       <button className="icon-btn" title="Edit" onClick={() => handleEdit(u)}>
                         <Pencil size={16} />
                       </button>
-                      <button className="icon-btn" title="Reset password" onClick={() => handleResetPassword(u)}>
+                      <button className="icon-btn" title="Reset password" disabled={busyId === u.id} onClick={() => handleResetPassword(u)}>
                         <KeyRound size={16} />
                       </button>
                       {u.is_active ? (

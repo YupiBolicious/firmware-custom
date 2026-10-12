@@ -258,12 +258,12 @@ export default function AdminDashboard() {
               />
               <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
               <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} cursor={{ fill: 'var(--chart-cursor)' }} />
-              <ReferenceLine
+              {/* <ReferenceLine
                 y={buckets.length ? buckets.reduce((s, b) => s + Number(b.work_orders || 0), 0) / buckets.length : 0}
                 stroke="var(--chart-axis)"
                 strokeDasharray="4 4"
-                label={{ value: 'avg', fontSize: 10, fill: 'var(--chart-axis)' }}
-              />
+                label={{ value: '', fontSize: 10, fill: 'var(--chart-axis)' }}
+              /> */}
               <Bar dataKey="work_orders" name="Work Orders Created" fill="url(#adminWo)" radius={[6, 6, 0, 0]} maxBarSize={32} />
             </BarChart>
           </ResponsiveContainer>
@@ -295,12 +295,7 @@ export default function AdminDashboard() {
               />
               <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
               <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} cursor={{ fill: 'var(--chart-cursor)' }} />
-              <ReferenceLine
-                y={buckets.length ? buckets.reduce((s, b) => s + Number(b.kb_added || 0), 0) / buckets.length : 0}
-                stroke="var(--chart-axis)"
-                strokeDasharray="4 4"
-                label={{ value: 'avg', fontSize: 10, fill: 'var(--chart-axis)' }}
-              />
+              
               <Bar dataKey="kb_added" name="KB Entries Added" fill="url(#adminKb)" radius={[6, 6, 0, 0]} maxBarSize={32} />
             </BarChart>
           </ResponsiveContainer>

@@ -34,7 +34,7 @@ export default function HistoricalReport() {
     <div className="dashboard">
       <div className="panel">
         <div className="flex justify-between align-center mb-16">
-          <h3 style={{ margin: 0 }}>Historical Report</h3>
+          <h1 style={{ margin: 0 }}>Historical Report</h1>
           {report && (
             <span className="badge badge-muted">
               Year {report.year} · {quarter ? `Q${quarter}` : 'All quarters'}
@@ -104,7 +104,7 @@ export default function HistoricalReport() {
                 <button
                   key={key}
                   className="btn btn-sm"
-                  style={key === metric ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined}
+                  style={key === metric ? { color: 'var(--accent)' } : undefined}
                   onClick={() => setMetric(key)}
                 >
                   {label}

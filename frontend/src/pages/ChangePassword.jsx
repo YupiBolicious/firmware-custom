@@ -127,8 +127,8 @@ export default function ChangePassword() {
               <label>Confirm New Password</label>
               <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} required />
             </div>
-            <div className="flex items-center gap-8 mt-3">
-              <button className="btn ml-auto" type="submit" disabled={loading}>
+            <div className="flex justify-end gap-8 mt-3">
+              <button className="btn" type="submit" disabled={loading}>
                 {loading ? 'Updating...' : 'Update Password'}
               </button>
             </div>

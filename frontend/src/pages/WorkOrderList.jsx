@@ -96,8 +96,8 @@ export default function WorkOrderList() {
   const handleCancelUpload = () => setPreview(null);
 
   return (
-    <div className="glass-page wo-glass">
-      <div className="page-head">
+    <div className="glass-page">
+      <div className="page-head mb-16">
         <div>
           <h1>
             Work Orders
@@ -113,8 +113,8 @@ export default function WorkOrderList() {
               accept="application/pdf"
               style={{ display: 'none' }}
             />
-            <Link className="wo-create-btn" to="/work-orders/new">Create</Link>
-            <button type="button" className="wo-create-btn" onClick={handleUploadClick} disabled={uploading}>{uploading ? 'Uploading...' : 'Upload'}</button>
+            <Link className="btn" to="/work-orders/new">Create</Link>
+            <button type="button" className="btn" onClick={handleUploadClick} disabled={uploading}>{uploading ? 'Uploading...' : 'Upload'}</button>
           </div>
         )}
       </div>
@@ -139,14 +139,14 @@ export default function WorkOrderList() {
             <tbody>
               {workOrders.map((wo) => (
                 <tr key={wo.id}>
-                  <td className="num"><Link className="wo-link" to={`/work-orders/${wo.id}`}>{wo.wo_number}</Link></td>
-                  <td className="meta"><span className="wo-model-chip">{wo.group_summary || '-'}</span></td>
-                  <td className="meta">{wo.customer || '-'}</td>
+                  <td><Link to={`/work-orders/${wo.id}`}>{wo.wo_number}</Link></td>
+                  <td>{wo.group_summary || '-'}</td>
+                  <td>{wo.customer || '-'}</td>
                   <td><StatusBadge status={wo.status} /></td>
                   <td className="num text-center">{wo.item_count}</td>
-                  <td className="num text-right">{Number(wo.total_estimated_hours).toFixed(2)} h</td>
-                  <td className="meta">{wo.created_by_name || '-'}</td>
-                  <td className="meta">{new Date(wo.created_at).toLocaleString()}</td>
+                  <td className="text-right">{Number(wo.total_estimated_hours).toFixed(2)} h</td>
+                  <td>{wo.created_by_name || '-'}</td>
+                  <td>{new Date(wo.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>

@@ -64,7 +64,7 @@ export default function App() {
         <Route element={<RoleRoute roles={['ADMIN', 'PM', 'CODER']} />}>
           <Route path="/audit-log" element={<AuditLog />} />
         </Route>
-        <Route element={<RoleRoute roles={['PM', 'ADMIN']} />}>
+        <Route element={<RoleRoute roles={['PM', 'CODER', 'ADMIN']} />}>
           <Route path="/reports/quarterly" element={<QuarterlyReport />} />
           <Route path="/reports/historical" element={<HistoricalReport />} />
         </Route>

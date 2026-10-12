@@ -141,19 +141,20 @@ const createWithRoles = async ({ username, email, password_hash, full_name, role
   }
 };
 
-const updateWithRoles = async (id, { username, full_name, is_active, roleCodes }) => {
+const updateWithRoles = async (id, { username, email, full_name, is_active, roleCodes }) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const upd = await client.query(
       `UPDATE users
        SET username = COALESCE($2, username),
-           full_name = COALESCE($3, full_name),
-           is_active = COALESCE($4, is_active),
+           email = COALESCE($3, email),
+           full_name = COALESCE($4, full_name),
+           is_active = COALESCE($5, is_active),
            updated_at = NOW()
        WHERE id = $1
        RETURNING id`,
-      [id, username, full_name, is_active]
+      [id, username, email, full_name, is_active]
     );
     if (!upd.rows[0]) {
       await client.query('ROLLBACK');

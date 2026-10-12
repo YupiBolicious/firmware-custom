@@ -33,14 +33,14 @@ const reconstructLines = (pdfData) => {
     const byY = new Map();
     for (const t of page.Texts || []) {
       const text = (t.R || []).map((r) => decodeText(r.T)).join('');
-      if (!text.trim()) continue;
+      if (text === '') continue;
       const key = Math.round(t.y * 2) / 2;
       if (!byY.has(key)) byY.set(key, []);
       byY.get(key).push({ x: t.x, text });
     }
     for (const [y, cells] of [...byY.entries()].sort((a, b) => a[0] - b[0])) {
       cells.sort((a, b) => a.x - b.x);
-      const raw = cells.map((c) => c.text).join('  ');
+      const raw = cells.map((c) => c.text).join('');
       lines.push({ page: pageIndex, y, cells, text: raw.replace(/\s+/g, ' ').trim() });
     }
   });
@@ -68,10 +68,10 @@ const pickRightOfLabel = (line, labelRe, maxX = Infinity) => {
   const valueParts = [];
   for (const cell of line.cells) {
    if (cell.x > labelCell.x + 0.01 && cell.x < maxX && !labelRe.test(normalize(cell.text))) {
-      valueParts.push(cell.text.trim());
+      valueParts.push(cell.text);
     }
   }
-  const value = valueParts.join(' ').replace(/\s+/g, ' ').trim();
+  const value = valueParts.join('').replace(/\s+/g, ' ').trim();
   return value || null;
 };
 
@@ -106,7 +106,7 @@ const extractCustomizeWith = (lines, modelLabelLine, woLabelLine) => {
     if (!validCells.length) continue;
 
     // Gabungkan text cell dalam satu baris Y
-    const lineText = validCells.map((c) => c.text.trim()).join(' ').trim();
+    const lineText = validCells.map((c) => c.text).join('').trim();
     const n = normalize(lineText);
 
     if (n.includes('CUSTOMIZE WITH') || n.includes('REFER TO GA DRAWING')) continue;

@@ -60,10 +60,11 @@ const updateUser = async ({ actorId, id, body, ip_address }) => {
     throw new ApiError(404, 'User not found');
   }
 
-  if (body.username !== undefined && String(body.username).trim().toLowerCase() !== existing.username.toLowerCase()) {
-    const dupUsername = await userRepository.findByUsernameId(String(body.username).trim().toLowerCase());
-    if (dupUsername) {
-      throw new ApiError(409, 'A user with this username already exists');
+  const email = body.email !== undefined ? String(body.email).trim().toLowerCase() : undefined;
+  if (email && email !== existing.email.toLowerCase()) {
+    const dupEmail = await userRepository.findByEmailId(email);
+    if (dupEmail) {
+      throw new ApiError(409, 'A user with this email already exists');
     }
   }
 
@@ -79,7 +80,8 @@ const updateUser = async ({ actorId, id, body, ip_address }) => {
   }
 
   const updated = await userRepository.updateWithRoles(id, {
-    username: body.username !== undefined ? String(body.username).trim().toLowerCase() : undefined,
+    username: undefined,
+    email,
     full_name: body.full_name !== undefined ? String(body.full_name).trim() : undefined,
     is_active: body.is_active,
     roleCodes: body.roles,
@@ -92,8 +94,8 @@ const updateUser = async ({ actorId, id, body, ip_address }) => {
     entity_id: String(id),
     details: {
       email: existing.email,
-      prior: { full_name: existing.full_name, is_active: existing.is_active, roles: existing.roles },
-      current: { full_name: updated.full_name, is_active: updated.is_active, roles: updated.roles },
+      prior: { email: existing.email, full_name: existing.full_name, is_active: existing.is_active, roles: existing.roles },
+      current: { email: updated.email, full_name: updated.full_name, is_active: updated.is_active, roles: updated.roles },
     },
     ip_address,
   });

@@ -57,13 +57,13 @@ const NAV_ITEMS = [
   {
     to: '/reports/quarterly',
     label: 'Quarterly Report',
-    roles: ['PM', 'ADMIN'],
+    roles: ['PM', 'ADMIN', 'CODER'],
     icon: <CalendarRange size={16} strokeWidth={1.5} />,
   },
   {
     to: '/reports/historical',
     label: 'Historical Report',
-    roles: ['PM', 'ADMIN'],
+    roles: ['PM', 'ADMIN', 'CODER'],
     icon: <LineChart size={16} strokeWidth={1.5} />,
   },
   {
@@ -74,6 +74,13 @@ const NAV_ITEMS = [
   },
 ];
 
+const resolvePageName = (pathname) => {
+  if (PAGE_NAMES[pathname]) return PAGE_NAMES[pathname];
+  if (/^\/work-orders\/new$/.test(pathname)) return 'Create Work Order';
+  if (/^\/work-orders\/[^/]+\/edit$/.test(pathname)) return 'Edit Work Order';
+  if (/^\/work-orders\/[^/]+$/.test(pathname)) return 'Work Order Detail';
+  return 'Workspace';
+};
 const PAGE_NAMES = {
   '/': 'Dashboard',
   '/dashboard': 'Dashboard',
@@ -125,7 +132,7 @@ export default function Layout() {
   );
 
   const currentPage =
-    PAGE_NAMES[location.pathname] || 'Workspace';
+    resolvePageName(location.pathname);
 
   return (
     <div className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
@@ -134,7 +141,7 @@ export default function Layout() {
       <aside className="sidebar">
 
         <div className="sidebar-header">
-          <div className="brand"> {collapsed ? 'FC' : 'Firmware Custom'}
+          <div className="brand"> {collapsed ? 'CFR' : 'Customization Firmware'}
           </div>
 
           <button

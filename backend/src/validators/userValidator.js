@@ -50,8 +50,11 @@ const validateUserCreate = (body) => {
 
 const validateUserUpdate = (body) => {
   const errors = [];
-  if (body.username !== undefined && !validateUsername(body.username)) {
-    errors.push('Username must be 3-100 characters, stored lowercase: letters, digits, @ . _ -');
+  if (body.username !== undefined) {
+    errors.push('Username cannot be changed after creation (immutable)');
+  }
+  if (body.email !== undefined && !validateEmail(body.email)) {
+    errors.push('A valid email is required');
   }
   if (body.full_name !== undefined && String(body.full_name).trim() === '') {
     errors.push('Full name cannot be empty');

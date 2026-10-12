@@ -403,7 +403,7 @@ const findItemWithWorkOrder = async (id) => {
 const createItem = async ({ work_order_id, work_order_group_id, item_number, title, quantity, documentation_readiness }) => {
   const result = await pool.query(
     `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, quantity, documentation_readiness)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
     [work_order_id, work_order_group_id, item_number, title, quantity || 1, documentation_readiness || null]
   );

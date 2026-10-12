@@ -44,7 +44,7 @@ export default function Login() {
         <div className="login-brand">
           <div className="login-mark" aria-hidden="true">FC</div>
           <div>
-            <h1>Firmware Custom</h1>
+            <h1>Firmware Custom Request</h1>
             <div className="subtitle">Item Classification & Estimation</div>
           </div>
         </div>
