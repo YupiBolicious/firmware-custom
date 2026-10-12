@@ -2,8 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'https://firmware-custom-production.up.railway.app/api',
-  timeout: 30000,
-});
+  timeout: 30000,});
 
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
