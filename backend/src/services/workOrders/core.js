@@ -8,9 +8,14 @@ const { ApiError } = require('../../middleware/errorHandler');
 const { validatePagination, paginatedPayload } = require('../../utils/pagination');
 const { resolveGroupTargets, assertCanEditWorkOrder } = require('./guards');
 
-const listWorkOrders = async ({ page = 1, limit = 15 } = {}) => {
+const listWorkOrders = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
   const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
-  const res = await workOrderRepository.findAll({ page: parsedPage, limit: parsedLimit });
+  const res = await workOrderRepository.findAll({
+    page: parsedPage,
+    limit: parsedLimit,
+    search: typeof search === 'string' ? search.slice(0, 100) : '',
+    status: typeof status === 'string' ? status : '',
+  });
   return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
 };
 
