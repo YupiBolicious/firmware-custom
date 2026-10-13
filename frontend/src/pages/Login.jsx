@@ -1,8 +1,16 @@
 import { useValueToast } from '../components/Toast';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import {Eye, EyeOff} from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+
+const LOCK_KEY = 'fcr_login_locked_until';
+
+const fmtRemaining = (ms) => {
+  const s = Math.ceil(ms / 1000);
+  const m = Math.floor(s / 60);
+  return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
+};
 
 export default function Login() {
   const { login } = useAuth();
@@ -13,9 +21,23 @@ export default function Login() {
   const [error, setError] = useState('');
   useValueToast(error);
   const [loading, setLoading] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState(() => Number(window.localStorage.getItem(LOCK_KEY)) || 0);
+  const [now, setNow] = useState(() => Date.now());
+  const lockedRemaining = Math.max(0, lockedUntil - now);
+  const isLocked = lockedRemaining > 0;
+
+  useEffect(() => {
+    if (!isLocked) {
+      if (window.localStorage.getItem(LOCK_KEY)) window.localStorage.removeItem(LOCK_KEY);
+      return undefined;
+    }
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [isLocked, lockedUntil]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLocked) return;
     setError('');
     const id = identifier.trim();
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id);
@@ -27,8 +49,17 @@ export default function Login() {
     setLoading(true);
     try {
       await login(identifier, password);
+      window.localStorage.removeItem(LOCK_KEY);
       navigate('/');
     } catch (err) {
+      if (err.response?.status === 429) {
+        const retryAfter = Number(err.response?.data?.data?.retry_after) || 300;
+        const until = Date.now() + retryAfter * 1000;
+        setLockedUntil(until);
+        window.localStorage.setItem(LOCK_KEY, String(until));
+        setError('');
+        return;
+      }
       const errors = err.response?.data?.errors;
       setError(
         Array.isArray(errors) && errors.length
@@ -52,6 +83,15 @@ export default function Login() {
         </div>
         
         <form onSubmit={handleSubmit}>
+          {isLocked && (
+            <div className="alert alert-error" role="alert">
+              <div className="alert-title">Login temporarily locked</div>
+              <div className="alert-description">
+                Too many failed login attempts. Try again in {fmtRemaining(lockedRemaining)}, or contact an
+                admin to reset your password.
+              </div>
+            </div>
+          )}
           <div className="form-row">
             <label htmlFor="login-identifier">Email or Username</label>
             <input
@@ -61,12 +101,13 @@ export default function Login() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               placeholder="you@company.com or username"
+              disabled={isLocked}
               required
             />
           </div>
           <div className="form-row">
             <label htmlFor="login-password">Password</label>
-             <div className="password-field">
+            <div className="password-field">
               <input
                 id="login-password"
                 type={showPassword ? 'text' : 'password'}
@@ -74,6 +115,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Your password"
+                disabled={isLocked}
                 required
               />
               <button
@@ -88,7 +130,7 @@ export default function Login() {
               </button>
             </div>
           </div>
-          <button className="btn login-btn" type="submit" disabled={loading}>
+          <button className="btn login-btn" type="submit" disabled={loading || isLocked}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
