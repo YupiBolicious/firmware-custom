@@ -1,4 +1,4 @@
-﻿const workOrderRepository = require('../../repositories/workOrderRepository');
+const workOrderRepository = require('../../repositories/workOrderRepository');
 const workOrderResetRepository = require('../../repositories/workOrderResetRepository');
 const auditService = require('../auditService');
 const notificationRepository = require('../../repositories/notificationRepository');
@@ -62,7 +62,7 @@ const createWorkOrder = async ({ wo_number, customer, created_by, groups, items,
   return wo;
 };
 
-const updateWorkOrder = async (id, { title, description, customer, status, user_id, roles, ip_address }) => {
+const updateWorkOrder = async (id, { title, customer, status, user_id, roles, ip_address }) => {
   const existing = await workOrderRepository.findById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order not found');
@@ -76,7 +76,7 @@ const updateWorkOrder = async (id, { title, description, customer, status, user_
     }
   }
 
-  const wo = await workOrderRepository.update(id, { title, description, customer, status });
+  const wo = await workOrderRepository.update(id, { title, customer, status });
 
   if (status === 'DRAFT' && existing.status === 'ANALYZED') {
     await workOrderResetRepository.clearAnalysisByWorkOrderId(id);
