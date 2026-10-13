@@ -5,7 +5,7 @@ import WOStatusAccess from '../components/work-order/WOStatusAccess';
 import WOModelSerial from '../components/work-order/WOModelSerial';
 import WOEstimationPreview from '../components/work-order/WOEstimationPreview';
 import WOProductionNotes from '../components/work-order/WOProductionNotes';
-// import ConfirmModal from '../components/ConfirmModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function WorkOrderDetail() {
   const { hasRole } = useAuth();
@@ -17,9 +17,9 @@ export default function WorkOrderDetail() {
     
     itemForm, editingItemId,
     handleStartProduction, handleCompleteProduction, handleCompleteTask,
-    groupForm, editingGroupId, showAddGroup,woModelCode, handleGroupFormChange, openAddGroup, openEditGroup,
+    groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
-    access, accessBusy, users, canEdit, canManageAccess, isOwner, isAdmin,
+    access, accessBusy, users, canEdit, canManageAccess,
     notes, setNotes, savingNotes, editing, setEditing, handleSaveNotes,
     handleGrantAccess, handleRevokeAccess 
   } = useWorkOrderDetail();
@@ -56,6 +56,10 @@ export default function WorkOrderDetail() {
         finalizing={finalizing}
         startingProduction={startingProduction}
         completing={completing}
+        openFinalizeConfirm={openFinalizeConfirm}
+        openStartConfirm={openStartConfirm}
+        openCompleteConfirm={openCompleteConfirm}
+        reviewedItems={reviewedItems}
         handleFinalize={handleFinalize}
         handleStartProduction={handleStartProduction}
         handleCompleteProduction={handleCompleteProduction}
@@ -125,7 +129,7 @@ export default function WorkOrderDetail() {
         savingNotes={savingNotes}
       />
 
-      {/* <ConfirmModal
+     <ConfirmModal
         isOpen={finalizeConfirm}
         onClose={closeFinalizeConfirm}
         onConfirm={handleFinalize}
@@ -134,7 +138,25 @@ export default function WorkOrderDetail() {
         confirmLabel="Finalize"
         loading={finalizing}
         confirmVariant="primary"
-      /> */}
+      />
+      <ConfirmModal
+        isOpen={startConfirm}
+        onClose={closeStartConfirm}
+        onConfirm={handleStartProduction}
+        title="Move to Production?"
+        message="Are you sure you want to move this work order to production?"
+        confirmLabel="Start Production"
+        loading={startingProduction}
+      />
+      <ConfirmModal
+        isOpen={completeConfirm}
+        onClose={closeCompleteConfirm}
+        onConfirm={handleCompleteProduction}
+        title="Complete Work Order?"
+        message="Are you sure you want to complete this work order?"
+        confirmLabel="Complete"
+        loading={completing}
+      />
     </div>
   );
 }
