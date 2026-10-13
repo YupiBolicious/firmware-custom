@@ -14,6 +14,9 @@ export default function WorkOrderDetail() {
     wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message, 
     handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
     showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
+    finalizeConfirm, startConfirm, completeConfirm,
+    openFinalizeConfirm, closeFinalizeConfirm, openStartConfirm, closeStartConfirm,
+    openCompleteConfirm, closeCompleteConfirm,
     
     itemForm, editingItemId,
     handleStartProduction, handleCompleteProduction, handleCompleteTask,
