@@ -63,10 +63,6 @@ export default function WorkOrderDetail() {
         openStartConfirm={openStartConfirm}
         openCompleteConfirm={openCompleteConfirm}
         reviewedItems={reviewedItems}
-        handleFinalize={handleFinalize}
-        handleStartProduction={handleStartProduction}
-        handleCompleteProduction={handleCompleteProduction}
-        reviewedItems={reviewedItems}
         completeAllLabel={completeAllLabel}
         countOpenItem={countOpenItem}
         openTaskCount={openTaskCount}
@@ -132,7 +128,7 @@ export default function WorkOrderDetail() {
         savingNotes={savingNotes}
       />
 
-     <ConfirmModal
+      <ConfirmModal
         isOpen={finalizeConfirm}
         onClose={closeFinalizeConfirm}
         onConfirm={handleFinalize}
