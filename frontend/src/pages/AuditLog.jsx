@@ -42,7 +42,7 @@ function formatLogin(item) {
 
 export default function AuditLog() {
   const {
-    items, filteredItems, paginatedItems, actions, users, uniqueWorkOrders,
+    items, actions, users, uniqueWorkOrders,
     error, loading, filters, setFilter, clearFilters,
     showAdvanced, setShowAdvanced,
     page, setPage, totalPages, PAGE_SIZE,
@@ -154,7 +154,7 @@ export default function AuditLog() {
           </div>
         )}
 
-        {filteredItems.length === 0 ? (
+        {items.length === 0 ? (
           <div className="text-muted">
             {hasActiveFilters ? 'No audit entries match the current filters.' : 'No audit entries found.'}
           </div>
@@ -171,7 +171,7 @@ export default function AuditLog() {
                     </tr>
               </thead>
               <tbody>
-                {paginatedItems.map((item) => {
+                {items.map((item) => {
                   const wo = formatWorkOrder(item);
                   return (
                     <tr key={item.id}>
