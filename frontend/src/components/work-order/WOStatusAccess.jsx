@@ -10,9 +10,9 @@ export default function WOStatusAccess({
   finalizing, 
   startingProduction, 
   completing, 
-  handleFinalize, 
-  handleStartProduction, 
-  handleCompleteProduction, 
+  openFinalizeConfirm, 
+  openStartConfirm, 
+  openCompleteConfirm, 
   reviewedItems, 
   completeAllLabel, 
   countOpenItem, 
@@ -35,17 +35,17 @@ export default function WOStatusAccess({
             <Link className="icon-btn" to={`/work-orders/${wo.id}/edit`} title="Edit Work Order" aria-label="Edit Work Order"><Pencil size={16} strokeWidth={1.5} /></Link>
           )}
           {canEdit && wo.status === 'ANALYZED' && (
-            <button className="btn" onClick={handleFinalize} disabled={finalizing || countOpenItem > 0} title={countOpenItem > 0 ? `${countOpenItem} item(s) awaiting coder review` : undefined}>
+            <button className="btn" onClick={openFinalizeConfirm} disabled={finalizing || countOpenItem > 0} title={countOpenItem > 0 ? `${countOpenItem} item(s) awaiting coder review` : undefined}>
               {finalizing ? 'Finalizing...' : reviewedItems}
             </button>
           )}
           {isCoder && wo.status === 'FINALIZED' && (
-            <button className="btn" onClick={handleStartProduction} disabled={startingProduction}>
+            <button className="btn" onClick={openStartConfirm} disabled={startingProduction}>
               {startingProduction ? 'Starting...' : 'Start Production'}
             </button>
           )}
           {isCoder && wo.status === 'PRODUCTION' && (
-            <button className="btn" onClick={handleCompleteProduction} disabled={completing || openTaskCount > 0}>
+            <button className="btn" onClick={openCompleteConfirm} disabled={completing || openTaskCount > 0}>
               {completing ? 'Completing...' : completeAllLabel}
             </button>
           )}
