@@ -35,7 +35,12 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="modal-overlay"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
@@ -43,7 +48,7 @@ export default function ConfirmModal({
         if (e.target === e.currentTarget && !loading) onClose();
       }}
     >
-      <div className="modal-content panel" style={{ maxWidth: 420, width: '92%' }}>
+      <div className="panel" style={{ maxWidth: 420, width: '92%' }}>
         <div className="modal-header">
           <h3 id="confirm-modal-title" style={{ margin: 0 }}>
             {title}
