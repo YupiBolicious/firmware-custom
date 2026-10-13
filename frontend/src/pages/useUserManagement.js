@@ -38,6 +38,7 @@ export default function useUserManagement() {
   }, [page]);
 
   useEffect(() => { load(); }, [load]);
+
   const filteredUsers = users.filter((u) => {
     if (role !== 'ALL' && !u.roles.includes(role)) return false;
     if (!search.trim()) return true;
@@ -48,8 +49,8 @@ export default function useUserManagement() {
       String(u.full_name).toLowerCase().includes(q) ||
       u.roles.some((r) => r.toLowerCase().includes(q))
     );
-  });  
-  
+  });
+
   const handleSave = useCallback(async (e) => {
     e.preventDefault();
     setError('');
