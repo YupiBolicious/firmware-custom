@@ -11,7 +11,7 @@ const ROLE_OPTIONS = [
 export default function UserManagement() {
   const {
     users,
-    filteredUsers
+    filteredUsers,
     loading,
     error,
     message,
@@ -22,7 +22,10 @@ export default function UserManagement() {
     page,
     setPage,
     totalPages,
-    search, setSearch, role, setRole,
+    search,
+    setSearch,
+    role,
+    setRole,
     setForm,
     toggleShowForm,
     handleSave,
@@ -128,6 +131,13 @@ export default function UserManagement() {
         ) : (
           <table>
             <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Full Name</th>
+                <th>Roles</th>
+                <th>Status</th>
+                <th>Created</th>
                 <th>Actions</th>
               </tr>
             </thead>
