@@ -150,7 +150,6 @@ export default function useWorkOrderDetail() {
 
   
   const handleFinalize = async () => {
-    if (!window.confirm('Finalize this work order?')) return;
     setError('');
     setMessage('');
     setFinalizing(true);
@@ -185,7 +184,6 @@ export default function useWorkOrderDetail() {
   };
 
   const handleCompleteProduction = async () => {
-    if (!window.confirm('Complete this work order?')) return;
     setError('');
     setMessage('');
     setCompleting(true);
