@@ -16,6 +16,7 @@ const pruneExpired = (now) => {
 const check = (identifier) => {
   const entry = attempts.get(identifier);
   if (!entry) return 0;
+  if (!entry.lockedUntil) return 0;
   const remaining = entry.lockedUntil - Date.now();
   if (remaining > 0) return remaining;
   attempts.delete(identifier);
