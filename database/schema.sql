@@ -111,7 +111,6 @@ CREATE TABLE IF NOT EXISTS work_orders (
     id              SERIAL PRIMARY KEY,
     wo_number       VARCHAR(50) NOT NULL UNIQUE,
     title           VARCHAR(300),
-    description     TEXT,
     customer        VARCHAR(200),
     status          VARCHAR(30) NOT NULL DEFAULT 'DRAFT',  -- DRAFT | ANALYZED | FINALIZED | PRODUCTION | COMPLETED
     notes           TEXT,
@@ -372,8 +371,8 @@ SELECT id, 'v1.0', 'Initial release' FROM machine_model WHERE model_code = 'FWX-
 ON CONFLICT DO NOTHING;
 
 -- MOCK WORK ORDER WO-2026-001 (for validation)
-INSERT INTO work_orders (wo_number, title, description, customer, status, created_by)
-SELECT 'WO-2026-001', 'Firmware Custom Items - Q1 2026', 'Mock customer for prototype validation', 'Acme Corp', 'DRAFT', u.id
+INSERT INTO work_orders (wo_number, title, customer, status, created_by)
+SELECT 'WO-2026-001', 'Firmware Custom Items - Q1 2026', 'Acme Corp', 'DRAFT', u.id
 FROM users u WHERE u.username = 'pm@demo'
 ON CONFLICT (wo_number) DO NOTHING;
 

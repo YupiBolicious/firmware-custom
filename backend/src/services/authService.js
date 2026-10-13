@@ -3,16 +3,43 @@ const jwt = require('jsonwebtoken');
 const authRepository = require('../repositories/authRepository');
 const userRepository = require('../repositories/userRepository');
 const auditService = require('./auditService');
+const lockoutStore = require('./lockoutStore');
 const { validateChangePassword } = require('../validators/authValidator');
 const { validateProfile } = require('../validators/userValidator');
 const { ApiError } = require('../middleware/errorHandler');
 
 const BCRYPT_ROUNDS = 10;
 
+const INVALID_MSG = 'invalid username or password. check your credentials and try again';
+const LOCKED_MSG = `Too many failed login attempts. Login is temporarily locked for ${Math.round(lockoutStore.LOCK_MS / 60000)} minutes. Contact an admin to reset your password.`;
+
 const login = async ({ identifier, password, ip_address }) => {
   const normalized = String(identifier || '').trim().toLowerCase();
+
+  const locked = lockoutStore.check(normalized);
+  if (locked > 0) {
+    throw new ApiError(429, LOCKED_MSG, [], { retry_after: Math.ceil(locked / 1000) });
+  }
+
+  const registerLocked = async (userId, reason) => {
+    const next = lockoutStore.registerFailure(normalized);
+    if (next.locked) {
+      await auditService.log({
+        user_id: userId,
+        action: 'LOGIN_LOCKED',
+        entity_type: 'USER',
+        entity_id: userId,
+        details: { identifier: normalized, reason },
+        ip_address,
+      });
+      throw new ApiError(429, LOCKED_MSG, [], { retry_after: next.retry_after });
+    }
+    return false;
+  };
+
   const user = await authRepository.findByIdentifier(normalized);
   if (!user) {
+    if (await registerLocked(null, 'invalid_credentials')) return;
     await auditService.log({
       user_id: null,
       action: 'LOGIN_FAILED',
@@ -21,7 +48,7 @@ const login = async ({ identifier, password, ip_address }) => {
       details: { identifier: normalized, reason: 'invalid_credentials' },
       ip_address,
     });
-    throw new ApiError(401, 'Invalid email/username or password');
+    throw new ApiError(401, INVALID_MSG);
   }
   if (!user.is_active) {
     await auditService.log({
@@ -37,6 +64,7 @@ const login = async ({ identifier, password, ip_address }) => {
 
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) {
+    if (await registerLocked(user.id, 'invalid_credentials')) return;
     await auditService.log({
       user_id: user.id,
       action: 'LOGIN_FAILED',
@@ -45,8 +73,10 @@ const login = async ({ identifier, password, ip_address }) => {
       details: { identifier: normalized, reason: 'invalid_credentials' },
       ip_address,
     });
-    throw new ApiError(401, 'Invalid email/username or password');
+    throw new ApiError(401, INVALID_MSG);
   }
+
+  lockoutStore.reset(normalized);
 
   await auditService.log({
     user_id: user.id,

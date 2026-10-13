@@ -362,7 +362,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 1280px;
+  /* max-width: 1280px; */
 }
 
 .main > div > h1:first-child {

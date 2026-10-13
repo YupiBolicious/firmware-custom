@@ -11,6 +11,7 @@ const ROLE_OPTIONS = [
 export default function UserManagement() {
   const {
     users,
+    filteredUsers,
     loading,
     error,
     message,
@@ -21,6 +22,10 @@ export default function UserManagement() {
     page,
     setPage,
     totalPages,
+    search,
+    setSearch,
+    role,
+    setRole,
     setForm,
     toggleShowForm,
     handleSave,
@@ -106,7 +111,22 @@ export default function UserManagement() {
 
       <div className="panel table-scroll">
         <h3>Users List</h3>
-        {users.length === 0 ? (
+        <div className="toolbar mb-8">
+          <input
+            className="filter-input"
+            type="search"
+            placeholder="Search name, email, username, role..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select className="filter-input" value={role} onChange={(e) => setRole(e.target.value)}>
+            <option value="ALL">All Roles</option>
+            {ROLE_OPTIONS.map((r) => (
+              <option key={r.code} value={r.code}>{r.code}</option>
+            ))}
+          </select>
+        </div>
+        {(users.length === 0 || filteredUsers.length === 0) ? (
           <div className="text-muted">No users found.</div>
         ) : (
           <table>
@@ -122,7 +142,7 @@ export default function UserManagement() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {filteredUsers.map((u) => (
                 <tr key={u.id} className={u.is_active ? '' : 'row-inactive'}>
                   <td>{u.username}</td>
                   <td>{u.email}</td>

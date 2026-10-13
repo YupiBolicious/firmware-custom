@@ -8,9 +8,14 @@ const { ApiError } = require('../../middleware/errorHandler');
 const { validatePagination, paginatedPayload } = require('../../utils/pagination');
 const { resolveGroupTargets, assertCanEditWorkOrder } = require('./guards');
 
-const listWorkOrders = async ({ page = 1, limit = 15 } = {}) => {
+const listWorkOrders = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
   const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
-  const res = await workOrderRepository.findAll({ page: parsedPage, limit: parsedLimit });
+  const res = await workOrderRepository.findAll({
+    page: parsedPage,
+    limit: parsedLimit,
+    search: typeof search === 'string' ? search.slice(0, 100) : '',
+    status: typeof status === 'string' ? status : '',
+  });
   return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
 };
 
@@ -62,7 +67,7 @@ const createWorkOrder = async ({ wo_number, customer, created_by, groups, items,
   return wo;
 };
 
-const updateWorkOrder = async (id, { title, description, customer, status, user_id, roles, ip_address }) => {
+const updateWorkOrder = async (id, { title, customer, status, user_id, roles, ip_address }) => {
   const existing = await workOrderRepository.findById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order not found');
@@ -76,7 +81,7 @@ const updateWorkOrder = async (id, { title, description, customer, status, user_
     }
   }
 
-  const wo = await workOrderRepository.update(id, { title, description, customer, status });
+  const wo = await workOrderRepository.update(id, { title, customer, status });
 
   if (status === 'DRAFT' && existing.status === 'ANALYZED') {
     await workOrderResetRepository.clearAnalysisByWorkOrderId(id);

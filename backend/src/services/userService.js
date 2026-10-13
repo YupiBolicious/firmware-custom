@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/userRepository');
 const auditService = require('./auditService');
+// const lockoutStore = require('./lockoutStore');
 const userValidator = require('../validators/userValidator');
 const { ApiError } = require('../middleware/errorHandler');
 const { validatePagination, paginatedPayload } = require('../utils/pagination');
@@ -116,6 +117,9 @@ const resetPassword = async ({ actorId, id, body, ip_address }) => {
   if (!updated) {
     throw new ApiError(404, 'User not found');
   }
+//Remove hardblock
+  // lockoutStore.reset(String(existing.email).trim().toLowerCase());
+  // lockoutStore.reset(String(existing.username).trim().toLowerCase());
 
   await auditService.log({
     user_id: actorId,
