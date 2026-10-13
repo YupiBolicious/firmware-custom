@@ -355,14 +355,11 @@ a:hover {
   padding: 20px 24px 32px;
 }
 
-/* Page rhythm: generous section separation (20px) vs tight internal groups (8px).
-   Scale: 4 / 8 / 12 / 20 / 32. Panels keep their own padding; stacked
-   siblings get rhythm from gap, not compounded bottom margins. */
 .main > div {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 1280px;
+  /* max-width: 1280px; */
 }
 
 .main > div > h1:first-child {
@@ -449,10 +446,6 @@ a:hover {
   white-space: nowrap;
 }
 
-/* Compact variant for half-panel tables (e.g. coder dashboard Recent Activity /
-   New Work Orders): keep the real table layout + sticky header so the columns
-   stretch with the panel, but drop the 880px floor that a split-2 half cannot
-   hold. Placed after .table-scroll > table so it wins at equal specificity. */
 .table-scroll--fit > table {
   min-width: 0;
 }
