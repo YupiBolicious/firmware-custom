@@ -4,7 +4,7 @@ const { ApiError } = require('../middleware/errorHandler');
 
 const list = async (req, res, next) => {
   try {
-    const data = await workOrderService.listWorkOrders({ page: req.query.page, limit: req.query.limit });
+    const data = await workOrderService.listWorkOrders({ page: req.query.page, limit: req.query.limit, search: req.query.search, status: req.query.status });
     res.json({ success: true, message: 'Work orders retrieved', data });
   } catch (err) {
     next(err);
