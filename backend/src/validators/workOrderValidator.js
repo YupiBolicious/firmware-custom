@@ -12,9 +12,6 @@ const validateWorkOrderCreate = (req, res, next) => {
   if (!wo_number || typeof wo_number !== 'string' || !wo_number.trim()) {
     errors.push('wo_number is required');
   }
-  // if (description !== undefined && typeof description !== 'string') {
-  //   errors.push('description must be a string');
-  // }
   if (!customer || typeof customer !== 'string' || !customer.trim()) {
     errors.push('customer is required');
   }
@@ -64,9 +61,6 @@ const validateWorkOrderUpdate = (req, res, next) => {
   if (status !== undefined && !['DRAFT', 'ANALYZED', 'FINALIZED'].includes(status)) {
     errors.push('status must be one of DRAFT, ANALYZED, FINALIZED');
   }
-  // if (description !== undefined && typeof description !== 'string') {
-  //   errors.push('description must be a string');
-  // }
   if (customer !== undefined && typeof customer !== 'string') {
     errors.push('customer must be a string');
   }
