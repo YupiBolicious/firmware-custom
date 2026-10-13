@@ -22,6 +22,8 @@ export default function useUserManagement() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [message, setMessage] = useState('');
+  const [search, setSearch] = useState('');
+  const [role, setRole] = useState('ALL');
 
   const load = useCallback(async () => {
     try {
@@ -36,7 +38,18 @@ export default function useUserManagement() {
   }, [page]);
 
   useEffect(() => { load(); }, [load]);
-
+  const filteredUsers = users.filter((u) => {
+    if (role !== 'ALL' && !u.roles.includes(role)) return false;
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return (
+      String(u.username).toLowerCase().includes(q) ||
+      String(u.email).toLowerCase().includes(q) ||
+      String(u.full_name).toLowerCase().includes(q) ||
+      u.roles.some((r) => r.toLowerCase().includes(q))
+    );
+  });  
+  
   const handleSave = useCallback(async (e) => {
     e.preventDefault();
     setError('');
@@ -118,6 +131,7 @@ export default function useUserManagement() {
 
   return {
     users,
+    filteredUsers,
     loading,
     error,
     message,
@@ -128,6 +142,10 @@ export default function useUserManagement() {
     page,
     setPage,
     totalPages,
+    search,
+    setSearch: (v) => { setPage(1); setSearch(v); },
+    role,
+    setRole: (v) => { setPage(1); setRole(v); },
     setForm,
     toggleShowForm: () => setShowForm((v) => !v),
     handleSave,
