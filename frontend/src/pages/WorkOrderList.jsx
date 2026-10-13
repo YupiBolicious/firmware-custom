@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import UploadPreviewModal from '../components/work-order/UploadPreviewModal';
 
+const STATUS_OPTIONS = ['DRAFT', 'ANALYZED', 'FINALIZED', 'PRODUCTION', 'COMPLETED'];
+
 export default function WorkOrderList() {
   const { hasRole } = useAuth();
   const { toast } = useToast();
@@ -17,6 +19,9 @@ export default function WorkOrderList() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('ALL');
   const fileInputRef = useRef(null);
   const [preview, setPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -25,7 +30,7 @@ export default function WorkOrderList() {
 
   const loadWorkOrders = useCallback(async () => {
     try {
-      const res = await api.get('/work-orders', { params: { page } });
+      const res = await api.get('/work-orders', { params: { page, search, status } });
       setWorkOrders(res.data.data.items);
       setTotal(res.data.data.total);
       setPageSize(res.data.data.limit);
@@ -35,11 +40,24 @@ export default function WorkOrderList() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, search, status]);
 
   useEffect(() => {
     loadWorkOrders();
   }, [loadWorkOrders]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const handleStatusChange = (value) => {
+    setStatus(value);
+    setPage(1);
+  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Work order list unavailable.</div>;
@@ -47,6 +65,7 @@ export default function WorkOrderList() {
   const itemCount = workOrders.length;
   const from = itemCount > 0 ? (page - 1) * pageSize + 1 : 0;
   const to = itemCount > 0 ? Math.min(page * pageSize, total) : 0;
+  const hasFilters = search !== '' || status !== 'ALL';
 
   const handleUploadClick = () => {
     fileInputRef.current.click();
@@ -118,8 +137,23 @@ export default function WorkOrderList() {
           </div>
         )}
       </div>
+      <div className="toolbar mb-16">
+        <input
+          className="filter-input"
+          type="search"
+          placeholder="Search WO number, model, customer, creator..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
+        <select className="filter-input" value={status} onChange={(e) => handleStatusChange(e.target.value)}>
+          <option value="ALL">All Statuses</option>
+          {STATUS_OPTIONS.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+      </div>
       {workOrders.length === 0 ? (
-        <div className="panel text-muted">No work orders yet.</div>
+        <div className="panel text-muted">{hasFilters ? 'No work orders match the filters.' : 'No work orders yet.'}</div>
       ) : (
         <>
         <div className="table-scroll">
