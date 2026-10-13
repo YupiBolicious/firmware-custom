@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Sun, Moon } from 'lucide-react';
 import RelativeTime from '../components/RelativeTime';
-import NotificationBell from '../components/NotificationBell';
 import usePmDashboard from './usePmDashboard';
 import FilterSearch from './FilterSearch';
 import StatusBadge from '../components/StatusBadge';
