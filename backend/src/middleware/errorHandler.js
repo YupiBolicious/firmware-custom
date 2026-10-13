@@ -1,10 +1,11 @@
 // Centralized error handling + consistent API responses
 
 class ApiError extends Error {
-  constructor(statusCode, message, errors = []) {
+  constructor(statusCode, message, errors = [], data = {}) {
     super(message);
     this.statusCode = statusCode;
     this.errors = errors;
+    this.data = data;
   }
 }
 
@@ -66,6 +67,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(statusCode).json({
     success: false,
     message,
+    data: err.data || {},
     errors,
   });
 };
