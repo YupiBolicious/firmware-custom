@@ -37,7 +37,7 @@ export default function useWorkOrderDetail() {
     }
   }, [id]);
 
-  const { analyzing, analysis, setAnalysis, handleAnalyze } = useWOAnalysis(id, load, setMessage, setError);
+  const { analyzing, setAnalysis, handleAnalyze } = useWOAnalysis(id, load, setMessage, setError);
   const { access, accessBusy, users, handleGrantAccess, handleRevokeAccess } = useWOAccess(id, setMessage, setError);
   const { groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup, cancelGroupForm, handleSubmitGroup, handleDeleteGroup } = useWOModelSerial(id, load, setMessage, setError);
   const { savingTaskId, notes, setNotes, savingNotes, editing, setEditing, handleCompleteTask, handleSaveNotes } = useWOProductionNotes(id, wo?.notes, setMessage, setError);
@@ -137,9 +137,18 @@ export default function useWorkOrderDetail() {
   };
 
   const woModelCode = wo && wo.groups && wo.groups.length > 0 ? wo.groups[0].machine_model_code || '' : '';
+  const [finalizeConfirm, setFinalizeConfirm] = useState(false);
+  const [startConfirm, setStartConfirm] = useState(false);
+  const [completeConfirm, setCompleteConfirm] = useState(false);
+  
+  const openFinalizeConfirm = () => setFinalizeConfirm(true);
+  const closeFinalizeConfirm = () => { if (finalizing) return; setFinalizeConfirm(false); };
+  const openStartConfirm = () => setStartConfirm(true);
+  const closeStartConfirm = () => { if (startingProduction) return; setStartConfirm(false); };
+  const openCompleteConfirm = () => setCompleteConfirm(true);
+  const closeCompleteConfirm = () => { if (completing) return; setCompleteConfirm(false); };
 
-  // const [finalizeConfirm, setFinalizeConfirm] = useState(false);
-
+  
   const handleFinalize = async () => {
     if (!window.confirm('Finalize this work order?')) return;
     setError('');
@@ -149,6 +158,7 @@ export default function useWorkOrderDetail() {
       await api.post(`/work-orders/${id}/finalize`);
       setMessage('Work order finalized');
       await load();
+      setFinalizeConfirm(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to finalize work order');
     } finally {
@@ -165,6 +175,7 @@ export default function useWorkOrderDetail() {
       await api.post(`/work-orders/${id}/production`);
       setMessage('Work order moved to production');
       await load();
+      setStartConfirm(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to start production');
       if (err.response?.status === 409) { await load(); }
@@ -182,6 +193,7 @@ export default function useWorkOrderDetail() {
       await api.post(`/work-orders/${id}/production/complete`);
       setMessage('Work order completed');
       await load();
+      setCompleteForm(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to complete work order');
       if (err.response?.status === 409) { await load(); }
@@ -191,7 +203,6 @@ export default function useWorkOrderDetail() {
   };
 
   return {
-    id,
     wo,
     error,
     loading,
@@ -207,7 +218,6 @@ export default function useWorkOrderDetail() {
     groupForm,
     editingGroupId,
     showAddGroup,
-    woModelCode,
     access,
     accessBusy,
     users,
@@ -219,8 +229,6 @@ export default function useWorkOrderDetail() {
     handleSaveNotes,
     canEdit,
     canManageAccess,
-    isOwner,
-    isAdmin,
     handleItemChange,
     openAddItem,
     handleAddItem,
@@ -238,6 +246,15 @@ export default function useWorkOrderDetail() {
     handleFinalize,
     handleStartProduction,
     handleCompleteProduction,
+    finalizeConfirm,
+    startConfirm,
+    completeConfirm,
+    openFinalizeConfirm,
+    closeFinalizeConfirm,
+    openStartConfirm,
+    closeStartConfirm,
+    openCompleteConfirm,
+    closeCompleteConfirm,
     handleCompleteTask: (taskId, completed) => handleCompleteTask(taskId, completed, load),
     handleGrantAccess,
     handleRevokeAccess,
