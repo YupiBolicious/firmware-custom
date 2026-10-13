@@ -28,26 +28,16 @@ function formatWorkOrder(item) {
   return null;
 }
 
-function formatEntity(item) {
-  if (item.entity_type === 'WORK_ORDER_ITEM') {
-    if (item.item_number) return `${item.item_number}`;
-    if (item.details?.item_number) return `${item.details.item_number}`;
-    return `#${item.entity_id}`;
-  }
-  if (item.entity_type === 'WORK_ORDER') return 'Work Order';
-  return `${item.entity_type} #${item.entity_id || '-'}`;
-}
+const LOGIN_REASONS = {
+  invalid_credentials: 'Invalid credentials',
+  deactivated: 'Deactivated account',
+  locked: 'Account locked',
+};
 
-function formatDetail(item) {
-  const { wo_number, work_order_number, item_number, work_order_id, title, complexity_code, ...rest } = item.details || {};
-  const parts = [];
-  if (title) parts.push(title);
-  if (rest.status) parts.push(`status: ${rest.status}`);
-  if (complexity_code) parts.push(`complexity: ${complexity_code}`);
-  if (rest.quantity != null) parts.push(`qty: ${rest.quantity}`);
-  if (rest.trigger) parts.push(`trigger: ${rest.trigger}`);
-  if (rest.fw_related != null) parts.push(`fw: ${rest.fw_related ? 'yes' : 'no'}`);
-  return parts.length ? parts.join(', ') : '';
+function formatLogin(item) {
+  const { reason, identifier } = item.details || {};
+  const label = LOGIN_REASONS[reason] || reason || 'Login';
+  return identifier ? `${label} \u2014 ${identifier}` : label;
 }
 
 export default function AuditLog() {
@@ -172,12 +162,13 @@ export default function AuditLog() {
           <div className="table-scroll">
             <table>
               <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>User</th>
-                  <th>Action</th>
-                  <th>Work Orders</th>
-                </tr>
+<tr>
+                      <th>Time</th>
+                      <th>User</th>
+                      <th>Action</th>
+                      <th>Work Order</th>
+                      <th>Details</th>
+                    </tr>
               </thead>
               <tbody>
                 {paginatedItems.map((item) => {
@@ -194,6 +185,13 @@ export default function AuditLog() {
                           <Link to={`/work-orders/${wo.workOrderId}`}>
                             {wo.woNumber}
                           </Link>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td>
+                        {item.action?.startsWith('LOGIN_') ? (
+                          formatLogin(item)
                         ) : (
                           <span className="text-muted">-</span>
                         )}
