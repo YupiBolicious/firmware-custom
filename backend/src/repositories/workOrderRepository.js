@@ -1,4 +1,4 @@
-﻿const pool = require('../config/db');
+const pool = require('../config/db');
 
 //work orders
 const findAll = async ({ page = 1, limit = 15 } = {}) => {
@@ -242,18 +242,17 @@ const createWithGroups = async ({ wo_number, customer, created_by, groups, items
   }
 };
 
-const update = async (id, { title, description, customer, status, notes }) => {
+const update = async (id, { title, customer, status, notes }) => {
   const result = await pool.query(
     `UPDATE work_orders
      SET title = COALESCE($2, title),
-         description = COALESCE($3, description),
-         customer = COALESCE($4, customer),
-         status = COALESCE($5, status),
-         notes = COALESCE($6, notes),
+         customer = COALESCE($3, customer),
+         status = COALESCE($4, status),
+         notes = COALESCE($5, notes),
          updated_at = NOW()
      WHERE id = $1
      RETURNING *`,
-    [id, title, description, customer, status, notes]
+    [id, title, customer, status, notes]
   );
   return result.rows[0] || null;
 };
