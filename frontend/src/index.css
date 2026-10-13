@@ -933,6 +933,31 @@ textarea {
   box-shadow: 0 0 0 3px var(--ring);
 }
 
+.login-box .password-field {
+  position: relative;
+}
+.login-box .password-field input {
+  padding-right: 40px;
+}
+.login-box .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  color: var(--text-muted);
+  line-height: 0;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.login-box .password-toggle:hover {
+  color: var(--accent);
+}
+
 .login-box .alert-error {
   margin-bottom: 16px;
 }
