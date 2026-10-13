@@ -1,8 +1,8 @@
 const notificationRepository = require('../repositories/notificationRepository');
 
-const notify = async ({ user_id, username, status, message, entity_id }) => {
+const notify = async ({ user_id, status, message, entity_id }) => {
   try {
-    await notificationRepository.create({ user_id, user_name: username, status, message, entity_id });
+    await notificationRepository.create({ user_id, status, message, entity_id });
   } catch (err) {
     console.error('Notification send failed:', err.message);
   }
