@@ -72,7 +72,6 @@ export default function WOStatusAccess({
           <div><span className="text-muted">Created By:</span> {wo.created_by_name || '-'}</div>
           <div><span className="text-muted">Created At:</span> {new Date(wo.created_at).toLocaleString()}</div>
         </div>
-        {wo.description && <div className="mt-8 text-muted">{wo.description}</div>}
       </div>
 
       {canManageAccess && (
