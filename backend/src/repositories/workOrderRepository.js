@@ -1,7 +1,32 @@
 const pool = require('../config/db');
 
 //work orders
-const findAll = async ({ page = 1, limit = 15 } = {}) => {
+const findAll = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
+  const params = [];
+  const conditions = [];
+
+  if (status && status !== 'ALL') {
+    params.push(status);
+    conditions.push(`wo.status = $${params.length}`);
+  }
+  const term = typeof search === 'string' ? search.trim() : '';
+  if (term) {
+    params.push(`%${term}%`);
+    const p = params.length;
+    conditions.push(`(wo.wo_number ILIKE $${p} OR wo.title ILIKE $${p} OR wo.customer ILIKE $${p}
+       OR u.full_name ILIKE $${p}
+       OR EXISTS (
+         SELECT 1 FROM work_order_groups gx
+         LEFT JOIN machine_model mmx ON mmx.id = gx.machine_model_id
+         WHERE gx.work_order_id = wo.id AND mmx.model_code ILIKE $${p}
+       ))`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  params.push(limit, (page - 1) * limit);
+  const limitIdx = params.length - 1;
+  const offsetIdx = params.length;
+
   const result = await pool.query(
     /* wo relation with model and version has to be deleted because it would interfere the classification.
      added new relation: to groupWO to get and store ids*/
@@ -23,10 +48,11 @@ const findAll = async ({ page = 1, limit = 15 } = {}) => {
      LEFT JOIN users u ON u.id = wo.created_by
      LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
+     ${where}
      GROUP BY wo.id, u.full_name
      ORDER BY wo.created_at DESC, wo.id DESC
-     LIMIT $1 OFFSET $2`
-    , [limit, (page - 1) * limit]
+     LIMIT $${limitIdx} OFFSET $${offsetIdx}`
+    , params
   );
   return { items: result.rows, total: result.rows[0] ? result.rows[0].total : 0 };
 };
