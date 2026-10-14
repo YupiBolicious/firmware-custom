@@ -6,7 +6,10 @@ const NOISE_LINE = /^(work\s*order\s*form|page\s+\d+\s+of\s+\d+|platform\s+namin
 
 // ponytail: magic column x + the Model Code / Work Order Number Y-window are tuned to this
 // form's template image; revisit if the layout is redrawn.
-const CUSTOM_ITEM_MAX_X = 15;
+// Left "custom items" column ends ~x16.2 and the right "amendment" column starts ~x23,
+// so 20 keeps wrapped fragments ("...14644-", "...Back") while dropping the right column.
+const CUSTOM_ITEM_MAX_X = 20;
+const CUSTOMER_VALUE_MAX_X = 16;
 
 const decodeText = (raw) => {
   try {
@@ -26,6 +29,25 @@ const parsePdfBuffer = (buffer) => new Promise((resolve, reject) => {
   parser.parseBuffer(buffer);
 });
 
+// ponytail: real forms split a label across glyph runs ("Wo" + "rk Order Number")
+// with no visual gap; merge runs whose gap is below this so labels/values read whole.
+// Tuned to the form's text scale (page width ~60 units); revisit if column spacing changes.
+const MERGE_GAP_X = 1.5;
+
+const mergeAdjacentCells = (cells) => {
+  const merged = [];
+  for (const cell of cells) {
+    const prev = merged[merged.length - 1];
+    if (prev && cell.x - prev.lastX <= MERGE_GAP_X) {
+      prev.text += cell.text;
+      prev.lastX = cell.x;
+    } else {
+      merged.push({ x: cell.x, lastX: cell.x, text: cell.text });
+    }
+  }
+  return merged;
+};
+
 //MAPPING KOORDINAT NECESSARY FIELDS
 const reconstructLines = (pdfData) => {
   const lines = [];
@@ -40,8 +62,9 @@ const reconstructLines = (pdfData) => {
     }
     for (const [y, cells] of [...byY.entries()].sort((a, b) => a[0] - b[0])) {
       cells.sort((a, b) => a.x - b.x);
-      const raw = cells.map((c) => c.text).join('');
-      lines.push({ page: pageIndex, y, cells, text: raw.replace(/\s+/g, ' ').trim() });
+      const merged = mergeAdjacentCells(cells);
+      const raw = merged.map((c) => c.text).join('');
+      lines.push({ page: pageIndex, y, cells: merged, text: raw.replace(/\s+/g, ' ').trim() });
     }
   });
   return lines;
@@ -75,17 +98,31 @@ const pickRightOfLabel = (line, labelRe, maxX = Infinity) => {
   return value || null;
 };
 
-const grab = (lines, labelRe) => {
-  for (const line of lines) {
-    const value = pickRightOfLabel(line, labelRe);
-    if (value) return value;
-  }
-  return null;
-};
-
 const findLabelLine = (lines, labelRe) => lines.find(
   (line) => line.cells && line.cells.some((cell) => labelRe.test(normalize(cell.text)))
 );
+
+// ponytail: the real form wraps a cell's value onto the rows directly above/below its
+// label, so the Name value straddles the "Name" row; pull the 3-row band's left-column
+// cells (value column, x<CUSTOMER_VALUE_MAX_X) and skip headings/right-hand Rev Date.
+const grabCustomer = (lines) => {
+  const idx = lines.findIndex(
+    (line) => line.cells && line.cells.some((cell) => /^NAME$/.test(normalize(cell.text)))
+  );
+  if (idx === -1) return null;
+  const labelCell = lines[idx].cells.find((cell) => /^NAME$/.test(normalize(cell.text)));
+  const parts = [];
+  for (let i = idx - 1; i <= idx + 1; i += 1) {
+    const line = lines[i];
+    if (!line || !line.cells) continue;
+    for (const cell of line.cells) {
+      if (cell.x <= labelCell.x + 2 || cell.x >= CUSTOMER_VALUE_MAX_X) continue;
+      if (/^NAME$/.test(normalize(cell.text)) || classifyHeading(cell.text)) continue;
+      parts.push(cell.text);
+    }
+  }
+  return parts.join('').replace(/\s+/g, ' ').trim() || null;
+};
 
 
 // SPECIFIC EXTRACTING MULTIPLE LINE ON CUSTOM ITEMS
@@ -122,15 +159,13 @@ const extractCustomizeWith = (lines, modelLabelLine, woLabelLine) => {
     const match = lineText.match(NUMBER_START_RE);
 
     if (match) {
-      // JIKA MENEMUKAN NOMOR POIN BARU (misal "2. CUSTOM B")
-      // Buat elemen baru di array items!
+      // new elemen in new array if poin baru exist
       const itemContent = match[2].trim();
       if (itemContent) {
         items.push(itemContent);
       }
     } else if (items.length > 0) {
-      // JIKA TIDAK ADA NOMOR DAN SUDAH ADA ITEM AKTIF
-      // Gabungkan ke item terakhir sebagai sambungan teks (multiline)
+      // combine last item as multiline if no nomber and item active existed
       items[items.length - 1] += ` ${lineText.trim()}`;
     } else {
       // Fallback jika poin pertama tidak diawali nomor
@@ -138,14 +173,13 @@ const extractCustomizeWith = (lines, modelLabelLine, woLabelLine) => {
     }
   }
 
-  // Clean-up akhir: bersihkan spasi ganda
   return items.map((item) => item.replace(/\s+/g, ' ').trim()).filter(Boolean);
 };
 
 
 // EXTRACT EACH FIELDS
 const extractFields = (lines) => {
-  const buckets = { customer: [], factory: [] };
+  const buckets = { factory: [] };
   let current = 'ignore';
   for (const line of lines) {
     if (NOISE_LINE.test(line.text)) continue;
@@ -157,8 +191,8 @@ const extractFields = (lines) => {
   const modelLabelLine = findLabelLine(buckets.factory, /^MODEL\s*CODE$/);
   const woLabelLine = findLabelLine(buckets.factory, /^WORK\s*ORDER\s*NUMBER$/);
 
-  // Kolom Model Code & Serial Number ada di sebelah kiri (X < 12)
-  // Kolom Power Supply & Cordset Qty ada di sebelah kanan (X >= 12)
+  // model and SN on left (X < 12)
+  // power supply and quantity (X >= 12)
   const MAX_LEFT_COL_X = 12;
 
   const rawSerial = grabWithMaxX(buckets.factory, /^SERIAL\s*NUMBER\s*S?$/, MAX_LEFT_COL_X);
@@ -169,7 +203,7 @@ const extractFields = (lines) => {
     serial_numbers: rawSerial ? rawSerial.split(/[,;]+/).map((s) => s.trim()).filter(Boolean) : [],
     customize_with: extractCustomizeWith(lines, modelLabelLine, woLabelLine)
       .map((title) => ({ title, quantity: parseComponentQuantity(title) })),
-    customer: grab(buckets.customer, /^NAME$/),
+    customer: grabCustomer(lines),
   };
 };
 // Helper dengan parameter maxX
