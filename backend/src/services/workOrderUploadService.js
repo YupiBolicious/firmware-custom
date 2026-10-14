@@ -1,13 +1,11 @@
 const PDFParser = require('pdf2json');
 const { ApiError } = require('../middleware/errorHandler');
-const { parseComponentQuantity } = require('../utils/qtyParser');
+const { resolveQuantity } = require('../utils/qtyParser');
 
 const NOISE_LINE = /^(work\s*order\s*form|page\s+\d+\s+of\s+\d+|platform\s+naming|raised\s*by\s*:|saved\s*by\s*:|designer\s*:|checked\s*by\s*csis\s*manager\s*:|document\s*number\s*:|revision\s*:|revised\s*by\s*:|path\s*:)/i;
 
-// ponytail: magic column x + the Model Code / Work Order Number Y-window are tuned to this
-// form's template image; revisit if the layout is redrawn.
-// Left "custom items" column ends ~x16.2 and the right "amendment" column starts ~x23,
-// so 20 keeps wrapped fragments ("...14644-", "...Back") while dropping the right column.
+// ponytail: magic column x + the Model Code / Work Order Number Y-window are tuned
+// Left "custom items" column ends ~x16.2 and the right "amendment" column starts ~x23
 const CUSTOM_ITEM_MAX_X = 20;
 const CUSTOMER_VALUE_MAX_X = 16;
 
@@ -202,7 +200,17 @@ const extractFields = (lines) => {
     model_code: grabWithMaxX(buckets.factory, /^MODEL\s*CODE$/, MAX_LEFT_COL_X),
     serial_numbers: rawSerial ? rawSerial.split(/[,;]+/).map((s) => s.trim()).filter(Boolean) : [],
     customize_with: extractCustomizeWith(lines, modelLabelLine, woLabelLine)
-      .map((title) => ({ title, quantity: parseComponentQuantity(title) })),
+      .map((title) => {
+        const qty = resolveQuantity(title);
+        return {
+          title,
+          quantity: qty.quantity,
+          quantity_source: qty.source,
+          quantity_confidence: qty.confidence,
+          quantity_evidence: qty.evidence,
+          quantity_needs_review: qty.needs_review,
+        };
+      }),
     customer: grabCustomer(lines),
   };
 };
