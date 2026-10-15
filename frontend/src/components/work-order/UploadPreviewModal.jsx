@@ -10,7 +10,12 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, er
     model_code: (extracted.model_code || '').trim(),
     serial_numbers: (extracted.serial_numbers || []).join(', '),
     items: (extracted.customize_with || [])
-      .map((item) => ({ title: item.title || '', quantity: Number(item.quantity) || 1 })),
+      .map((item) => ({
+        title: item.title || '',
+        quantity: Number(item.quantity) || 1,
+        needsReview: !!item.quantity_needs_review,
+        evidence: item.quantity_evidence || [],
+      })),
   }));
 
   const updateItem = (index, patch) => {
@@ -124,7 +129,7 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, er
                 min="1"
                 name="item-quantity"
                 value={item.quantity}
-                onChange={(e) => updateItem(index, { quantity: e.target.value })}
+                onChange={(e) => updateItem(index, { quantity: e.target.value, needsReview: false })}
                 style={{ width: 80 }}
                 title="Quantity"
               />

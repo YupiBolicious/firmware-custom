@@ -9,6 +9,7 @@ const emptyForm = {
   model: '',
   serial_numbers: '',
   itemsText: '',
+  revision: 0,
 };
 
 const capitalizeWords = (value = '') =>
@@ -25,6 +26,8 @@ export default function useWorkOrderCreate() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
+  const [duplicate, setDuplicate] = useState(null);
+  const [permissionError, setPermissionError] = useState('');
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -35,6 +38,7 @@ export default function useWorkOrderCreate() {
         const workOrder = response.data.data;
         setForm({
           wo_number: workOrder.wo_number,
+          revision: workOrder.revision ?? 0,
           itemsText: (workOrder.items || [])
             .map((item) => item.title)
             .filter(Boolean)
@@ -59,12 +63,8 @@ export default function useWorkOrderCreate() {
   const handleChange = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value });
   };
- 
-  const handleSubmit = async (event) => {
-  event.preventDefault();
-  setError('');
-  setSaving(true);
 
+  const buildBody = () => {
     const serialNumbers = (form.serial_numbers || '')
       .split(',')
       .map((sn) => sn.trim())
@@ -82,43 +82,88 @@ export default function useWorkOrderCreate() {
       .map((title) => ({
         title: capitalizeWords(title),
         quantity: 1,
-    }));
-    
+      }));
 
-    const formattedForm = {
+    return {
       wo_number: form.wo_number.trim().toUpperCase(),
-      // description: capitalizeWords(form.description),
-      customer: form.customer?.trim()
-        ? capitalizeWords(form.customer)
-        : '',
+      revision: Number(form.revision) >= 0 ? Number(form.revision) : 0,
+      customer: form.customer?.trim() ? capitalizeWords(form.customer) : '',
+      groups,
+      items,
     };
+  };
 
+  const submitCreate = async (extra = {}) => {
+    setError('');
+    setSaving(true);
     try {
-      if (isEditMode) {
-        await api.put(`/work-orders/${id}`, formattedForm);
-        navigate(`/work-orders/${id}`);
-      } else {
-        const response = await api.post('/work-orders', {
-          ...formattedForm,
-          groups,
-          items,
-        });
-
-        navigate(`/work-orders/${response.data.data.id}`);
-      }
+      const response = await api.post('/work-orders', { ...buildBody(), ...extra });
+      navigate(`/work-orders/${response.data.data.id}`);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        `Failed to ${isEditMode ? 'update' : 'create'} work order`
-      );
+      const body = err.response?.data;
+      if (err.response?.status === 409 && body?.data?.code === 'WO_DUPLICATE') {
+        setDuplicate(body.data);
+        setError('');
+        return;
+      }
+      if (err.response?.status === 403 && body?.data?.code === 'WO_FORBIDDEN') {
+        setDuplicate(null);
+        setPermissionError(body?.message || "You don't have permission to edit this work order");
+        setError('');
+        return;
+      }
+      setError(body?.message || 'Failed to create work order');
     } finally {
       setSaving(false);
     }
   };
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+
+    if (isEditMode) {
+      setSaving(true);
+      try {
+        await api.put(`/work-orders/${id}`, {
+          wo_number: form.wo_number.trim().toUpperCase(),
+          revision: Number(form.revision) >= 0 ? Number(form.revision) : 0,
+          customer: form.customer?.trim() ? capitalizeWords(form.customer) : '',
+        });
+        navigate(`/work-orders/${id}`);
+      } catch (err) {
+        const body = err.response?.data;
+        if (err.response?.status === 403 && body?.data?.code === 'WO_FORBIDDEN') {
+          setPermissionError(body?.message || "You don't have permission to edit this work order");
+          setError('');
+          return;
+        }
+        setError(body?.message || 'Failed to update work order');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    await submitCreate();
+  };
+
+  const handleConfirmOverwrite = async () => {
+    setDuplicate(null);
+    await submitCreate({ overwrite: true });
+  };
+
   const handleCancel = () => {
     navigate(isEditMode ? `/work-orders/${id}` : '/work-orders');
   };
+
+  const handleOpenExisting = () => {
+    if (duplicate) navigate(`/work-orders/${duplicate.existing_work_order_id}`);
+  };
+
+  const handleDismissDuplicate = () => setDuplicate(null);
+
+  const handleDismissPermission = () => setPermissionError('');
 
     return {
     form,
@@ -126,8 +171,14 @@ export default function useWorkOrderCreate() {
     loading,
     saving,
     isEditMode,
+    duplicate,
+    permissionError,
     handleChange,
     handleSubmit,
     handleCancel,
+    handleOpenExisting,
+    handleDismissDuplicate,
+    handleConfirmOverwrite,
+    handleDismissPermission,
   };
 }

@@ -44,27 +44,79 @@ const getWorkOrder = async (id) => {
   return { ...wo, groups, items: stamped, production_tasks: productionTasks };
 };
 
-const createWorkOrder = async ({ wo_number, customer, created_by, groups, items, ip_address }) => {
-  const existing = await workOrderRepository.findByWoNumber(wo_number);
-  if (existing) {
-    throw new ApiError(409, 'A work order with this number already exists');
-  }
-  const resolvedGroups = [];
+const resolveGroupTargetsAll = async (groups) => {
+  const resolved = [];
   for (const group of groups || []) {
     const targets = await resolveGroupTargets(group.machine_model_id);
-    resolvedGroups.push({ ...targets, serial_number: group.serial_number });
+    resolved.push({ ...targets, serial_number: group.serial_number });
   }
-  const wo = await workOrderRepository.createWithGroups({ wo_number, customer, created_by, groups: resolvedGroups, items });
+  return resolved;
+};
+
+const createWorkOrder = async ({ wo_number, customer, created_by, groups, items, revision = 0, overwrite = false, roles = [], ip_address }) => {
+  const normalizedRevision = Number.isInteger(revision) && revision >= 0 ? revision : 0;
+
+  const existing = await workOrderRepository.findByWoNumber(wo_number);
+  if (existing) {
+    if (!overwrite) {
+      throw new ApiError(
+        409,
+        `Work order ${existing.wo_number} already exists at revision ${existing.revision}`,
+        [],
+        {
+          code: 'WO_DUPLICATE',
+          existing_work_order_id: existing.id,
+          existing_wo_number: existing.wo_number,
+          existing_revision: existing.revision,
+          existing_status: existing.status,
+        }
+      );
+    }
+
+    // Rewriting an existing WO is an edit: only the owner, a granted user, or an admin may do it.
+    await assertCanEditWorkOrder(existing, created_by, roles);
+
+    const wo = await workOrderRepository.reviseWithGroups({
+      id: existing.id,
+      customer,
+      groups: await resolveGroupTargetsAll(groups),
+      items,
+    });
+    await auditService.log({
+      user_id: created_by,
+      action: 'WORK_ORDER_REVISED',
+      entity_type: 'WORK_ORDER',
+      entity_id: wo.id,
+      work_order_id: wo.id,
+      details: {
+        wo_number: wo.wo_number,
+        revision: { from: existing.revision, to: wo.revision },
+        group_count: wo.groups.length,
+        item_count: (wo.items || []).length,
+      },
+      ip_address,
+    });
+    return { ...wo, revised: true, previous_revision: existing.revision };
+  }
+
+  const wo = await workOrderRepository.createWithGroups({
+    wo_number,
+    customer,
+    created_by,
+    groups: await resolveGroupTargetsAll(groups),
+    items,
+    revision: normalizedRevision,
+  });
   await auditService.log({
     user_id: created_by,
     action: 'WORK_ORDER_CREATED',
     entity_type: 'WORK_ORDER',
     entity_id: wo.id,
     work_order_id: wo.id,
-    details: { wo_number: wo.wo_number, group_count: wo.groups.length, item_count: (wo.items||[]).length },
+    details: { wo_number: wo.wo_number, revision: wo.revision, group_count: wo.groups.length, item_count: (wo.items||[]).length },
     ip_address,
   });
-  return wo;
+  return { ...wo, revised: false };
 };
 
 const updateWorkOrder = async (id, { title, customer, status, user_id, roles, ip_address }) => {

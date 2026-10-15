@@ -49,17 +49,17 @@ const findReviewQueue = async () => {
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number,
             woi.title, woi.description, woi.quantity,
             wo.wo_number, wo.title AS work_order_title,
-            mm.model_code AS machine_model_code, mmv.version_code AS machine_model_version,
-            g.serial_number,
+            (SELECT string_agg(DISTINCT mm2.model_code, '; ')
+               FROM work_order_groups g2
+               LEFT JOIN machine_model mm2 ON mm2.id = g2.machine_model_id
+              WHERE g2.work_order_id = woi.work_order_id) AS machine_model_code,
+    
             c.classification_reason, c.confidence_score, c.status,
             c.created_at,
             cl.code AS complexity_code, cl.name AS complexity_name,
             COALESCE(COALESCE(ie.total_hours, 0), 0)::numeric AS estimated_hours
      FROM work_order_items woi
-     LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
      JOIN work_orders wo ON wo.id = woi.work_order_id
-     LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
-     LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
      JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
@@ -72,19 +72,19 @@ const findReviewQueue = async () => {
 const findWorkQueue = async () => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title, woi.description,
-            woi.quantity, wo.wo_number, wo.title AS work_order_title,
+            woi.quantity,             wo.wo_number, wo.title AS work_order_title,
             wo.status AS work_order_status, wo.created_at AS work_order_created_at,
-            mm.model_code AS machine_model_code, mmv.version_code AS machine_model_version,
-            g.serial_number,
+            (SELECT string_agg(DISTINCT mm2.model_code, '; ')
+               FROM work_order_groups g2
+               LEFT JOIN machine_model mm2 ON mm2.id = g2.machine_model_id
+              WHERE g2.work_order_id = woi.work_order_id) AS machine_model_code,
+            
             cl.code AS complexity_code, cl.name AS complexity_name,
             c.status AS classification_status, c.confidence_score,
             c.reviewed_by, c.created_at AS classification_created_at,
             COALESCE(COALESCE(ie.total_hours, 0), 0)::numeric AS estimated_hours
      FROM work_order_items woi
-     LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
      JOIN work_orders wo ON wo.id = woi.work_order_id
-     LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
-     LEFT JOIN machine_model_ver mmv ON mmv.id = g.machine_model_version_id
      JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id

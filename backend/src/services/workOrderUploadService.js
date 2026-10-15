@@ -1,12 +1,16 @@
 const PDFParser = require('pdf2json');
+const mammoth = require('mammoth');
 const { ApiError } = require('../middleware/errorHandler');
-const { parseComponentQuantity } = require('../utils/qtyParser');
+const { resolveQuantity } = require('../utils/qtyParser');
 
 const NOISE_LINE = /^(work\s*order\s*form|page\s+\d+\s+of\s+\d+|platform\s+naming|raised\s*by\s*:|saved\s*by\s*:|designer\s*:|checked\s*by\s*csis\s*manager\s*:|document\s*number\s*:|revision\s*:|revised\s*by\s*:|path\s*:)/i;
 
 // ponytail: magic column x + the Model Code / Work Order Number Y-window are tuned to this
 // form's template image; revisit if the layout is redrawn.
-const CUSTOM_ITEM_MAX_X = 15;
+// Left "custom items" column ends ~x16.2 and the right "amendment" column starts ~x23,
+// so 20 keeps wrapped fragments ("...14644-", "...Back") while dropping the right column.
+const CUSTOM_ITEM_MAX_X = 20;
+const CUSTOMER_VALUE_MAX_X = 16;
 
 const decodeText = (raw) => {
   try {
@@ -26,6 +30,25 @@ const parsePdfBuffer = (buffer) => new Promise((resolve, reject) => {
   parser.parseBuffer(buffer);
 });
 
+// ponytail: real forms split a label across glyph runs ("Wo" + "rk Order Number")
+// with no visual gap; merge runs whose gap is below this so labels/values read whole.
+// Tuned to the form's text scale (page width ~60 units); revisit if column spacing changes.
+const MERGE_GAP_X = 1.5;
+
+const mergeAdjacentCells = (cells) => {
+  const merged = [];
+  for (const cell of cells) {
+    const prev = merged[merged.length - 1];
+    if (prev && cell.x - prev.lastX <= MERGE_GAP_X) {
+      prev.text += cell.text;
+      prev.lastX = cell.x;
+    } else {
+      merged.push({ x: cell.x, lastX: cell.x, text: cell.text });
+    }
+  }
+  return merged;
+};
+
 //MAPPING KOORDINAT NECESSARY FIELDS
 const reconstructLines = (pdfData) => {
   const lines = [];
@@ -40,8 +63,9 @@ const reconstructLines = (pdfData) => {
     }
     for (const [y, cells] of [...byY.entries()].sort((a, b) => a[0] - b[0])) {
       cells.sort((a, b) => a.x - b.x);
-      const raw = cells.map((c) => c.text).join('');
-      lines.push({ page: pageIndex, y, cells, text: raw.replace(/\s+/g, ' ').trim() });
+      const merged = mergeAdjacentCells(cells);
+      const raw = merged.map((c) => c.text).join('');
+      lines.push({ page: pageIndex, y, cells: merged, text: raw.replace(/\s+/g, ' ').trim() });
     }
   });
   return lines;
@@ -75,17 +99,34 @@ const pickRightOfLabel = (line, labelRe, maxX = Infinity) => {
   return value || null;
 };
 
-const grab = (lines, labelRe) => {
-  for (const line of lines) {
-    const value = pickRightOfLabel(line, labelRe);
-    if (value) return value;
-  }
-  return null;
-};
-
 const findLabelLine = (lines, labelRe) => lines.find(
   (line) => line.cells && line.cells.some((cell) => labelRe.test(normalize(cell.text)))
 );
+
+// ponytail: the real form wraps a cell's value onto the rows directly above/below its
+// label, so the Name value straddles the "Name" row; pull the 3-row band's left-column
+// cells (value column, x<CUSTOMER_VALUE_MAX_X) and skip headings/right-hand Rev Date.
+const grabCustomer = (lines) => {
+  const idx = lines.findIndex(
+    (line) => line.cells && line.cells.some((cell) => /^NAME$/.test(normalize(cell.text)))
+  );
+  if (idx === -1) return null;
+  const labelCell = lines[idx].cells.find((cell) => /^NAME$/.test(normalize(cell.text)));
+  const parts = [];
+  for (let i = idx - 1; i <= idx + 1; i += 1) {
+    const line = lines[i];
+    if (!line || !line.cells) continue;
+    // A wrapping row has no cell in the label's own column; a row with its own label
+    // (e.g. "Country" under "Name") is a different field, so stop taking its value.
+    if (i !== idx && line.cells.some((cell) => Math.abs(cell.x - labelCell.x) < 0.5)) continue;
+    for (const cell of line.cells) {
+      if (cell.x <= labelCell.x + 2 || cell.x >= CUSTOMER_VALUE_MAX_X) continue;
+      if (/^NAME$/.test(normalize(cell.text)) || classifyHeading(cell.text)) continue;
+      parts.push(cell.text);
+    }
+  }
+  return parts.join('').replace(/\s+/g, ' ').trim() || null;
+};
 
 
 // SPECIFIC EXTRACTING MULTIPLE LINE ON CUSTOM ITEMS
@@ -122,15 +163,13 @@ const extractCustomizeWith = (lines, modelLabelLine, woLabelLine) => {
     const match = lineText.match(NUMBER_START_RE);
 
     if (match) {
-      // JIKA MENEMUKAN NOMOR POIN BARU (misal "2. CUSTOM B")
-      // Buat elemen baru di array items!
+      // new elemen in new array if poin baru exist
       const itemContent = match[2].trim();
       if (itemContent) {
         items.push(itemContent);
       }
     } else if (items.length > 0) {
-      // JIKA TIDAK ADA NOMOR DAN SUDAH ADA ITEM AKTIF
-      // Gabungkan ke item terakhir sebagai sambungan teks (multiline)
+      // combine last item as multiline if no nomber and item active existed
       items[items.length - 1] += ` ${lineText.trim()}`;
     } else {
       // Fallback jika poin pertama tidak diawali nomor
@@ -138,14 +177,42 @@ const extractCustomizeWith = (lines, modelLabelLine, woLabelLine) => {
     }
   }
 
-  // Clean-up akhir: bersihkan spasi ganda
   return items.map((item) => item.replace(/\s+/g, ' ').trim()).filter(Boolean);
 };
 
 
+// ponytail: the "Rev" column is read from the customer-info band's right column; the
+// x-offset window and the FACTORY INFORMATION lower bound are tuned to this form
+// template. Revisit if the right column is redrawn; the preview modal lets the PM
+// override the value so a miss is recoverable.
+const REV_HEADER_RE = /^REV(\s+DATE)?$/;
+
+const extractRevision = (lines) => {
+  const headerLine = lines.find(
+    (line) => line.cells && line.cells.some((cell) => REV_HEADER_RE.test(normalize(cell.text)))
+  );
+  if (!headerLine) return null;
+  const headerCell = headerLine.cells.find((cell) => REV_HEADER_RE.test(normalize(cell.text)));
+  const minX = headerCell.x - 0.5;
+  const maxX = headerCell.x + 1.8;
+
+  const revisions = [];
+  for (const line of lines) {
+    if (line.page !== headerLine.page) continue;
+    if (line.y <= headerLine.y) continue;
+    if (/FACTORY\s+INFORMATION/.test(normalize(line.text))) break;
+    for (const cell of line.cells || []) {
+      if (cell.x < minX || cell.x > maxX) continue;
+      const match = normalize(cell.text).match(/^(\d+)/);
+      if (match) revisions.push(parseInt(match[1], 10));
+    }
+  }
+  return revisions.length ? Math.max(...revisions) : null;
+};
+
 // EXTRACT EACH FIELDS
 const extractFields = (lines) => {
-  const buckets = { customer: [], factory: [] };
+  const buckets = { factory: [] };
   let current = 'ignore';
   for (const line of lines) {
     if (NOISE_LINE.test(line.text)) continue;
@@ -157,8 +224,8 @@ const extractFields = (lines) => {
   const modelLabelLine = findLabelLine(buckets.factory, /^MODEL\s*CODE$/);
   const woLabelLine = findLabelLine(buckets.factory, /^WORK\s*ORDER\s*NUMBER$/);
 
-  // Kolom Model Code & Serial Number ada di sebelah kiri (X < 12)
-  // Kolom Power Supply & Cordset Qty ada di sebelah kanan (X >= 12)
+  // model and SN on left (X < 12)
+  // power supply and quantity (X >= 12)
   const MAX_LEFT_COL_X = 12;
 
   const rawSerial = grabWithMaxX(buckets.factory, /^SERIAL\s*NUMBER\s*S?$/, MAX_LEFT_COL_X);
@@ -166,10 +233,21 @@ const extractFields = (lines) => {
   return {
     wo_number: grabWithMaxX(buckets.factory, /^WORK\s*ORDER\s*NUMBER$/, MAX_LEFT_COL_X),
     model_code: grabWithMaxX(buckets.factory, /^MODEL\s*CODE$/, MAX_LEFT_COL_X),
+    revision: extractRevision(lines),
     serial_numbers: rawSerial ? rawSerial.split(/[,;]+/).map((s) => s.trim()).filter(Boolean) : [],
     customize_with: extractCustomizeWith(lines, modelLabelLine, woLabelLine)
-      .map((title) => ({ title, quantity: parseComponentQuantity(title) })),
-    customer: grab(buckets.customer, /^NAME$/),
+      .map((title) => {
+        const qty = resolveQuantity(title);
+        return {
+          title,
+          quantity: qty.quantity,
+          quantity_source: qty.source,
+          quantity_confidence: qty.confidence,
+          quantity_evidence: qty.evidence,
+          quantity_needs_review: qty.needs_review,
+        };
+      }),
+    customer: grabCustomer(lines),
   };
 };
 // Helper dengan parameter maxX
@@ -186,4 +264,73 @@ const parseWorkOrderPdf = async (buffer) => {
   return extractFields(reconstructLines(pdfData));
 };
 
-module.exports = { parseWorkOrderPdf, extractFields, reconstructLines };
+const extractTextFromHtml = (html) => {
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// ponytail: a docx has no glyph coordinates, so column position is rebuilt from the
+// table grid (cell index x 10) to land on the same scale the PDF's x-windows expect
+// (label ~2, value column ~9, right column ~19). Revisit if the form gains columns.
+const DOCX_COLUMN_WIDTH = 10;
+
+const reconstructLinesFromDocx = (html) => {
+  const lines = [];
+  let y = 0;
+  const rows = html.match(/<tr>[\s\S]*?<\/tr>/g) || [];
+  for (const rowHtml of rows) {
+    const cells = [];
+    const extra = [];
+    const rowCells = rowHtml.match(/<td[^>]*>[\s\S]*?<\/td>/g) || [];
+    rowCells.forEach((cellHtml, index) => {
+      const x = index * DOCX_COLUMN_WIDTH;
+      // The docx keeps a cell's bullet list inside that cell; the PDF lays each item on
+      // its own line between the label and the next field, which the custom-item extractor
+      // relies on. Split them back out, numbered the way the PDF numbers them.
+      const items = [];
+      const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/g;
+      let liMatch;
+      while ((liMatch = liRegex.exec(cellHtml)) !== null) {
+        const item = extractTextFromHtml(liMatch[1]);
+        if (item) items.push(`${items.length + 1}. ${item}`);
+      }
+      const liStart = cellHtml.search(/<li[^>]*>/i);
+      const head = liStart === -1 ? cellHtml : cellHtml.slice(0, liStart);
+      const text = extractTextFromHtml(head).replace(/Customize with:?\s*$/i, '').trim();
+      if (text) cells.push({ x, text });
+      for (const item of items) extra.push({ x, text: item });
+    });
+    if (cells.length > 0 || extra.length > 0) {
+      const merged = mergeAdjacentCells(cells.sort((a, b) => a.x - b.x));
+      const raw = merged.map((c) => c.text).join('');
+      lines.push({
+        page: 0,
+        y: y++,
+        cells: merged,
+        text: raw.replace(/\s+/g, ' ').trim(),
+      });
+    }
+    for (const item of extra) {
+      lines.push({ page: 0, y: y++, cells: [item], text: item.text });
+    }
+  }
+  return lines;
+};
+
+const parseWorkOrderDocx = async (buffer) => {
+  try {
+    const result = await mammoth.convertToHtml({ buffer });
+    const lines = reconstructLinesFromDocx(result.value);
+    return extractFields(lines);
+  } catch (err) {
+    throw new ApiError(400, 'Could not read Word file');
+  }
+};
+
+module.exports = { parseWorkOrderPdf, parseWorkOrderDocx, extractFields, extractRevision, reconstructLines, reconstructLinesFromDocx };

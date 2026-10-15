@@ -44,8 +44,9 @@ const uploadPdf = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (path.extname(file.originalname).toLowerCase() === '.pdf') return cb(null, true);
-    cb(new ApiError(400, 'Only PDF files are allowed'));
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.pdf' || ext === '.docx') return cb(null, true);
+    cb(new ApiError(400, 'Only PDF or DOCX files are allowed'));
   },
 });
 
