@@ -279,6 +279,7 @@ const confirmUploadWorkOrder = async (req, res, next) => {
       serial_numbers = [],
       customize_with = [],
       overwrite = false,
+      revision,
     } = req.body || {};
 
     if (!wo_number || typeof wo_number !== 'string' || !wo_number.trim()) {
@@ -317,6 +318,7 @@ const confirmUploadWorkOrder = async (req, res, next) => {
       created_by: req.user.id,
       roles: req.user.roles,
       ip_address: req.ip,
+      revision: Number.isFinite(Number(revision)) && Number(revision) >= 0 ? Number(revision) : 0,
     });
 
     const revised = Boolean(wo.revised);
@@ -333,6 +335,7 @@ const confirmUploadWorkOrder = async (req, res, next) => {
         serial_numbers,
         customize_with: items,
         customer,
+        revision: wo.revision,
       },
     });
   } catch (err) {
