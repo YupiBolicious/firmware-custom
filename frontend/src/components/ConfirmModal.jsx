@@ -11,6 +11,7 @@ export default function ConfirmModal({
   confirmVariant = 'primary',
   loading = false,
   disabled = false,
+  hideCancel = false,
 }) {
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -58,9 +59,11 @@ export default function ConfirmModal({
           <p style={{ margin: 0, color: 'var(--text)' }}>{message}</p>
         </div>
         <div className="modal-footer flex justify-end gap-8">
-          <button className="btn btn-secondary" type="button" onClick={onClose} disabled={loading}>
-            {cancelLabel}
-          </button>
+          {!hideCancel && (
+            <button className="btn btn-secondary" type="button" onClick={onClose} disabled={loading}>
+              {cancelLabel}
+            </button>
+          )}
           <button
             className={confirmClass}
             type="button"
