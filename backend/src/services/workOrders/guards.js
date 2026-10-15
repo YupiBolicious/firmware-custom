@@ -21,7 +21,7 @@ const assertCanEditWorkOrder = async (wo, user_id, roles) => {
   if (wo.created_by === Number(user_id)) return;
   const granted = await workOrderAccessRepository.hasAccess(wo.id, user_id);
   if (granted) return;
-  throw new ApiError(403, 'You do not have permission to edit this work order');
+  throw new ApiError(403, 'You do not have permission to edit this work order', [], { code: 'WO_FORBIDDEN' });
 };
 
 const assertCanManageAccess = async (wo, user_id, roles) => {
