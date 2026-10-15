@@ -86,8 +86,11 @@ const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title,
             woi.description, wo.wo_number, wo.title AS work_order_title,
-            mm.model_code AS machine_model_code,
-            g.serial_number,
+            (SELECT string_agg(DISTINCT mm2.model_code, '; ')
+               FROM work_order_groups g2
+               LEFT JOIN machine_model mm2 ON mm2.id = g2.machine_model_id
+              WHERE g2.work_order_id = woi.work_order_id) AS machine_model_code,
+            
             c.classification_reason, c.status, c.created_at,
             c.assist_kb_id, c.assist_kb_code, c.assist_match_score, c.assist_semantic_margin,
             c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
@@ -96,9 +99,7 @@ const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
             kb_s.confidence_score AS assist_kb_confidence_score,
             COUNT(*) OVER ()::int AS total
      FROM work_order_items woi
-     LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
      JOIN work_orders wo ON wo.id = woi.work_order_id
-     LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
      JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN kb_items kb_s ON kb_s.id = c.assist_kb_id
      WHERE c.status = 'CODER_REVIEW'
