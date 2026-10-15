@@ -47,9 +47,17 @@ const create = async (req, res, next) => {
     const data = await workOrderService.createWorkOrder({
       ...req.body,
       created_by: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
-    res.status(201).json({ success: true, message: 'Work order created successfully', data });
+    const revised = Boolean(data.revised);
+    res.status(revised ? 200 : 201).json({
+      success: true,
+      message: revised
+        ? `Work order ${data.wo_number} updated to revision ${data.revision}`
+        : 'Work order created successfully',
+      data,
+    });
   } catch (err) {
     next(err);
   }
@@ -250,6 +258,7 @@ const previewWorkOrder = async (req, res, next) => {
     if (!fields.model_code) warnings.push('model_code');
     if (!fields.serial_numbers.length) warnings.push('serial_numbers');
 
+    // 3. Preview only — nothing is written until the user confirms.
     return res.json({
       success: true,
       message: 'PDF parsed for preview',
@@ -269,6 +278,7 @@ const confirmUploadWorkOrder = async (req, res, next) => {
       model_code,
       serial_numbers = [],
       customize_with = [],
+      overwrite = false,
     } = req.body || {};
 
     if (!wo_number || typeof wo_number !== 'string' || !wo_number.trim()) {
@@ -297,19 +307,24 @@ const confirmUploadWorkOrder = async (req, res, next) => {
       quantity: Number.isInteger(item.quantity) && item.quantity >= 1 ? item.quantity : 1,
     }));
 
-    // Save Work Order ke Database
+    // Existing work orders require an explicit overwrite confirmation.
     const wo = await workOrderService.createWorkOrder({
       wo_number: wo_number.trim(),
       customer: customer || null,
       groups,
       items,
+      overwrite: overwrite === true,
       created_by: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
 
-    return res.status(201).json({
+    const revised = Boolean(wo.revised);
+    return res.status(revised ? 200 : 201).json({
       success: true,
-      message: warnings.length ? 'Work order imported with warnings' : 'Successfully uploaded work order',
+      message: revised
+        ? `Work order ${wo.wo_number} rewritten to draft`
+        : (warnings.length ? 'Work order imported with warnings' : 'Successfully uploaded work order'),
       data: wo,
       warnings,
       extracted: {
