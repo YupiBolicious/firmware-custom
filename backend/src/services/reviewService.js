@@ -68,7 +68,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
     title: item.title,
     description: item.description,
     fw_related: isFirmware,
-    complexity_level_id: isFirmware ? level.id : null,
+    complexity_level_id: level.id,
     keywords: buildKeywords(item.title, item.description, keywords),
   });
 
