@@ -6,7 +6,7 @@ const isModelValue = (value) => {
 };
 
 const validateWorkOrderCreate = (req, res, next) => {
-  const { wo_number, customer, groups, items } = req.body || {};
+  const { wo_number, customer, groups, items, overwrite } = req.body || {};
   const errors = [];
 
   if (!wo_number || typeof wo_number !== 'string' || !wo_number.trim()) {
@@ -14,6 +14,9 @@ const validateWorkOrderCreate = (req, res, next) => {
   }
   if (!customer || typeof customer !== 'string' || !customer.trim()) {
     errors.push('customer is required');
+  }
+  if (overwrite !== undefined && typeof overwrite !== 'boolean') {
+    errors.push('overwrite must be a boolean');
   }
   if (!Array.isArray(groups) || groups.length === 0) {
     errors.push('groups is required (at least one Model group)');
