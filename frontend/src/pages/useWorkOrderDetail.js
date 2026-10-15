@@ -149,17 +149,6 @@ export default function useWorkOrderDetail() {
   const closeCompleteConfirm = () => { if (completing) return; setCompleteConfirm(false); };
 
 
-  const [finalizeConfirm, setFinalizeConfirm] = useState(false);
-  const [startConfirm, setStartConfirm] = useState(false);
-  const [completeConfirm, setCompleteConfirm] = useState(false);
-
-  const openFinalizeConfirm = () => setFinalizeConfirm(true);
-  const closeFinalizeConfirm = () => { if (finalizing) return; setFinalizeConfirm(false); };
-  const openStartConfirm = () => setStartConfirm(true);
-  const closeStartConfirm = () => { if (startingProduction) return; setStartConfirm(false); };
-  const openCompleteConfirm = () => setCompleteConfirm(true);
-  const closeCompleteConfirm = () => { if (completing) return; setCompleteConfirm(false); };
-
   const handleFinalize = async () => {
     setError('');
     setMessage('');
