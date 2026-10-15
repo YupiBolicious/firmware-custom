@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
     wo_number       VARCHAR(50) NOT NULL UNIQUE,
     title           VARCHAR(300),
     customer        VARCHAR(200),
+    revision        INT NOT NULL DEFAULT 0 CHECK (revision >= 0),
     status          VARCHAR(30) NOT NULL DEFAULT 'DRAFT',  -- DRAFT | ANALYZED | FINALIZED | PRODUCTION | COMPLETED
     notes           TEXT,
     created_by      INT REFERENCES users(id),

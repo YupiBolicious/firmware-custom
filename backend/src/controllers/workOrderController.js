@@ -264,6 +264,7 @@ const previewWorkOrder = async (req, res, next) => {
     if (!fields.customer) warnings.push('customer');
     if (!fields.model_code) warnings.push('model_code');
     if (!fields.serial_numbers.length) warnings.push('serial_numbers');
+    if (!Number.isInteger(fields.revision) || fields.revision < 0) warnings.push('revision');
 
     // 3. Preview only — nothing is written until the user confirms.
     return res.json({
@@ -281,6 +282,7 @@ const confirmUploadWorkOrder = async (req, res, next) => {
   try {
     const {
       wo_number,
+      revision,
       customer,
       model_code,
       serial_numbers = [],
@@ -317,6 +319,7 @@ const confirmUploadWorkOrder = async (req, res, next) => {
     // Existing work orders require an explicit overwrite confirmation.
     const wo = await workOrderService.createWorkOrder({
       wo_number: wo_number.trim(),
+      revision,
       customer: customer || null,
       groups,
       items,
@@ -336,6 +339,7 @@ const confirmUploadWorkOrder = async (req, res, next) => {
       warnings,
       extracted: {
         wo_number: wo.wo_number,
+        revision: wo.revision,
         model_code,
         serial_numbers,
         customize_with: items,

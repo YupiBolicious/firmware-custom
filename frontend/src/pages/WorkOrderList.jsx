@@ -134,6 +134,7 @@ export default function WorkOrderList() {
         setPermissionError(body.message || "You don't have permission to edit this work order");
         return;
       }
+      if (overwrite || body?.data?.code === 'WO_REVISION_NOT_NEWER') setUploadDuplicate(null);
       setConfirmError(body?.message || 'Failed to import work order');
     } finally {
       setConfirming(false);
@@ -249,15 +250,23 @@ export default function WorkOrderList() {
           extracted={preview.extracted}
           warnings={preview.warnings}
           confirming={confirming}
-          error={confirmError}
           onConfirm={handleConfirmUpload}
           onCancel={handleCancelUpload}
         />
       )}
       <ConfirmModal
+        isOpen={!!confirmError}
+        title="Upload failed"
+        message={confirmError}
+        confirmLabel="OK"
+        hideCancel
+        onConfirm={() => setConfirmError('')}
+        onClose={() => setConfirmError('')}
+      />
+      <ConfirmModal
         isOpen={!!uploadDuplicate}
         title="Work order already exists"
-        message={`Work order ${uploadDuplicate?.existing_wo_number || pendingUpload?.wo_number || ''} already exists at revision ${uploadDuplicate?.existing_revision ?? '?'} status ${uploadDuplicate?.existing_status || 'unknown'}. Overwriting will resets it status to DRAFT.`}
+        message={`Work order ${uploadDuplicate?.existing_wo_number || pendingUpload?.wo_number || ''} is at revision ${uploadDuplicate?.existing_revision ?? '?'}; uploaded revision is ${pendingUpload?.revision ?? 'not detected'}. Only a newer revision can overwrite it, and overwriting resets status to DRAFT.`}
         confirmLabel="Overwrite and reset"
         confirmVariant="danger"
         cancelLabel="Keep existing"

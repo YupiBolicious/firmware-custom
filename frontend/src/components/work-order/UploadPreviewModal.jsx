@@ -3,9 +3,10 @@ import { Plus, Trash2 } from 'lucide-react';
 
 const emptyItem = { title: '', quantity: 1 };
 
-export default function UploadPreviewModal({ extracted, warnings, confirming, error, onConfirm, onCancel }) {
+export default function UploadPreviewModal({ extracted, warnings, confirming, onConfirm, onCancel }) {
   const [form, setForm] = useState(() => ({
     wo_number: (extracted.wo_number || '').trim(),
+    revision: extracted.revision,
     customer: (extracted.customer || '').trim(),
     model_code: (extracted.model_code || '').trim(),
     serial_numbers: (extracted.serial_numbers || []).join(', '),
@@ -32,6 +33,7 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, er
   const handleConfirm = () => {
     onConfirm({
       wo_number: form.wo_number.trim(),
+      revision: form.revision,
       customer: form.customer.trim(),
       model_code: form.model_code.trim(),
       serial_numbers: form.serial_numbers.split(',').map((s) => s.trim()).filter(Boolean),
@@ -73,6 +75,11 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, er
             onChange={(e) => setForm({ ...form, wo_number: e.target.value })}
             required
           />
+        </div>
+
+        <div className="form-row">
+          <label>Revision</label>
+          <div>{Number.isInteger(form.revision) && form.revision >= 0 ? form.revision : 'Not detected'}</div>
         </div>
 
         <div className="form-row">
@@ -141,7 +148,6 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, er
           
         </div>
 
-        {error && <div className="alert" style={{ marginBottom: 16 }}>{error}</div>}
         <div className='flex justify-between items-center'>
           <div className="flex gap-8">
             <button className="btn" type="button" onClick={handleConfirm} disabled={confirming || !form.wo_number.trim()}>
