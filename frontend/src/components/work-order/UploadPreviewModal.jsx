@@ -9,6 +9,7 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, er
     customer: (extracted.customer || '').trim(),
     model_code: (extracted.model_code || '').trim(),
     serial_numbers: (extracted.serial_numbers || []).join(', '),
+    revision: extracted.revision ?? 0,
     items: (extracted.customize_with || [])
       .map((item) => ({
         title: item.title || '',
@@ -34,6 +35,7 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, er
       wo_number: form.wo_number.trim(),
       customer: form.customer.trim(),
       model_code: form.model_code.trim(),
+      revision: Number.isFinite(Number(form.revision)) && Number(form.revision) >= 0 ? Number(form.revision) : 0,
       serial_numbers: form.serial_numbers.split(',').map((s) => s.trim()).filter(Boolean),
       customize_with: form.items
         .filter((item) => item.title.trim())
@@ -93,6 +95,18 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, er
             value={form.model_code}
             onChange={(e) => setForm({ ...form, model_code: e.target.value })}
             placeholder="e.g. FWX-100"
+          />
+        </div>
+
+        <div className="form-row">
+          <label>Revision</label>
+          <input
+            className="wo-input-text"
+            type="number"
+            min="0"
+            name="revision"
+            value={form.revision}
+            onChange={(e) => setForm({ ...form, revision: e.target.value })}
           />
         </div>
 
