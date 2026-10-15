@@ -116,12 +116,9 @@ const grabCustomer = (lines) => {
   for (let i = idx - 1; i <= idx + 1; i += 1) {
     const line = lines[i];
     if (!line || !line.cells) continue;
-<<<<<<< HEAD
-=======
     // A wrapping row has no cell in the label's own column; a row with its own label
     // (e.g. "Country" under "Name") is a different field, so stop taking its value.
     if (i !== idx && line.cells.some((cell) => Math.abs(cell.x - labelCell.x) < 0.5)) continue;
->>>>>>> local-og-branch
     for (const cell of line.cells) {
       if (cell.x <= labelCell.x + 2 || cell.x >= CUSTOMER_VALUE_MAX_X) continue;
       if (/^NAME$/.test(normalize(cell.text)) || classifyHeading(cell.text)) continue;
@@ -267,9 +264,6 @@ const parseWorkOrderPdf = async (buffer) => {
   return extractFields(reconstructLines(pdfData));
 };
 
-<<<<<<< HEAD
-module.exports = { parseWorkOrderPdf, extractFields, extractRevision, reconstructLines };
-=======
 const extractTextFromHtml = (html) => {
   return html
     .replace(/<[^>]*>/g, ' ')
@@ -340,4 +334,3 @@ const parseWorkOrderDocx = async (buffer) => {
 };
 
 module.exports = { parseWorkOrderPdf, parseWorkOrderDocx, extractFields, extractRevision, reconstructLines, reconstructLinesFromDocx };
->>>>>>> local-og-branch

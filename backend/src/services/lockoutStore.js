@@ -41,4 +41,7 @@ const reset = (identifier) => {
 };
 
 module.exports = { check, registerFailure, reset, MAX_FAILED, LOCK_MS };
+<<<<<<< HEAD
 module.exports = { check, registerFailure, reset, MAX_FAILED, LOCK_MS };
+=======
+>>>>>>> 140bb55 (deploy 2)

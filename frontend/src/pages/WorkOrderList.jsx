@@ -134,10 +134,7 @@ export default function WorkOrderList() {
         setPermissionError(body.message || "You don't have permission to edit this work order");
         return;
       }
-<<<<<<< HEAD
-=======
       if (overwrite || body?.data?.code === 'WO_REVISION_NOT_NEWER') setUploadDuplicate(null);
->>>>>>> local-og-branch
       setConfirmError(body?.message || 'Failed to import work order');
     } finally {
       setConfirming(false);
@@ -258,11 +255,6 @@ export default function WorkOrderList() {
         />
       )}
       <ConfirmModal
-<<<<<<< HEAD
-        isOpen={!!uploadDuplicate}
-        title="Work order already exists"
-        message={`Work order ${uploadDuplicate?.existing_wo_number || pendingUpload?.wo_number || ''} already exists at revision ${uploadDuplicate?.existing_revision ?? '?'} status ${uploadDuplicate?.existing_status || 'unknown'}. Overwriting will resets it status to DRAFT.`}
-=======
         isOpen={!!confirmError}
         title="Upload failed"
         message={confirmError}
@@ -275,7 +267,6 @@ export default function WorkOrderList() {
         isOpen={!!uploadDuplicate}
         title="Work order already exists"
         message={`Work order ${uploadDuplicate?.existing_wo_number || pendingUpload?.wo_number || ''} is at revision ${uploadDuplicate?.existing_revision ?? '?'}; uploaded revision is ${pendingUpload?.revision ?? 'not detected'}. Only a newer revision can overwrite it, and overwriting resets status to DRAFT.`}
->>>>>>> local-og-branch
         confirmLabel="Overwrite and reset"
         confirmVariant="danger"
         cancelLabel="Keep existing"

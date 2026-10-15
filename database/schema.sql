@@ -372,15 +372,10 @@ SELECT id, 'v1.0', 'Initial release' FROM machine_model WHERE model_code = 'FWX-
 ON CONFLICT DO NOTHING;
 
 -- MOCK WORK ORDER WO-2026-001 (for validation)
-<<<<<<< HEAD
-INSERT INTO work_orders (wo_number, title, customer, status, created_by)
-SELECT 'WO-2026-001', 'Firmware Custom Items - Q1 2026', 'Acme Corp', 'DRAFT', u.id
-=======
 -- created_at pinned to Q1 2026 so the row matches its title (default NOW() would land it in the install quarter).
 INSERT INTO work_orders (wo_number, title, customer, status, created_by, created_at, updated_at)
 SELECT 'WO-2026-001', 'Firmware Custom Items - Q1 2026', 'Acme Corp', 'DRAFT', u.id,
        TIMESTAMPTZ '2026-02-15 12:00:00+00', TIMESTAMPTZ '2026-02-15 12:00:00+00'
->>>>>>> local-og-branch
 FROM users u WHERE u.username = 'pm@demo'
 ON CONFLICT (wo_number) DO NOTHING;
 
@@ -401,10 +396,5 @@ JOIN (VALUES
     ('ITEM-003', 'Add new adaptive control logic', 'Add new adaptive control logic to the firmware', 1),
     ('ITEM-004', 'Mechanical label change', 'Change the mechanical label on the enclosure', 1)
 ) AS it(item_number, title, description, quantity)
-<<<<<<< HEAD
-ON wo.wo_number = 'WO-2026-001'
-ON CONFLICT (work_order_group_id, item_number) DO NOTHING;
-=======
 WHERE wo.wo_number = 'WO-2026-001'
   AND NOT EXISTS (SELECT 1 FROM work_order_items woi WHERE woi.work_order_id = wo.id);
->>>>>>> local-og-branch

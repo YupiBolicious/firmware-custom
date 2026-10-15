@@ -54,12 +54,6 @@ const resolveGroupTargetsAll = async (groups) => {
 };
 
 const createWorkOrder = async ({ wo_number, customer, created_by, groups, items, revision = 0, overwrite = false, roles = [], ip_address }) => {
-<<<<<<< HEAD
-  const normalizedRevision = Number.isInteger(revision) && revision >= 0 ? revision : 0;
-
-  const existing = await workOrderRepository.findByWoNumber(wo_number);
-  if (existing) {
-=======
   if (revision !== null && revision !== undefined && (!Number.isInteger(revision) || revision < 0)) {
     throw new ApiError(422, 'Work order revision must be a non-negative integer', ['revision']);
   }
@@ -71,7 +65,6 @@ const createWorkOrder = async ({ wo_number, customer, created_by, groups, items,
     // Do not offer duplicate/overwrite actions to users who cannot edit this WO.
     await assertCanEditWorkOrder(existing, created_by, roles);
 
->>>>>>> local-og-branch
     if (!overwrite) {
       throw new ApiError(
         409,
@@ -87,10 +80,6 @@ const createWorkOrder = async ({ wo_number, customer, created_by, groups, items,
       );
     }
 
-<<<<<<< HEAD
-    // Rewriting an existing WO is an edit: only the owner, a granted user, or an admin may do it.
-    await assertCanEditWorkOrder(existing, created_by, roles);
-=======
     if (!hasRevision) {
       throw new ApiError(422, 'Could not determine the uploaded work order revision', ['revision']);
     }
@@ -106,17 +95,13 @@ const createWorkOrder = async ({ wo_number, customer, created_by, groups, items,
         }
       );
     }
->>>>>>> local-og-branch
 
     const wo = await workOrderRepository.reviseWithGroups({
       id: existing.id,
       customer,
       groups: await resolveGroupTargetsAll(groups),
       items,
-<<<<<<< HEAD
-=======
       revision: normalizedRevision,
->>>>>>> local-og-branch
     });
     await auditService.log({
       user_id: created_by,
@@ -126,21 +111,13 @@ const createWorkOrder = async ({ wo_number, customer, created_by, groups, items,
       work_order_id: wo.id,
       details: {
         wo_number: wo.wo_number,
-<<<<<<< HEAD
-        revision: { from: existing.revision, to: wo.revision },
-=======
         revision: { from: wo.previous_revision, to: wo.revision },
->>>>>>> local-og-branch
         group_count: wo.groups.length,
         item_count: (wo.items || []).length,
       },
       ip_address,
     });
-<<<<<<< HEAD
-    return { ...wo, revised: true, previous_revision: existing.revision };
-=======
     return { ...wo, revised: true };
->>>>>>> local-og-branch
   }
 
   const wo = await workOrderRepository.createWithGroups({

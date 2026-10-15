@@ -1,14 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-<<<<<<< HEAD
   baseURL: '/api',
   timeout: 30000,});
-=======
-baseURL: '/api',
-  timeout: 30000,
-});
->>>>>>> local-og-branch
 
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
