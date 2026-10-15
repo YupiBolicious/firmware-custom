@@ -40,8 +40,5 @@ const reset = (identifier) => {
   attempts.delete(identifier);
 };
 
-<<<<<<< HEAD
 module.exports = { check, registerFailure, reset, MAX_FAILED, LOCK_MS };
-=======
 module.exports = { check, registerFailure, reset, MAX_FAILED, LOCK_MS };
->>>>>>> local-og-branch
