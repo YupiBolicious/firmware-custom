@@ -288,10 +288,7 @@ const confirmUploadWorkOrder = async (req, res, next) => {
       serial_numbers = [],
       customize_with = [],
       overwrite = false,
-<<<<<<< HEAD
       revision,
-=======
->>>>>>> local-og-branch
     } = req.body || {};
 
     if (!wo_number || typeof wo_number !== 'string' || !wo_number.trim()) {
