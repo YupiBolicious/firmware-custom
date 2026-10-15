@@ -4,8 +4,10 @@ const { resolveQuantity } = require('../utils/qtyParser');
 
 const NOISE_LINE = /^(work\s*order\s*form|page\s+\d+\s+of\s+\d+|platform\s+naming|raised\s*by\s*:|saved\s*by\s*:|designer\s*:|checked\s*by\s*csis\s*manager\s*:|document\s*number\s*:|revision\s*:|revised\s*by\s*:|path\s*:)/i;
 
-// ponytail: magic column x + the Model Code / Work Order Number Y-window are tuned
-// Left "custom items" column ends ~x16.2 and the right "amendment" column starts ~x23
+// ponytail: magic column x + the Model Code / Work Order Number Y-window are tuned to this
+// form's template image; revisit if the layout is redrawn.
+// Left "custom items" column ends ~x16.2 and the right "amendment" column starts ~x23,
+// so 20 keeps wrapped fragments ("...14644-", "...Back") while dropping the right column.
 const CUSTOM_ITEM_MAX_X = 20;
 const CUSTOMER_VALUE_MAX_X = 16;
 
@@ -175,6 +177,35 @@ const extractCustomizeWith = (lines, modelLabelLine, woLabelLine) => {
 };
 
 
+// ponytail: the "Rev" column is read from the customer-info band's right column; the
+// x-offset window and the FACTORY INFORMATION lower bound are tuned to this form
+// template. Revisit if the right column is redrawn; the preview modal lets the PM
+// override the value so a miss is recoverable.
+const REV_HEADER_RE = /^REV(\s+DATE)?$/;
+
+const extractRevision = (lines) => {
+  const headerLine = lines.find(
+    (line) => line.cells && line.cells.some((cell) => REV_HEADER_RE.test(normalize(cell.text)))
+  );
+  if (!headerLine) return null;
+  const headerCell = headerLine.cells.find((cell) => REV_HEADER_RE.test(normalize(cell.text)));
+  const minX = headerCell.x - 0.5;
+  const maxX = headerCell.x + 1.8;
+
+  const revisions = [];
+  for (const line of lines) {
+    if (line.page !== headerLine.page) continue;
+    if (line.y <= headerLine.y) continue;
+    if (/FACTORY\s+INFORMATION/.test(normalize(line.text))) break;
+    for (const cell of line.cells || []) {
+      if (cell.x < minX || cell.x > maxX) continue;
+      const match = normalize(cell.text).match(/^(\d+)/);
+      if (match) revisions.push(parseInt(match[1], 10));
+    }
+  }
+  return revisions.length ? Math.max(...revisions) : null;
+};
+
 // EXTRACT EACH FIELDS
 const extractFields = (lines) => {
   const buckets = { factory: [] };
@@ -198,6 +229,7 @@ const extractFields = (lines) => {
   return {
     wo_number: grabWithMaxX(buckets.factory, /^WORK\s*ORDER\s*NUMBER$/, MAX_LEFT_COL_X),
     model_code: grabWithMaxX(buckets.factory, /^MODEL\s*CODE$/, MAX_LEFT_COL_X),
+    revision: extractRevision(lines),
     serial_numbers: rawSerial ? rawSerial.split(/[,;]+/).map((s) => s.trim()).filter(Boolean) : [],
     customize_with: extractCustomizeWith(lines, modelLabelLine, woLabelLine)
       .map((title) => {
@@ -228,4 +260,4 @@ const parseWorkOrderPdf = async (buffer) => {
   return extractFields(reconstructLines(pdfData));
 };
 
-module.exports = { parseWorkOrderPdf, extractFields, reconstructLines };
+module.exports = { parseWorkOrderPdf, extractFields, extractRevision, reconstructLines };
