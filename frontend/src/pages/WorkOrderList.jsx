@@ -5,6 +5,7 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import UploadPreviewModal from '../components/work-order/UploadPreviewModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 const STATUS_OPTIONS = ['DRAFT', 'ANALYZED', 'FINALIZED', 'PRODUCTION', 'COMPLETED'];
 
@@ -27,6 +28,9 @@ export default function WorkOrderList() {
   const [uploading, setUploading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState('');
+  const [uploadDuplicate, setUploadDuplicate] = useState(null);
+  const [pendingUpload, setPendingUpload] = useState(null);
+  const [permissionError, setPermissionError] = useState('');
 
   const loadWorkOrders = useCallback(async () => {
     try {
@@ -86,9 +90,15 @@ export default function WorkOrderList() {
 
     setUploading(true);
     setConfirmError('');
+    setUploadDuplicate(null);
+    setPendingUpload(null);
+    setPermissionError('');
     try {
       const res = await api.post('/work-orders/upload', formData);
-      setPreview({ extracted: res.data.extracted, warnings: res.data.warnings || [] });
+      setPreview({
+        extracted: res.data.extracted,
+        warnings: res.data.warnings || [],
+      });
     } catch (err) {
       toast({ variant: 'destructive', description: err.response?.data?.message || 'Failed to process PDF file' });
     } finally {
@@ -97,22 +107,58 @@ export default function WorkOrderList() {
     }
   };
 
-  const handleConfirmUpload = async (payload) => {
+  const submitUpload = async (payload, overwrite = false) => {
     setConfirming(true);
     setConfirmError('');
     try {
-      const res = await api.post('/work-orders/upload/confirm', payload);
+      const res = await api.post('/work-orders/upload/confirm', {
+        ...payload,
+        ...(overwrite ? { overwrite: true } : {}),
+      });
       setPreview(null);
-      toast({ variant: 'success', description: `Work order ${res.data.data.wo_number} imported.` });
+      setUploadDuplicate(null);
+      setPendingUpload(null);
+      setPermissionError('');
+      toast({ variant: 'success', description: res.data.message || `Work order ${res.data.data.wo_number} imported.` });
       await loadWorkOrders();
     } catch (err) {
-      setConfirmError(err.response?.data?.message || 'Failed to import work order');
+      const body = err.response?.data;
+      if (err.response?.status === 409 && body?.data?.code === 'WO_DUPLICATE') {
+        setPendingUpload(payload);
+        setUploadDuplicate(body.data);
+        return;
+      }
+      if (err.response?.status === 403 && body?.data?.code === 'WO_FORBIDDEN') {
+        setUploadDuplicate(null);
+        setPermissionError(body.message || "You don't have permission to edit this work order");
+        return;
+      }
+      setConfirmError(body?.message || 'Failed to import work order');
     } finally {
       setConfirming(false);
     }
   };
 
-  const handleCancelUpload = () => setPreview(null);
+  const handleConfirmUpload = (payload) => submitUpload(payload);
+
+  const handleConfirmOverwrite = () => {
+    if (pendingUpload) submitUpload(pendingUpload, true);
+  };
+
+  const handleDismissDuplicate = () => {
+    setUploadDuplicate(null);
+    setPendingUpload(null);
+  };
+
+  const handleDismissPermission = () => setPermissionError('');
+
+  const handleCancelUpload = () => {
+    setPreview(null);
+    setUploadDuplicate(null);
+    setPendingUpload(null);
+    setPermissionError('');
+    setConfirmError('');
+  };
 
   return (
     <div className="glass-page">
@@ -207,6 +253,26 @@ export default function WorkOrderList() {
           onCancel={handleCancelUpload}
         />
       )}
+      <ConfirmModal
+        isOpen={!!uploadDuplicate}
+        title="Work order already exists"
+        message={`Work order ${uploadDuplicate?.existing_wo_number || pendingUpload?.wo_number || ''} already exists at revision ${uploadDuplicate?.existing_revision ?? '?'} status ${uploadDuplicate?.existing_status || 'unknown'}. Overwriting will resets it status to DRAFT.`}
+        confirmLabel="Overwrite and reset"
+        confirmVariant="danger"
+        cancelLabel="Keep existing"
+        loading={confirming}
+        onConfirm={handleConfirmOverwrite}
+        onClose={handleDismissDuplicate}
+      />
+      <ConfirmModal
+        isOpen={!!permissionError}
+        title="Can’t edit this work order"
+        message={permissionError}
+        confirmLabel="OK"
+        hideCancel
+        onConfirm={handleDismissPermission}
+        onClose={handleDismissPermission}
+      />
     </div>
   );
 }
