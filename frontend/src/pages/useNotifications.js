@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/client';
 
-const POLL_INTERVAL = 30000;
+const POLL_INTERVAL = 20000;
 
 export default function useNotifications() {
   const [notifications, setNotifications] = useState([]);

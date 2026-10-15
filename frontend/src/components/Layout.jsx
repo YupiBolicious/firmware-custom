@@ -42,12 +42,7 @@ const NAV_ITEMS = [
     roles: ['ADMIN'],
     icon: <Users size={16} strokeWidth={1.5} />,
   },
-  // {
-  //   to: '/knowledge-base',
-  //   label: 'Knowledge Base',
-  //   roles: ['ADMIN'],
-  //   icon: <BookOpen size={16} strokeWidth={1.5} />,
-  // },
+
   {
     to: '/audit-log',
     label: 'Audit Log',
@@ -94,6 +89,9 @@ const PAGE_NAMES = {
   '/reports/quarterly': 'Quarterly Report',
   '/reports/historical': 'Historical Report',
   '/change-password': 'Change Password',
+  '/classification-rules': 'Classification Rules',
+  '/confidence-thresholds': 'Confidence Thresholds',
+  '/fw-modules': 'FW Modules',
 };
 
 export default function Layout() {

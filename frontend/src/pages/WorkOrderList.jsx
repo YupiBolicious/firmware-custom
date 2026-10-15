@@ -79,8 +79,9 @@ export default function WorkOrderList() {
     const selectedFile = event.target.files[0];
     if (!selectedFile) return;
 
-    if (selectedFile.type !== 'application/pdf') {
-      toast({ variant: 'destructive', description: 'Please upload a PDF file.' });
+    const fileName = selectedFile.name.toLowerCase();
+    if (!fileName.endsWith('.pdf') && !fileName.endsWith('.docx')) {
+      toast({ variant: 'destructive', description: 'Please upload a PDF or DOCX file.' });
       event.target.value = '';
       return;
     }
@@ -133,6 +134,10 @@ export default function WorkOrderList() {
         setPermissionError(body.message || "You don't have permission to edit this work order");
         return;
       }
+<<<<<<< HEAD
+=======
+      if (overwrite || body?.data?.code === 'WO_REVISION_NOT_NEWER') setUploadDuplicate(null);
+>>>>>>> local-og-branch
       setConfirmError(body?.message || 'Failed to import work order');
     } finally {
       setConfirming(false);
@@ -175,7 +180,7 @@ export default function WorkOrderList() {
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept="application/pdf"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               style={{ display: 'none' }}
             />
             <Link className="btn" to="/work-orders/new">Create</Link>
@@ -248,15 +253,29 @@ export default function WorkOrderList() {
           extracted={preview.extracted}
           warnings={preview.warnings}
           confirming={confirming}
-          error={confirmError}
           onConfirm={handleConfirmUpload}
           onCancel={handleCancelUpload}
         />
       )}
       <ConfirmModal
+<<<<<<< HEAD
         isOpen={!!uploadDuplicate}
         title="Work order already exists"
         message={`Work order ${uploadDuplicate?.existing_wo_number || pendingUpload?.wo_number || ''} already exists at revision ${uploadDuplicate?.existing_revision ?? '?'} status ${uploadDuplicate?.existing_status || 'unknown'}. Overwriting will resets it status to DRAFT.`}
+=======
+        isOpen={!!confirmError}
+        title="Upload failed"
+        message={confirmError}
+        confirmLabel="OK"
+        hideCancel
+        onConfirm={() => setConfirmError('')}
+        onClose={() => setConfirmError('')}
+      />
+      <ConfirmModal
+        isOpen={!!uploadDuplicate}
+        title="Work order already exists"
+        message={`Work order ${uploadDuplicate?.existing_wo_number || pendingUpload?.wo_number || ''} is at revision ${uploadDuplicate?.existing_revision ?? '?'}; uploaded revision is ${pendingUpload?.revision ?? 'not detected'}. Only a newer revision can overwrite it, and overwriting resets status to DRAFT.`}
+>>>>>>> local-og-branch
         confirmLabel="Overwrite and reset"
         confirmVariant="danger"
         cancelLabel="Keep existing"

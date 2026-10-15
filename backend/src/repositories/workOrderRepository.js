@@ -272,13 +272,21 @@ const createWithGroups = async ({ wo_number, customer, created_by, groups, items
   }
 };
 
+<<<<<<< HEAD
 const reviseWithGroups = async ({ id, customer, groups, items }) => {
+=======
+const reviseWithGroups = async ({ id, customer, groups, items, revision }) => {
+>>>>>>> local-og-branch
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const locked = await client.query(
+<<<<<<< HEAD
       'SELECT id, wo_number, status FROM work_orders WHERE id = $1 FOR UPDATE',
+=======
+      'SELECT id, wo_number, status, revision FROM work_orders WHERE id = $1 FOR UPDATE',
+>>>>>>> local-og-branch
       [id]
     );
     if (locked.rows.length === 0) {
@@ -289,6 +297,22 @@ const reviseWithGroups = async ({ id, customer, groups, items }) => {
     // ponytail: status gate lives under the row lock so two concurrent uploads
     // can't both rewrite a finalized WO. Same WO number always overwrites.
     const current = locked.rows[0];
+<<<<<<< HEAD
+=======
+    if (revision <= Number(current.revision)) {
+      const { ApiError } = require('../middleware/errorHandler');
+      throw new ApiError(
+        409,
+        `Uploaded revision ${revision} must be newer than current revision ${current.revision}`,
+        [],
+        {
+          code: 'WO_REVISION_NOT_NEWER',
+          uploaded_revision: revision,
+          existing_revision: Number(current.revision),
+        }
+      );
+    }
+>>>>>>> local-og-branch
     const LOCKED_WO_STATUSES = ['FINALIZED', 'PRODUCTION', 'COMPLETED'];
     if (LOCKED_WO_STATUSES.includes(current.status)) {
       const { ApiError } = require('../middleware/errorHandler');
@@ -297,10 +321,17 @@ const reviseWithGroups = async ({ id, customer, groups, items }) => {
 
     const woResult = await client.query(
       `UPDATE work_orders
+<<<<<<< HEAD
        SET customer = $2, status = 'DRAFT', updated_at = NOW()
        WHERE id = $1
        RETURNING *`,
       [id, customer]
+=======
+       SET customer = $2, revision = $3, status = 'DRAFT', updated_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [id, customer, revision]
+>>>>>>> local-og-branch
     );
     const wo = woResult.rows[0];
 
@@ -343,7 +374,11 @@ const reviseWithGroups = async ({ id, customer, groups, items }) => {
     }
 
     await client.query('COMMIT');
+<<<<<<< HEAD
     return { ...wo, groups: createdGroups, items: createdItems };
+=======
+    return { ...wo, groups: createdGroups, items: createdItems, previous_revision: Number(current.revision) };
+>>>>>>> local-og-branch
   } catch (err) {
     await client.query('ROLLBACK');
     if (err.code === '23505') {

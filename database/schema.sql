@@ -111,8 +111,8 @@ CREATE TABLE IF NOT EXISTS work_orders (
     id              SERIAL PRIMARY KEY,
     wo_number       VARCHAR(50) NOT NULL UNIQUE,
     title           VARCHAR(300),
-    description     TEXT,
     customer        VARCHAR(200),
+    revision        INT NOT NULL DEFAULT 0 CHECK (revision >= 0),
     status          VARCHAR(30) NOT NULL DEFAULT 'DRAFT',  -- DRAFT | ANALYZED | FINALIZED | PRODUCTION | COMPLETED
     notes           TEXT,
     created_by      INT REFERENCES users(id),
@@ -345,7 +345,7 @@ ON CONFLICT (threshold_code) DO NOTHING;
 INSERT INTO kb_items (kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score, source) VALUES
 ('KB-0001', 'Change alarm setpoint configuration', 'Adjust alarm setpoint configuration value', 'alarm,setpoint,configuration', TRUE,  (SELECT id FROM complexity_levels WHERE code='L2'), 96.00, 'SEED'),
 ('KB-0002', 'Update UI text', 'Update displayed UI text', 'ui,text,display', TRUE,  (SELECT id FROM complexity_levels WHERE code='L1'), 98.00, 'SEED'),
-('KB-0003', 'Mechanical label change', 'Change mechanical label', 'mechanical,label', FALSE, NULL, 98.00, 'SEED'),
+('KB-0003', 'Mechanical label change', 'Change mechanical label', 'mechanical,label', FALSE, (SELECT id FROM complexity_levels WHERE code='L0'), 98.00, 'SEED'),
 ('KB-0004', 'Menu tree modification', 'Modify menu tree structure', 'menu,tree,modify', TRUE,  (SELECT id FROM complexity_levels WHERE code='L3'), 94.00, 'SEED'),
 ('KB-0005', 'Closed-loop control implementation', 'Implement closed-loop control', 'closed,loop,control', TRUE,  (SELECT id FROM complexity_levels WHERE code='L4'), 93.00, 'SEED')
 ON CONFLICT (kb_code) DO NOTHING;
@@ -372,8 +372,15 @@ SELECT id, 'v1.0', 'Initial release' FROM machine_model WHERE model_code = 'FWX-
 ON CONFLICT DO NOTHING;
 
 -- MOCK WORK ORDER WO-2026-001 (for validation)
+<<<<<<< HEAD
 INSERT INTO work_orders (wo_number, title, customer, status, created_by)
 SELECT 'WO-2026-001', 'Firmware Custom Items - Q1 2026', 'Acme Corp', 'DRAFT', u.id
+=======
+-- created_at pinned to Q1 2026 so the row matches its title (default NOW() would land it in the install quarter).
+INSERT INTO work_orders (wo_number, title, customer, status, created_by, created_at, updated_at)
+SELECT 'WO-2026-001', 'Firmware Custom Items - Q1 2026', 'Acme Corp', 'DRAFT', u.id,
+       TIMESTAMPTZ '2026-02-15 12:00:00+00', TIMESTAMPTZ '2026-02-15 12:00:00+00'
+>>>>>>> local-og-branch
 FROM users u WHERE u.username = 'pm@demo'
 ON CONFLICT (wo_number) DO NOTHING;
 
@@ -386,14 +393,18 @@ WHERE wo.wo_number = 'WO-2026-001'
   AND NOT EXISTS (SELECT 1 FROM work_order_groups wog WHERE wog.work_order_id = wo.id);
 
 INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, description, quantity)
-SELECT wo.id, wog.id, it.item_number, it.title, it.description, it.quantity
+SELECT wo.id, NULL, it.item_number, it.title, it.description, it.quantity
 FROM work_orders wo
-JOIN work_order_groups wog ON wog.work_order_id = wo.id
 JOIN (VALUES
     ('ITEM-001', 'Change alarm setpoint configuration', 'Adjust the alarm setpoint configuration for the machine', 1),
     ('ITEM-002', 'Update UI text', 'Update the displayed UI text on the operator panel', 1),
     ('ITEM-003', 'Add new adaptive control logic', 'Add new adaptive control logic to the firmware', 1),
     ('ITEM-004', 'Mechanical label change', 'Change the mechanical label on the enclosure', 1)
 ) AS it(item_number, title, description, quantity)
+<<<<<<< HEAD
 ON wo.wo_number = 'WO-2026-001'
 ON CONFLICT (work_order_group_id, item_number) DO NOTHING;
+=======
+WHERE wo.wo_number = 'WO-2026-001'
+  AND NOT EXISTS (SELECT 1 FROM work_order_items woi WHERE woi.work_order_id = wo.id);
+>>>>>>> local-og-branch

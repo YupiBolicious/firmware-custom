@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "rewrites": [
     {
@@ -7,6 +8,14 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
+=======
+
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/"
+>>>>>>> local-og-branch
     }
   ]
 }

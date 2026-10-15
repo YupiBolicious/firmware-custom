@@ -1,4 +1,5 @@
 const PDFParser = require('pdf2json');
+const mammoth = require('mammoth');
 const { ApiError } = require('../middleware/errorHandler');
 const { resolveQuantity } = require('../utils/qtyParser');
 
@@ -115,6 +116,12 @@ const grabCustomer = (lines) => {
   for (let i = idx - 1; i <= idx + 1; i += 1) {
     const line = lines[i];
     if (!line || !line.cells) continue;
+<<<<<<< HEAD
+=======
+    // A wrapping row has no cell in the label's own column; a row with its own label
+    // (e.g. "Country" under "Name") is a different field, so stop taking its value.
+    if (i !== idx && line.cells.some((cell) => Math.abs(cell.x - labelCell.x) < 0.5)) continue;
+>>>>>>> local-og-branch
     for (const cell of line.cells) {
       if (cell.x <= labelCell.x + 2 || cell.x >= CUSTOMER_VALUE_MAX_X) continue;
       if (/^NAME$/.test(normalize(cell.text)) || classifyHeading(cell.text)) continue;
@@ -260,4 +267,77 @@ const parseWorkOrderPdf = async (buffer) => {
   return extractFields(reconstructLines(pdfData));
 };
 
+<<<<<<< HEAD
 module.exports = { parseWorkOrderPdf, extractFields, extractRevision, reconstructLines };
+=======
+const extractTextFromHtml = (html) => {
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// ponytail: a docx has no glyph coordinates, so column position is rebuilt from the
+// table grid (cell index x 10) to land on the same scale the PDF's x-windows expect
+// (label ~2, value column ~9, right column ~19). Revisit if the form gains columns.
+const DOCX_COLUMN_WIDTH = 10;
+
+const reconstructLinesFromDocx = (html) => {
+  const lines = [];
+  let y = 0;
+  const rows = html.match(/<tr>[\s\S]*?<\/tr>/g) || [];
+  for (const rowHtml of rows) {
+    const cells = [];
+    const extra = [];
+    const rowCells = rowHtml.match(/<td[^>]*>[\s\S]*?<\/td>/g) || [];
+    rowCells.forEach((cellHtml, index) => {
+      const x = index * DOCX_COLUMN_WIDTH;
+      // The docx keeps a cell's bullet list inside that cell; the PDF lays each item on
+      // its own line between the label and the next field, which the custom-item extractor
+      // relies on. Split them back out, numbered the way the PDF numbers them.
+      const items = [];
+      const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/g;
+      let liMatch;
+      while ((liMatch = liRegex.exec(cellHtml)) !== null) {
+        const item = extractTextFromHtml(liMatch[1]);
+        if (item) items.push(`${items.length + 1}. ${item}`);
+      }
+      const liStart = cellHtml.search(/<li[^>]*>/i);
+      const head = liStart === -1 ? cellHtml : cellHtml.slice(0, liStart);
+      const text = extractTextFromHtml(head).replace(/Customize with:?\s*$/i, '').trim();
+      if (text) cells.push({ x, text });
+      for (const item of items) extra.push({ x, text: item });
+    });
+    if (cells.length > 0 || extra.length > 0) {
+      const merged = mergeAdjacentCells(cells.sort((a, b) => a.x - b.x));
+      const raw = merged.map((c) => c.text).join('');
+      lines.push({
+        page: 0,
+        y: y++,
+        cells: merged,
+        text: raw.replace(/\s+/g, ' ').trim(),
+      });
+    }
+    for (const item of extra) {
+      lines.push({ page: 0, y: y++, cells: [item], text: item.text });
+    }
+  }
+  return lines;
+};
+
+const parseWorkOrderDocx = async (buffer) => {
+  try {
+    const result = await mammoth.convertToHtml({ buffer });
+    const lines = reconstructLinesFromDocx(result.value);
+    return extractFields(lines);
+  } catch (err) {
+    throw new ApiError(400, 'Could not read Word file');
+  }
+};
+
+module.exports = { parseWorkOrderPdf, parseWorkOrderDocx, extractFields, extractRevision, reconstructLines, reconstructLinesFromDocx };
+>>>>>>> local-og-branch

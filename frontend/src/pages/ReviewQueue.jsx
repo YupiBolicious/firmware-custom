@@ -27,8 +27,7 @@ export default function ReviewQueue() {
           <thead>
             <tr>
               <th>Work Order</th>
-              <th>Model / Unit</th>
-              <th>Item</th>
+              <th>Model</th>
               <th>Title</th>
               <th>Reason</th>
               <th>Suggestion</th>
@@ -42,9 +41,8 @@ export default function ReviewQueue() {
               <tr key={item.item_id}>
                 <td><Link to={`/work-orders/${item.work_order_id}`}>{item.wo_number}</Link></td>
                 <td>
-                  {[item.machine_model_code, item.serial_number ? `SN: ${item.serial_number}` : null].filter(Boolean).join(' / ') || '-'}
+                  {[item.machine_model_code].filter(Boolean).join(' / ') || '-'}
                 </td>
-                <td>{item.item_number}</td>
                 <td>{item.title}</td>
                 <td>
                   {item.classification_reason ? (

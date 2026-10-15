@@ -148,7 +148,21 @@ export default function useWorkOrderDetail() {
   const openCompleteConfirm = () => setCompleteConfirm(true);
   const closeCompleteConfirm = () => { if (completing) return; setCompleteConfirm(false); };
 
+<<<<<<< HEAD
   
+=======
+  const [finalizeConfirm, setFinalizeConfirm] = useState(false);
+  const [startConfirm, setStartConfirm] = useState(false);
+  const [completeConfirm, setCompleteConfirm] = useState(false);
+
+  const openFinalizeConfirm = () => setFinalizeConfirm(true);
+  const closeFinalizeConfirm = () => { if (finalizing) return; setFinalizeConfirm(false); };
+  const openStartConfirm = () => setStartConfirm(true);
+  const closeStartConfirm = () => { if (startingProduction) return; setStartConfirm(false); };
+  const openCompleteConfirm = () => setCompleteConfirm(true);
+  const closeCompleteConfirm = () => { if (completing) return; setCompleteConfirm(false); };
+
+>>>>>>> local-og-branch
   const handleFinalize = async () => {
     setError('');
     setMessage('');
@@ -166,7 +180,6 @@ export default function useWorkOrderDetail() {
   };
 
   const handleStartProduction = async () => {
-    if (!window.confirm('Move this work order to production?')) return;
     setError('');
     setMessage('');
     setStartingProduction(true);
@@ -191,7 +204,11 @@ export default function useWorkOrderDetail() {
       await api.post(`/work-orders/${id}/production/complete`);
       setMessage('Work order completed');
       await load();
+<<<<<<< HEAD
       setCompleteForm(false);
+=======
+      setCompleteConfirm(false);
+>>>>>>> local-og-branch
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to complete work order');
       if (err.response?.status === 409) { await load(); }
