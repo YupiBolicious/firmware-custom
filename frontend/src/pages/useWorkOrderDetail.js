@@ -27,6 +27,7 @@ export default function useWorkOrderDetail() {
   const [correctionLevels, setCorrectionLevels] = useState([]);
   const [correctionForm, setCorrectionForm] = useState(null);
   const [correctingItemId, setCorrectingItemId] = useState(null);
+  const [correctionConfirmOpen, setCorrectionConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!hasRole('CODER')) return;
@@ -154,7 +155,10 @@ export default function useWorkOrderDetail() {
     });
   };
 
-  const cancelCorrection = () => setCorrectionForm(null);
+  const cancelCorrection = () => {
+    setCorrectionConfirmOpen(false);
+    setCorrectionForm(null);
+  };
 
   const updateCorrectionForm = (patch) => {
     setCorrectionForm((current) => current ? { ...current, ...patch } : current);
@@ -164,7 +168,14 @@ export default function useWorkOrderDetail() {
     if (!correctionForm || Number(correctionForm.itemId) !== Number(item.id)) return;
     const level = correctionLevels.find((candidate) => String(candidate.id) === correctionForm.complexityLevelId);
     if (!level) return;
-    if (!window.confirm(`Correct ${item.item_number} from ${item.complexity_code} to ${level.code}?`)) return;
+    setCorrectionConfirmOpen(true);
+  };
+
+  const confirmCorrection = async () => {
+    if (!correctionForm) return;
+    const item = (wo?.items || []).find((candidate) => Number(candidate.id) === Number(correctionForm.itemId));
+    const level = correctionLevels.find((candidate) => String(candidate.id) === correctionForm.complexityLevelId);
+    if (!item || !level) return;
     setError('');
     setCorrectingItemId(item.id);
     try {
@@ -172,6 +183,7 @@ export default function useWorkOrderDetail() {
         complexity_level_id: Number(level.id),
         reason: correctionForm.reason.trim() || undefined,
       });
+      setCorrectionConfirmOpen(false);
       setCorrectionForm(null);
       setMessage(`Decision corrected to ${level.code}`);
       await load();
@@ -182,6 +194,15 @@ export default function useWorkOrderDetail() {
       setCorrectingItemId(null);
     }
   };
+
+  const correctionConfirmMessage = (() => {
+    if (!correctionForm) return '';
+    const item = (wo?.items || []).find((candidate) => Number(candidate.id) === Number(correctionForm.itemId));
+    const level = correctionLevels.find((candidate) => String(candidate.id) === correctionForm.complexityLevelId);
+    return item && level
+      ? `Change ${item.item_number} from ${item.complexity_code || 'unassigned'} to ${level.code}?`
+      : '';
+  })();
 
   const woModelCode = wo && wo.groups && wo.groups.length > 0 ? wo.groups[0].machine_model_code || '' : '';
   const [finalizeConfirm, setFinalizeConfirm] = useState(false);
@@ -284,10 +305,13 @@ export default function useWorkOrderDetail() {
     correctionLevels,
     correctionForm,
     correctingItemId,
+    correctionConfirmOpen,
+    correctionConfirmMessage,
     beginCorrection,
     cancelCorrection,
     updateCorrectionForm,
     saveCorrection,
+    confirmCorrection,
     handleGroupFormChange,
     openAddGroup: () => openAddGroup(woModelCode),
     openEditGroup,
