@@ -13,6 +13,7 @@ const {
   validateItemCreate,
   validateItemUpdate,
   validateReview,
+  validateReviewCorrection,
   validateProductionTaskUpdate,
   validateAccessGrant,
   validateWorkOrderNotes,
@@ -55,6 +56,7 @@ router.use(authenticate);
 router.put('/items/:itemId', authorize('PM'), requireIntegerParams('itemId'), validateItemUpdate, workOrderController.updateItem);
 router.delete('/items/:itemId', authorize('PM'), requireIntegerParams('itemId'), workOrderController.deleteItem);
 router.post('/items/:itemId/review', authorize('CODER'), requireIntegerParams('itemId'), validateReview, workOrderController.reviewItem);
+router.put('/items/:itemId/review-correction', authorize('CODER'), requireIntegerParams('itemId'), validateReviewCorrection, workOrderController.correctReviewedItem);
 
 router.get('/', authorize('PM', 'CODER'), workOrderController.list);
 router.get('/review-queue', authorize('CODER'), workOrderController.reviewQueue);

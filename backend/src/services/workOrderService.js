@@ -3,12 +3,13 @@ const groups = require('./workOrders/groups');
 const items = require('./workOrders/items');
 const lifecycle = require('./workOrders/lifecycle');
 const access = require('./workOrders/access');
-const { reviewItem } = require('./reviewService');
+const { reviewItem, correctReviewedItem } = require('./reviewService');
 
 module.exports = {
   listWorkOrders: core.listWorkOrders,
   listCoderReviewQueue: core.listCoderReviewQueue,
   reviewItem,
+  correctReviewedItem,
   getWorkOrder: core.getWorkOrder,
   createWorkOrder: core.createWorkOrder,
   updateWorkOrder: core.updateWorkOrder,

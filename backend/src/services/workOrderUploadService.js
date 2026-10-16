@@ -280,7 +280,122 @@ const extractTextFromHtml = (html) => {
 // (label ~2, value column ~9, right column ~19). Revisit if the form gains columns.
 const DOCX_COLUMN_WIDTH = 10;
 
+// Some docx arrive converted from a PDF (no <table> at all): every cell is a paragraph and
+// the columns survive only as literal tabs. Best-effort rebuild of the same row shape so the
+// extractors above run unchanged; the preview modal is the safety net for what this misses.
+const FLAT_FIELD_LABEL_RE = /^(NAME|COUNTRY|PO NUMBER|ESCO PF NUMBER|MODEL CODE|WORK ORDER NUMBER|SERIAL NUMBER S?|REV|DATE)$/;
+const FLAT_WO_NUMBER_RE = /(^|[^\d])(\d{5,8})(?!\d)/;
+const FLAT_SERIAL_RE = /^[A-Z0-9][A-Z0-9,\- ]*$/i;
+const FLAT_CUSTOMIZE_RE = /customize with|refer to ga drawing|^\d+\s*[.)\-]\s*\S/i;
+
+const decodeHtmlText = (html) => html
+  .replace(/<[^>]*>/g, '')
+  .replace(/&nbsp;/g, ' ')
+  .replace(/&amp;/g, '&')
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>');
+
+const reconstructLinesFromFlatDocx = (html) => {
+  const paragraphs = [];
+  const paraRegex = /<p[^>]*>([\s\S]*?)<\/p>/g;
+  let paraMatch;
+  while ((paraMatch = paraRegex.exec(html)) !== null) {
+    const chunks = decodeHtmlText(paraMatch[1]).split('\t')
+      .map((text) => text.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    if (chunks.length) {
+      paragraphs.push({ cells: chunks.map((text, index) => ({ x: index * DOCX_COLUMN_WIDTH, text })) });
+    }
+  }
+
+  const lineText = (cells) => cells.map((cell) => cell.text).join('').replace(/\s+/g, ' ').trim();
+  const isLoneLabel = (line) => line.cells.length === 1 && FLAT_FIELD_LABEL_RE.test(normalize(line.cells[0].text));
+  const pairCells = (label, value, valueX = DOCX_COLUMN_WIDTH) => [{ x: 0, text: label }, { x: valueX, text: value }];
+
+  const lines = [];
+  const consumed = new Set();
+  let y = 0;
+  const push = (cells) => lines.push({ page: 0, y: y++, cells, text: lineText(cells) });
+
+  for (let i = 0; i < paragraphs.length; i += 1) {
+    if (consumed.has(i)) continue;
+    if (!isLoneLabel(paragraphs[i])) {
+      push(paragraphs[i].cells);
+      continue;
+    }
+
+    // A run of consecutive labels is followed by its values in the same order; a heading
+    // ("CUSTOMER INFORMATION") can sit inside the band and is not a value.
+    const labels = [];
+    let j = i;
+    while (j < paragraphs.length && isLoneLabel(paragraphs[j])) {
+      labels.push(paragraphs[j].cells[0].text);
+      j += 1;
+    }
+    const candidates = [];
+    for (let k = j; k < paragraphs.length && candidates.length < labels.length + 2; k += 1) {
+      if (isLoneLabel(paragraphs[k])) break;
+      if (classifyHeading(lineText(paragraphs[k].cells))) continue;
+      candidates.push(k);
+    }
+    const take = (pred) => {
+      const k = candidates.find((n) => !consumed.has(n) && pred(paragraphs[n]));
+      if (k !== undefined) consumed.add(k);
+      return k;
+    };
+
+    const pairs = [];
+    for (const label of labels) {
+      const name = normalize(label);
+      let value = null;
+      let valueX = DOCX_COLUMN_WIDTH;
+      if (/^WORK ORDER NUMBER$/.test(name)) {
+        const k = take((line) => FLAT_WO_NUMBER_RE.test(lineText(line.cells)));
+        if (k !== undefined) value = (lineText(paragraphs[k].cells).match(FLAT_WO_NUMBER_RE) || [])[2];
+      } else if (/^SERIAL NUMBER/.test(name)) {
+        const k = take((line) => FLAT_SERIAL_RE.test(line.cells[0].text.trim()) && /\d/.test(line.cells[0].text));
+        if (k !== undefined) value = paragraphs[k].cells[0].text.trim();
+      } else {
+        const k = take(() => true);
+        if (k !== undefined) value = paragraphs[k].cells[0].text.trim();
+        // x20 keeps the Date value out of the Rev column's x-window (see extractRevision)
+        if (/^DATE$/.test(name)) valueX = DOCX_COLUMN_WIDTH * 2;
+      }
+      if (value) pairs.push({ label, value, valueX });
+    }
+
+    const deferred = (pair) => /^(WORK ORDER NUMBER|SERIAL NUMBER S?)$/.test(normalize(pair.label));
+    const emitPair = (pair) => {
+      if (/^REV$/.test(normalize(pair.label))) {
+        // extractRevision reads the Rev value from the line below the header, same column.
+        push([{ x: 0, text: pair.label }]);
+        push([{ x: 0, text: pair.value }]);
+        return;
+      }
+      push(pairCells(pair.label, pair.value, pair.valueX));
+    };
+
+    // Model Code comes first, then the custom items (they live in the Model Code cell, so
+    // the custom-item window needs them before the Work Order Number row), then the rest.
+    for (const pair of pairs.filter((pair) => !deferred(pair))) emitPair(pair);
+    for (const k of candidates) {
+      if (consumed.has(k) || !FLAT_CUSTOMIZE_RE.test(lineText(paragraphs[k].cells))) continue;
+      consumed.add(k);
+      const cells = paragraphs[k].cells.slice();
+      cells[0] = { x: 0, text: cells[0].text.replace(/^\s*customize with:?\s*/i, '').trim() };
+      if (cells[0].text) push(cells);
+    }
+    for (const pair of pairs.filter(deferred)) emitPair(pair);
+
+    i = j - 1;
+  }
+  return lines;
+};
+
 const reconstructLinesFromDocx = (html) => {
+  // A PDF->Word conversion keeps no table: rebuild the grid from tab-separated paragraphs.
+  if (!/<tr[\s>]/i.test(html)) return reconstructLinesFromFlatDocx(html);
+
   const lines = [];
   let y = 0;
   const rows = html.match(/<tr>[\s\S]*?<\/tr>/g) || [];

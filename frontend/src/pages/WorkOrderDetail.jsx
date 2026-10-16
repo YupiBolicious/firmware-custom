@@ -8,10 +8,12 @@ import WOProductionNotes from '../components/work-order/WOProductionNotes';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function WorkOrderDetail() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const isCoder = hasRole('CODER');
   const { 
     wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message, 
+    correctionLevels, correctionForm, correctingItemId,
+    beginCorrection, cancelCorrection, updateCorrectionForm, saveCorrection,
     handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
     showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
     finalizeConfirm, startConfirm, completeConfirm,
@@ -102,6 +104,15 @@ export default function WorkOrderDetail() {
         groups={groups}
         canEdit={canEdit}
         itemsEditable={itemsEditable}
+        canCorrectDecisions={isCoder && !['PRODUCTION', 'COMPLETED'].includes(wo.status)}
+        currentUserId={user?.id}
+        correctionLevels={correctionLevels}
+        correctionForm={correctionForm}
+        correctingItemId={correctingItemId}
+        beginCorrection={beginCorrection}
+        cancelCorrection={cancelCorrection}
+        updateCorrectionForm={updateCorrectionForm}
+        saveCorrection={saveCorrection}
         showAddItemForm={showAddItemForm}
         openAddItem={openAddItem}
         handleAddItem={handleAddItem}

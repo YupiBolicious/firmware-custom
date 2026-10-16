@@ -8,6 +8,15 @@ export default function WOEstimationPreview({
   groups,
   canEdit,
   itemsEditable,
+  canCorrectDecisions,
+  currentUserId,
+  correctionLevels,
+  correctionForm,
+  correctingItemId,
+  beginCorrection,
+  cancelCorrection,
+  updateCorrectionForm,
+  saveCorrection,
   showAddItemForm,
   openAddItem,
   handleAddItem,
@@ -20,6 +29,7 @@ export default function WOEstimationPreview({
   handleDeleteItem
 }) {
   const editable = canEdit && itemsEditable;
+  const showActions = editable || canCorrectDecisions;
   // A work order holds exactly one machine model, so it belongs in the header rather than
   // repeated down a column that is null for every WO-level item anyway.
   const woModel = groups && groups[0] ? groups[0].machine_model_code : null;
@@ -106,7 +116,7 @@ export default function WOEstimationPreview({
             <th>Status</th>
             <th>Review</th>
             <th>Assistance</th>
-            {editable && <th>Actions</th>}
+            {showActions && <th>Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -140,11 +150,50 @@ export default function WOEstimationPreview({
                   ? `${r.assist_match_score}% sim${marginPct != null ? ` · margin ${marginPct}` : ''}`
                   : '-'}
               </td>
-              {editable && (
+              {showActions && (
                 <td>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <button className="icon-btn" onClick={() => handleEditItem(r)} title="Edit item" aria-label="Edit item"><Pencil size={16} strokeWidth={1.5} /></button>
-                    <button className="icon-btn icon-btn-danger" onClick={() => handleDeleteItem(r.id)} title="Delete item" aria-label="Delete item"><Trash2 size={16} strokeWidth={1.5} /></button>
+                    {editable && <>
+                      <button className="icon-btn" onClick={() => handleEditItem(r)} title="Edit item" aria-label="Edit item"><Pencil size={16} strokeWidth={1.5} /></button>
+                      <button className="icon-btn icon-btn-danger" onClick={() => handleDeleteItem(r.id)} title="Delete item" aria-label="Delete item"><Trash2 size={16} strokeWidth={1.5} /></button>
+                    </>}
+                    {canCorrectDecisions && Number(r.reviewed_by) === Number(currentUserId)
+                      && ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)
+                      && (correctionForm?.itemId === r.id ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 190 }}>
+                          <select
+                            value={correctionForm.complexityLevelId}
+                            onChange={(event) => updateCorrectionForm({ complexityLevelId: event.target.value })}
+                            disabled={correctingItemId === r.id}
+                            aria-label={`Correct complexity for ${r.item_number}`}
+                          >
+                            <option value="">Select L0-L5</option>
+                            {correctionLevels.map((level) => <option key={level.id} value={level.id}>{level.code} - {level.name}</option>)}
+                          </select>
+                          <input
+                            value={correctionForm.reason}
+                            onChange={(event) => updateCorrectionForm({ reason: event.target.value })}
+                            placeholder="Optional correction reason"
+                            maxLength={1000}
+                            aria-label={`Optional correction reason for ${r.item_number}`}
+                            disabled={correctingItemId === r.id}
+                          />
+                          <div className="flex gap-8">
+                            <button
+                              className="btn btn-sm"
+                              onClick={() => saveCorrection(r)}
+                              disabled={!correctionForm.complexityLevelId
+                                || Number(correctionForm.complexityLevelId) === Number(r.complexity_level_id)
+                                || correctingItemId === r.id}
+                            >
+                              {correctingItemId === r.id ? 'Saving...' : 'Save correction'}
+                            </button>
+                            <button className="btn btn-secondary btn-sm" onClick={cancelCorrection} disabled={correctingItemId === r.id}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button className="btn btn-secondary btn-sm" onClick={() => beginCorrection(r)}>Correct level</button>
+                      ))}
                   </div>
                 </td>
               )}
@@ -153,7 +202,7 @@ export default function WOEstimationPreview({
           })}
           {items.length === 0 && (
             <tr>
-              <td colSpan={editable ? 10 : 9} className="text-muted">No custom items yet.</td>
+              <td colSpan={showActions ? 10 : 9} className="text-muted">No custom items yet.</td>
             </tr>
           )}
         </tbody>

@@ -194,6 +194,213 @@ const reviewClassification = async ({
   return result.rows[0] || null;
 };
 
+const correctReviewedClassification = async ({ work_order_item_id, reviewed_by, complexity_level_id, reason }) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const itemResult = await client.query(
+      `SELECT woi.id, woi.work_order_id, woi.item_number, woi.title, woi.description,
+              woi.documentation_readiness, wo.wo_number, wo.status AS work_order_status
+       FROM work_order_items woi
+       JOIN work_orders wo ON wo.id = woi.work_order_id
+       WHERE woi.id = $1
+       FOR UPDATE OF wo, woi`,
+      [work_order_item_id]
+    );
+    const item = itemResult.rows[0];
+    if (!item) {
+      await client.query('ROLLBACK');
+      return { error: 'NOT_FOUND' };
+    }
+    if (['PRODUCTION', 'COMPLETED'].includes(item.work_order_status)) {
+      await client.query('ROLLBACK');
+      return { error: 'LOCKED' };
+    }
+
+    const classificationResult = await client.query(
+      `SELECT c.*, cl.code AS old_complexity_code
+       FROM classifications c
+       LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
+       WHERE c.work_order_item_id = $1
+       FOR UPDATE OF c`,
+      [work_order_item_id]
+    );
+    const classification = classificationResult.rows[0];
+    if (!classification || !['CLASSIFIED', 'NON_FIRMWARE'].includes(classification.status)
+        || classification.reviewed_by == null) {
+      await client.query('ROLLBACK');
+      return { error: 'NOT_REVIEWED' };
+    }
+    if (Number(classification.reviewed_by) !== Number(reviewed_by)) {
+      await client.query('ROLLBACK');
+      return { error: 'FORBIDDEN' };
+    }
+
+    const levelResult = await client.query(
+      `SELECT id, code, name, requirement_review_h, code_development_h,
+              peer_review_fixing_h, bench_testing_h, unit_testing_h, total_hours
+       FROM complexity_levels
+       WHERE id = $1 AND is_active = TRUE AND code ~ '^L[0-5]$'`,
+      [complexity_level_id]
+    );
+    const level = levelResult.rows[0];
+    if (!level) {
+      await client.query('ROLLBACK');
+      return { error: 'INVALID_LEVEL' };
+    }
+    if (Number(classification.complexity_level_id) === Number(level.id)) {
+      await client.query('ROLLBACK');
+      return { error: 'UNCHANGED' };
+    }
+
+    const estimationResult = await client.query(
+      `SELECT cl.id, cl.code, cl.name, cl.requirement_review_h, cl.code_development_h,
+              cl.peer_review_fixing_h, cl.bench_testing_h, cl.unit_testing_h, cl.total_hours,
+              CASE
+                WHEN cl.code = 'L0' THEN 0
+                WHEN $2 = 'MISSING' THEN COALESCE((
+                  SELECT v.verification_mh FROM verification_levels v
+                  WHERE v.code = 'V3' AND v.is_active = TRUE ORDER BY v.id LIMIT 1
+                ), 0)
+                ELSE COALESCE((
+                  SELECT v.verification_mh
+                  FROM complexity_verification_map m
+                  JOIN verification_levels v ON v.id = m.verification_level_id
+                  WHERE m.complexity_level_id = cl.id AND v.is_active = TRUE
+                  ORDER BY v.id LIMIT 1
+                ), 0)
+              END AS verification_mh
+       FROM complexity_levels cl
+       WHERE cl.id = $1 AND cl.is_active = TRUE`,
+      [level.id, item.documentation_readiness]
+    );
+    const estimate = estimationResult.rows[0];
+    const previous = {
+      complexity_level_id: classification.complexity_level_id,
+      complexity_code: classification.old_complexity_code,
+      fw_related: classification.fw_related,
+      status: classification.status,
+      reviewed_at: classification.reviewed_at,
+    };
+    const fwRelated = level.code !== 'L0';
+    const nextStatus = fwRelated ? 'CLASSIFIED' : 'NON_FIRMWARE';
+    const updatedClassification = await client.query(
+      `UPDATE classifications
+       SET fw_related = $2,
+           complexity_level_id = $3,
+           classification_method = 'MANUAL',
+           confidence_score = 100,
+           classification_reason = $4,
+           status = $5,
+           reviewed_at = NOW(),
+           updated_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [
+        classification.id,
+        fwRelated,
+        level.id,
+        `Coder correction: ${previous.complexity_code || 'unknown'} to ${level.code}${reason ? ` — ${reason}` : ''}`,
+        nextStatus,
+      ]
+    );
+
+    const totalHours = Number(estimate.total_hours) + Number(estimate.verification_mh);
+    await client.query(
+      `INSERT INTO item_estimations
+         (work_order_item_id, complexity_level_id, requirement_review_h, code_development_h,
+          peer_review_fixing_h, bench_testing_h, unit_testing_h, verification_mh, total_hours, is_current)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE)
+       ON CONFLICT (work_order_item_id)
+       DO UPDATE SET complexity_level_id = EXCLUDED.complexity_level_id,
+         requirement_review_h = EXCLUDED.requirement_review_h,
+         code_development_h = EXCLUDED.code_development_h,
+         peer_review_fixing_h = EXCLUDED.peer_review_fixing_h,
+         bench_testing_h = EXCLUDED.bench_testing_h,
+         unit_testing_h = EXCLUDED.unit_testing_h,
+         verification_mh = EXCLUDED.verification_mh,
+         total_hours = EXCLUDED.total_hours,
+         is_current = TRUE`,
+      [
+        work_order_item_id, level.id, estimate.requirement_review_h,
+        estimate.code_development_h, estimate.peer_review_fixing_h,
+        estimate.bench_testing_h, estimate.unit_testing_h,
+        estimate.verification_mh, totalHours,
+      ]
+    );
+
+    const kbResult = await client.query(
+      `INSERT INTO kb_items
+         (kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score,
+          source, is_active, machine_model_id, machine_model_version_id)
+       SELECT $1, woi.title, woi.description,
+              (SELECT existing.keywords FROM kb_items existing WHERE existing.kb_code = $1),
+              $2, $3, 99, 'CODER_REVIEW', TRUE, g.machine_model_id, g.machine_model_version_id
+       FROM work_order_items woi
+       LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
+       WHERE woi.id = $4
+       ON CONFLICT (kb_code)
+       DO UPDATE SET title = EXCLUDED.title,
+         description = EXCLUDED.description,
+         fw_related = EXCLUDED.fw_related,
+         complexity_level_id = EXCLUDED.complexity_level_id,
+         confidence_score = EXCLUDED.confidence_score,
+         source = EXCLUDED.source,
+         is_active = TRUE,
+         machine_model_id = EXCLUDED.machine_model_id,
+         machine_model_version_id = EXCLUDED.machine_model_version_id,
+         updated_at = NOW()
+       RETURNING id, kb_code`,
+      [`KB-CODER-${work_order_item_id}`, fwRelated, level.id, work_order_item_id]
+    );
+
+    let productionTaskChange = null;
+    if (item.work_order_status === 'FINALIZED') {
+      if (fwRelated) {
+        const task = await client.query(
+          `INSERT INTO production_tasks (task_code, work_order_id, work_order_item_id, title, description)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (work_order_item_id)
+           DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description, updated_at = NOW()
+           RETURNING id`,
+          [`${item.wo_number}-${item.id}`, item.work_order_id, item.id, item.title, item.description]
+        );
+        productionTaskChange = { action: 'UPSERTED', task_id: task.rows[0]?.id || null };
+      } else {
+        const deleted = await client.query(
+          'DELETE FROM production_tasks WHERE work_order_item_id = $1 RETURNING id',
+          [item.id]
+        );
+        if (deleted.rows[0]) productionTaskChange = { action: 'REMOVED', task_id: deleted.rows[0].id };
+      }
+    }
+
+    await client.query(
+      `UPDATE kb_corpus_version SET version = version + 1, updated_at = NOW() WHERE id = 1`
+    );
+    await client.query('UPDATE work_orders SET updated_at = NOW() WHERE id = $1', [item.work_order_id]);
+    await client.query('COMMIT');
+    return {
+      item,
+      previous,
+      classification: updatedClassification.rows[0],
+      level,
+      fw_related: fwRelated,
+      status: nextStatus,
+      estimated_hours: totalHours,
+      verification_mh: Number(estimate.verification_mh),
+      learned_kb: kbResult.rows[0] || null,
+      production_task_change: productionTaskChange,
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   findAllKbItems,
   findAllRules,
@@ -205,4 +412,5 @@ module.exports = {
   findTopMatch,
   countReviewItemsByWorkOrderId,
   reviewClassification,
+  correctReviewedClassification,
 };

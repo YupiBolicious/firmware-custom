@@ -24,6 +24,16 @@ export default function useWorkOrderDetail() {
   const [itemForm, setItemForm] = useState(emptyItemForm);
   const [editingItemId, setEditingItemId] = useState(null);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
+  const [correctionLevels, setCorrectionLevels] = useState([]);
+  const [correctionForm, setCorrectionForm] = useState(null);
+  const [correctingItemId, setCorrectingItemId] = useState(null);
+
+  useEffect(() => {
+    if (!hasRole('CODER')) return;
+    api.get('/complexity-levels')
+      .then((res) => setCorrectionLevels((res.data.data || []).filter((level) => level.is_active && /^L[0-5]$/.test(level.code))))
+      .catch((err) => setError(err.response?.data?.message || 'Failed to load complexity levels'));
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -136,6 +146,43 @@ export default function useWorkOrderDetail() {
     }
   };
 
+  const beginCorrection = (item) => {
+    setCorrectionForm({
+      itemId: item.id,
+      complexityLevelId: String(item.complexity_level_id || ''),
+      reason: '',
+    });
+  };
+
+  const cancelCorrection = () => setCorrectionForm(null);
+
+  const updateCorrectionForm = (patch) => {
+    setCorrectionForm((current) => current ? { ...current, ...patch } : current);
+  };
+
+  const saveCorrection = async (item) => {
+    if (!correctionForm || Number(correctionForm.itemId) !== Number(item.id)) return;
+    const level = correctionLevels.find((candidate) => String(candidate.id) === correctionForm.complexityLevelId);
+    if (!level) return;
+    if (!window.confirm(`Correct ${item.item_number} from ${item.complexity_code} to ${level.code}?`)) return;
+    setError('');
+    setCorrectingItemId(item.id);
+    try {
+      await api.put(`/work-orders/items/${item.id}/review-correction`, {
+        complexity_level_id: Number(level.id),
+        reason: correctionForm.reason.trim() || undefined,
+      });
+      setCorrectionForm(null);
+      setMessage(`Decision corrected to ${level.code}`);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to correct classification');
+      if (err.response?.status === 409) await load();
+    } finally {
+      setCorrectingItemId(null);
+    }
+  };
+
   const woModelCode = wo && wo.groups && wo.groups.length > 0 ? wo.groups[0].machine_model_code || '' : '';
   const [finalizeConfirm, setFinalizeConfirm] = useState(false);
   const [startConfirm, setStartConfirm] = useState(false);
@@ -234,6 +281,13 @@ export default function useWorkOrderDetail() {
     handleUpdateItem,
     cancelEdit,
     handleDeleteItem,
+    correctionLevels,
+    correctionForm,
+    correctingItemId,
+    beginCorrection,
+    cancelCorrection,
+    updateCorrectionForm,
+    saveCorrection,
     handleGroupFormChange,
     openAddGroup: () => openAddGroup(woModelCode),
     openEditGroup,

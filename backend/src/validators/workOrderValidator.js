@@ -162,6 +162,23 @@ const validateReview = (req, res, next) => {
   next();
 };
 
+const validateReviewCorrection = (req, res, next) => {
+  const { complexity_level_id, reason } = req.body || {};
+  const errors = [];
+
+  if (!Number.isInteger(complexity_level_id)) {
+    errors.push('complexity_level_id is required');
+  }
+  if (reason !== undefined && reason !== null && (typeof reason !== 'string' || reason.length > 1000)) {
+    errors.push('reason must be a string of max 1000 characters');
+  }
+
+  if (errors.length > 0) {
+    return next(new ApiError(400, 'Validation failed', errors));
+  }
+  next();
+};
+
 const validateProductionTaskUpdate = (req, res, next) => {
   const { completed } = req.body || {};
   const errors = [];
@@ -214,6 +231,7 @@ module.exports = {
   validateItemCreate,
   validateItemUpdate,
   validateReview,
+  validateReviewCorrection,
   validateProductionTaskUpdate,
   validateAccessGrant,
   validateWorkOrderNotes,

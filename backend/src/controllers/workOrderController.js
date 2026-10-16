@@ -33,6 +33,19 @@ const reviewItem = async (req, res, next) => {
   }
 };
 
+const correctReviewedItem = async (req, res, next) => {
+  try {
+    const data = await workOrderService.correctReviewedItem(req.params.itemId, {
+      ...req.body,
+      user_id: req.user.id,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Coder decision corrected', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getById = async (req, res, next) => {
   try {
     const data = await workOrderService.getWorkOrder(req.params.id);
@@ -255,12 +268,10 @@ const previewWorkOrder = async (req, res, next) => {
       fields = await workOrderUploadService.parseWorkOrderPdf(req.file.buffer);
     }
 
-    if (!fields.wo_number) {
-      throw new ApiError(422, 'Could not extract required fields', ['wo_number']);
-    }
-
-    // 2. Evaluasi Warnings
+    // 2. Evaluasi Warnings — a miss is not fatal: the preview modal lets the PM fill the
+    // field in, and confirmUploadWorkOrder re-validates it before anything is written.
     const warnings = [];
+    if (!fields.wo_number) warnings.push('wo_number');
     if (!fields.customer) warnings.push('customer');
     if (!fields.model_code) warnings.push('model_code');
     if (!fields.serial_numbers.length) warnings.push('serial_numbers');
@@ -397,6 +408,7 @@ module.exports = {
   list,
   reviewQueue,
   reviewItem,
+  correctReviewedItem,
   getById,
   create,
   previewWorkOrder,
