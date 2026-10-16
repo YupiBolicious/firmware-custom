@@ -206,7 +206,13 @@ const finalize = async (req, res, next) => {
       roles: req.user.roles,
       ip_address: req.ip,
     });
-    res.json({ success: true, message: 'Work order finalized successfully', data });
+    res.json({
+      success: true,
+      message: data.work_order.status === 'COMPLETED'
+        ? 'Work order completed; no firmware production was required'
+        : 'Work order finalized successfully',
+      data,
+    });
   } catch (err) {
     next(err);
   }
