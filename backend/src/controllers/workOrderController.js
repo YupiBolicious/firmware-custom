@@ -268,10 +268,12 @@ const previewWorkOrder = async (req, res, next) => {
       fields = await workOrderUploadService.parseWorkOrderPdf(req.file.buffer);
     }
 
-    // 2. Evaluasi Warnings — a miss is not fatal: the preview modal lets the PM fill the
-    // field in, and confirmUploadWorkOrder re-validates it before anything is written.
+    if (!fields.wo_number) {
+      throw new ApiError(422, 'Could not extract required fields', ['wo_number']);
+    }
+
+    // 2. Evaluasi Warnings
     const warnings = [];
-    if (!fields.wo_number) warnings.push('wo_number');
     if (!fields.customer) warnings.push('customer');
     if (!fields.model_code) warnings.push('model_code');
     if (!fields.serial_numbers.length) warnings.push('serial_numbers');
@@ -338,7 +340,6 @@ const confirmUploadWorkOrder = async (req, res, next) => {
       created_by: req.user.id,
       roles: req.user.roles,
       ip_address: req.ip,
-      revision: Number.isFinite(Number(revision)) && Number(revision) >= 0 ? Number(revision) : 0,
     });
 
     const revised = Boolean(wo.revised);
@@ -356,7 +357,6 @@ const confirmUploadWorkOrder = async (req, res, next) => {
         serial_numbers,
         customize_with: items,
         customer,
-        revision: wo.revision,
       },
     });
   } catch (err) {
