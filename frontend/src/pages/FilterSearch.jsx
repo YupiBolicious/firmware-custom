@@ -86,35 +86,6 @@ export default function FilterSearch({
                 </select>
               </div>
             )}
-            {uniqueComplexities?.length > 0 && (
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">Complexity</label>
-                <select
-                  className="filter-control"
-                  value={filters.complexityFilter}
-                  onChange={(e) => setFilter('complexityFilter', e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  {uniqueComplexities.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {filters.fwRelatedFilter !== undefined && (
-              <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
-                <label className="filter-label">FW Related</label>
-                <select
-                  className="filter-control"
-                  value={filters.fwRelatedFilter}
-                  onChange={(e) => setFilter('fwRelatedFilter', e.target.value)}
-                >
-                  <option value="ALL">All</option>
-                  <option value="FW">Firmware</option>
-                  <option value="NON_FW">Non-Firmware</option>
-                </select>
-              </div>
-            )}
             <div className="form-row" style={{ flex: 1, minWidth: 120 }}>
               <label className="filter-label">From</label>
               <input
