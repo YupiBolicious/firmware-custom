@@ -222,8 +222,10 @@ export default function useWorkOrderDetail() {
     setMessage('');
     setFinalizing(true);
     try {
-      await api.post(`/work-orders/${id}/finalize`);
-      setMessage('Work order finalized');
+      const response = await api.post(`/work-orders/${id}/finalize`);
+      setMessage(response.data?.data?.work_order?.status === 'COMPLETED'
+        ? 'Work order completed; no firmware production was required'
+        : 'Work order finalized');
       await load();
       setFinalizeConfirm(false);
     } catch (err) {
