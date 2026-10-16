@@ -10,10 +10,10 @@ import ConfirmModal from '../components/ConfirmModal';
 export default function WorkOrderDetail() {
   const { hasRole } = useAuth();
   const isCoder = hasRole('CODER');
-  const { 
-    wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message, 
-    correctionLevels, correctionForm, correctingItemId,
-    beginCorrection, cancelCorrection, updateCorrectionForm, saveCorrection,
+  const {
+    wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message,
+    correctionLevels, correctionForm, correctingItemId, correctionConfirmOpen, correctionConfirmMessage,
+    beginCorrection, cancelCorrection, updateCorrectionForm, saveCorrection, confirmCorrection,
     handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
     showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
     finalizeConfirm, startConfirm, completeConfirm,
@@ -165,6 +165,15 @@ export default function WorkOrderDetail() {
         message="Are you sure you want to complete this work order?"
         confirmLabel="Complete"
         loading={completing}
+      />
+      <ConfirmModal
+        isOpen={correctionConfirmOpen}
+        onClose={cancelCorrection}
+        onConfirm={confirmCorrection}
+        title="Correct classification?"
+        message={correctionConfirmMessage}
+        confirmLabel="Save"
+        loading={correctingItemId != null}
       />
     </div>
   );
