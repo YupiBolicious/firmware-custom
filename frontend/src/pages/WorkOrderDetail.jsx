@@ -38,7 +38,11 @@ export default function WorkOrderDetail() {
 
   const items = wo.items || [];
   const countOpenItem = items.filter((t) => t.classification_status === 'CODER_REVIEW' || t.fw_related === null).length;
-  const reviewedItems = countOpenItem > 0 ? `Waiting for (${countOpenItem} left)` : `Finalize Work Order`;
+  const allNonFirmware = items.length > 0 && items.every((item) => item.fw_related === false
+    && ['CLASSIFIED', 'NON_FIRMWARE'].includes(item.classification_status));
+  const reviewedItems = countOpenItem > 0
+    ? `Waiting for (${countOpenItem} left)`
+    : allNonFirmware ? 'Complete Work Order' : 'Finalize Work Order';
   
   const productionTasks = wo.production_tasks || [];
   const openTaskCount = productionTasks.filter((t) => !t.completed).length;
@@ -65,6 +69,7 @@ export default function WorkOrderDetail() {
         openStartConfirm={openStartConfirm}
         openCompleteConfirm={openCompleteConfirm}
         reviewedItems={reviewedItems}
+        allNonFirmware={allNonFirmware}
         completeAllLabel={completeAllLabel}
         countOpenItem={countOpenItem}
         openTaskCount={openTaskCount}
@@ -142,9 +147,11 @@ export default function WorkOrderDetail() {
         isOpen={finalizeConfirm}
         onClose={closeFinalizeConfirm}
         onConfirm={handleFinalize}
-        title="Finalize Work Order?"
-        message="Are you sure you want to finalize this work order? This action cannot be undone."
-        confirmLabel="Finalize"
+        title={allNonFirmware ? 'Complete Work Order?' : 'Finalize Work Order?'}
+        message={allNonFirmware
+          ? 'This work order has no firmware-related items. Confirming will complete it directly without starting production. This action cannot be undone.'
+          : 'Are you sure you want to finalize this work order? This action cannot be undone.'}
+        confirmLabel={allNonFirmware ? 'Complete Work Order' : 'Finalize'}
         loading={finalizing}
         confirmVariant="primary"
       />
