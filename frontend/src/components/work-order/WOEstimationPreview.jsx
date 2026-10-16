@@ -9,7 +9,6 @@ export default function WOEstimationPreview({
   canEdit,
   itemsEditable,
   canCorrectDecisions,
-  currentUserId,
   correctionLevels,
   correctionForm,
   correctingItemId,
@@ -157,8 +156,7 @@ export default function WOEstimationPreview({
                       <button className="icon-btn" onClick={() => handleEditItem(r)} title="Edit item" aria-label="Edit item"><Pencil size={16} strokeWidth={1.5} /></button>
                       <button className="icon-btn icon-btn-danger" onClick={() => handleDeleteItem(r.id)} title="Delete item" aria-label="Delete item"><Trash2 size={16} strokeWidth={1.5} /></button>
                     </>}
-                    {canCorrectDecisions && Number(r.reviewed_by) === Number(currentUserId)
-                      && ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)
+                    {canCorrectDecisions && ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)
                       && (correctionForm?.itemId === r.id ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 190 }}>
                           <select

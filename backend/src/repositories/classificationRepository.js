@@ -194,7 +194,7 @@ const reviewClassification = async ({
   return result.rows[0] || null;
 };
 
-const correctReviewedClassification = async ({ work_order_item_id, reviewed_by, complexity_level_id, reason }) => {
+const correctReviewedClassification = async ({ work_order_item_id, complexity_level_id, reason }) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -232,11 +232,6 @@ const correctReviewedClassification = async ({ work_order_item_id, reviewed_by, 
       await client.query('ROLLBACK');
       return { error: 'NOT_REVIEWED' };
     }
-    if (Number(classification.reviewed_by) !== Number(reviewed_by)) {
-      await client.query('ROLLBACK');
-      return { error: 'FORBIDDEN' };
-    }
-
     const levelResult = await client.query(
       `SELECT id, code, name, requirement_review_h, code_development_h,
               peer_review_fixing_h, bench_testing_h, unit_testing_h, total_hours

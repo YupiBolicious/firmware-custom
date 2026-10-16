@@ -8,7 +8,7 @@ import WOProductionNotes from '../components/work-order/WOProductionNotes';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function WorkOrderDetail() {
-  const { hasRole, user } = useAuth();
+  const { hasRole } = useAuth();
   const isCoder = hasRole('CODER');
   const { 
     wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message, 
@@ -105,7 +105,6 @@ export default function WorkOrderDetail() {
         canEdit={canEdit}
         itemsEditable={itemsEditable}
         canCorrectDecisions={isCoder && !['PRODUCTION', 'COMPLETED'].includes(wo.status)}
-        currentUserId={user?.id}
         correctionLevels={correctionLevels}
         correctionForm={correctionForm}
         correctingItemId={correctingItemId}

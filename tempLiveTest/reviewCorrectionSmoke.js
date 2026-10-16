@@ -2,7 +2,7 @@
 const base = 'http://localhost:5000';
 const pool = require('C:/Program Files/Firmware Custom/backend/src/config/db');
 const PREFIX = 'RCORR-';
-const EMAILS = { pm: 'pm@demo.com', coder: 'coder@demo.com', admin: 'admin@demo.com' };
+const EMAILS = { pm: 'pm@demo.com', coder: 'coder@demo.com' };
 const PASSWORD = 'password123';
 
 async function api(method, path, token, body) {
@@ -68,7 +68,7 @@ async function cleanupWorkOrder(id) {
     const leftovers = (await query('SELECT id FROM work_orders WHERE wo_number LIKE $1', [`${PREFIX}%`])).rows;
     for (const row of leftovers) await cleanupWorkOrder(row.id);
 
-    const [pm, coder, admin] = await Promise.all([login(EMAILS.pm), login(EMAILS.coder), login(EMAILS.admin)]);
+    const [pm, coder] = await Promise.all([login(EMAILS.pm), login(EMAILS.coder)]);
     const levels = (await query(
       `SELECT id, code FROM complexity_levels WHERE is_active=TRUE AND code IN ('L0','L2','L3','L5')`
     )).rows;
@@ -112,20 +112,20 @@ async function cleanupWorkOrder(id) {
     });
     check('confirm initial L5 review', response.status === 200, `status=${response.status}`);
 
+    const adminId = (await query("SELECT id FROM users WHERE email='admin@demo.com' OR username='admin@demo' ORDER BY id LIMIT 1")).rows[0]?.id;
+    if (!adminId) throw new Error('Could not find admin user for reviewer-ownership simulation');
+    await query('UPDATE classifications SET reviewed_by=$2 WHERE work_order_item_id=$1', [itemId, adminId]);
+
     response = await api('PUT', `/api/work-orders/items/${itemId}/review-correction`, pm, {
       complexity_level_id: levelId.L3,
     });
     check('non-coder cannot use correction endpoint', response.status === 403, `status=${response.status}`);
-    response = await api('PUT', `/api/work-orders/items/${itemId}/review-correction`, admin, {
-      complexity_level_id: levelId.L3,
-    });
-    check('different reviewer cannot correct the decision', response.status === 403, `status=${response.status}`);
 
     response = await api('PUT', `/api/work-orders/items/${itemId}/review-correction`, coder, {
       complexity_level_id: levelId.L3,
       reason: 'Corrected after checking the requirements',
     });
-    check('correct L5 to L3', response.status === 200 && response.data?.complexity_code === 'L3', `status=${response.status}`);
+    check('coder can correct another reviewer\'s L5 decision to L3', response.status === 200 && response.data?.complexity_code === 'L3', `status=${response.status}`);
     const corrected = (await query(
       `SELECT c.status, c.fw_related, cl.code AS complexity_code, ie.complexity_level_id AS estimate_level,
               ie.total_hours, kb.complexity_level_id AS learned_level
