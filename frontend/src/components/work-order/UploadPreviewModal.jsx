@@ -62,7 +62,7 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, on
 
         {warnings.length > 0 && (
           <div className="alert" style={{ marginBottom: 16 }}>
-            Missing from PDF (not imported): {warnings.join(', ')} — edit below before confirming.
+            Missing from file: edit below before confirming.
           </div>
         )}
 
