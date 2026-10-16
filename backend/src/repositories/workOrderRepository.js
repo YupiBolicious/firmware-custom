@@ -1,4 +1,4 @@
-﻿const pool = require('../config/db');
+const pool = require('../config/db');
 
 //work orders
 const findAll = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
@@ -167,41 +167,78 @@ const finalizeWithProductionTasks = async (workOrderId) => {
   try {
     await client.query('BEGIN');
 
-    const workOrderResult = await client.query(
-      `UPDATE work_orders
-       SET status = 'FINALIZED', updated_at = NOW()
-       WHERE id = $1 AND status = 'ANALYZED'
-       RETURNING *`,
+    const currentResult = await client.query(
+      `SELECT * FROM work_orders WHERE id = $1 FOR UPDATE`,
       [workOrderId]
+    );
+    const current = currentResult.rows[0];
+    if (!current || current.status !== 'ANALYZED') {
+      throw new Error('Work order is no longer in ANALYZED state');
+    }
+
+    const summaryResult = await client.query(
+      `SELECT COUNT(woi.id)::int AS item_count,
+              COUNT(*) FILTER (
+                WHERE c.id IS NULL OR c.status = 'CODER_REVIEW' OR c.fw_related IS NULL
+              )::int AS unresolved_count,
+              COALESCE(BOOL_OR(c.fw_related IS TRUE), FALSE) AS has_firmware
+       FROM work_order_items woi
+       LEFT JOIN classifications c ON c.work_order_item_id = woi.id
+       WHERE woi.work_order_id = $1`,
+      [workOrderId]
+    );
+    const summary = summaryResult.rows[0];
+    if (summary.item_count === 0) throw new Error('Work order has no items to finalize');
+    if (summary.unresolved_count > 0) throw new Error('Work order has items awaiting coder review');
+
+    const nextStatus = summary.has_firmware ? 'FINALIZED' : 'COMPLETED';
+    const workOrderResult = await client.query(
+      `UPDATE work_orders SET status = $2, updated_at = NOW()
+       WHERE id = $1 AND status = 'ANALYZED' RETURNING *`,
+      [workOrderId, nextStatus]
     );
     if (workOrderResult.rows.length === 0) {
       throw new Error('Work order is no longer in ANALYZED state');
     }
 
-    const taskResult = await client.query(
-      `INSERT INTO production_tasks
-         (task_code, work_order_id, work_order_item_id, title, description)
-       SELECT wo.wo_number || '-' || woi.id AS task_code,
-              wo.id,
-              woi.id,
-              woi.title,
-              woi.description
-       FROM work_orders wo
-       JOIN work_order_items woi ON woi.work_order_id = wo.id
-       JOIN classifications c ON c.work_order_item_id = woi.id
-       WHERE wo.id = $1 AND c.fw_related = TRUE
-       ON CONFLICT (work_order_item_id)
-       DO UPDATE SET
-         title = EXCLUDED.title,
-         description = excluded.description,
-         updated_at = NOW()
-       RETURNING id, task_code, work_order_id, work_order_item_id, title, description, completed,
-                 created_at, updated_at`,
-      [workOrderId]
-    );
+    let productionTasks = [];
+    if (summary.has_firmware) {
+      const taskResult = await client.query(
+        `INSERT INTO production_tasks
+           (task_code, work_order_id, work_order_item_id, title, description)
+         SELECT wo.wo_number || '-' || woi.id AS task_code,
+                wo.id,
+                woi.id,
+                woi.title,
+                woi.description
+         FROM work_orders wo
+         JOIN work_order_items woi ON woi.work_order_id = wo.id
+         JOIN classifications c ON c.work_order_item_id = woi.id
+         WHERE wo.id = $1 AND c.fw_related = TRUE
+         ON CONFLICT (work_order_item_id)
+         DO UPDATE SET
+           title = EXCLUDED.title,
+           description = EXCLUDED.description,
+           updated_at = NOW()
+         RETURNING id, task_code, work_order_id, work_order_item_id, title, description, completed,
+                   created_at, updated_at`,
+        [workOrderId]
+      );
+      productionTasks = taskResult.rows;
+    } else {
+      await client.query(
+        'DELETE FROM production_tasks WHERE work_order_id = $1 RETURNING id',
+        [workOrderId]
+      );
+    }
 
     await client.query('COMMIT');
-    return { workOrder: workOrderResult.rows[0], productionTasks: taskResult.rows };
+    return {
+      workOrder: workOrderResult.rows[0],
+      productionTasks,
+      completionPath: summary.has_firmware ? 'PRODUCTION' : 'NO_FIRMWARE',
+      itemCount: summary.item_count,
+    };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -271,7 +308,6 @@ const createWithGroups = async ({ wo_number, customer, created_by, groups, items
     client.release();
   }
 };
-
 
 const reviseWithGroups = async ({ id, customer, groups, items, revision }) => {
   const client = await pool.connect();
