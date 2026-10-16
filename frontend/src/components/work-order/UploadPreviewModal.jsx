@@ -77,20 +77,29 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, on
           />
         </div>
 
-        <div className="form-row">
-          <label>Revision</label>
-          <div>{Number.isInteger(form.revision) && form.revision >= 0 ? form.revision : 'Not detected'}</div>
-        </div>
+         <div className='form-grid'>
+            <div>
+              <label>Revision</label>
+              <input
+                className="wo-input-text"
+                type="number"
+                min="0"
+                name="revision"
+                value={form.revision}
+                onChange={(e) => setForm({ ...form, revision: e.target.value })}
+              />
+            </div>
 
-        <div className="form-row">
-          <label>Customer</label>
-          <input
-            className="wo-input-text"
-            name="customer"
-            value={form.customer}
-            onChange={(e) => setForm({ ...form, customer: e.target.value })}
-          />
-        </div>
+            <div>
+              <label>Customer</label>
+              <input
+                className="wo-input-text"
+                name="customer"
+                value={form.customer}
+                onChange={(e) => setForm({ ...form, customer: e.target.value })}
+              />
+            </div>
+          </div>
 
         <div className="form-row">
           <label>Model Code</label>
@@ -100,18 +109,6 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, on
             value={form.model_code}
             onChange={(e) => setForm({ ...form, model_code: e.target.value })}
             placeholder="e.g. FWX-100"
-          />
-        </div>
-
-        <div className="form-row">
-          <label>Revision</label>
-          <input
-            className="wo-input-text"
-            type="number"
-            min="0"
-            name="revision"
-            value={form.revision}
-            onChange={(e) => setForm({ ...form, revision: e.target.value })}
           />
         </div>
 
