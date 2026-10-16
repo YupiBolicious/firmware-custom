@@ -194,7 +194,7 @@ const reviewClassification = async ({
   return result.rows[0] || null;
 };
 
-const correctReviewedClassification = async ({ work_order_item_id, complexity_level_id, reason }) => {
+const correctReviewedClassification = async ({ work_order_item_id, reviewed_by, complexity_level_id, reason }) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -227,8 +227,7 @@ const correctReviewedClassification = async ({ work_order_item_id, complexity_le
       [work_order_item_id]
     );
     const classification = classificationResult.rows[0];
-    if (!classification || !['CLASSIFIED', 'NON_FIRMWARE'].includes(classification.status)
-        || classification.reviewed_by == null) {
+    if (!classification || !['CLASSIFIED', 'NON_FIRMWARE'].includes(classification.status)) {
       await client.query('ROLLBACK');
       return { error: 'NOT_REVIEWED' };
     }
@@ -276,6 +275,7 @@ const correctReviewedClassification = async ({ work_order_item_id, complexity_le
       complexity_code: classification.old_complexity_code,
       fw_related: classification.fw_related,
       status: classification.status,
+      reviewed_by: classification.reviewed_by,
       reviewed_at: classification.reviewed_at,
     };
     const fwRelated = level.code !== 'L0';
@@ -288,6 +288,7 @@ const correctReviewedClassification = async ({ work_order_item_id, complexity_le
            confidence_score = 100,
            classification_reason = $4,
            status = $5,
+           reviewed_by = $6,
            reviewed_at = NOW(),
            updated_at = NOW()
        WHERE id = $1
@@ -298,6 +299,7 @@ const correctReviewedClassification = async ({ work_order_item_id, complexity_le
         level.id,
         `Coder correction: ${previous.complexity_code || 'unknown'} to ${level.code}${reason ? ` — ${reason}` : ''}`,
         nextStatus,
+        reviewed_by,
       ]
     );
 
@@ -329,12 +331,12 @@ const correctReviewedClassification = async ({ work_order_item_id, complexity_le
       `INSERT INTO kb_items
          (kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score,
           source, is_active, machine_model_id, machine_model_version_id)
-       SELECT $1, woi.title, woi.description,
-              (SELECT existing.keywords FROM kb_items existing WHERE existing.kb_code = $1),
-              $2, $3, 99, 'CODER_REVIEW', TRUE, g.machine_model_id, g.machine_model_version_id
+      SELECT $1::varchar(50), woi.title, woi.description,
+        (SELECT existing.keywords FROM kb_items existing WHERE existing.kb_code = $1::varchar(50)),
+        $2::boolean, $3::integer, 99, 'CODER_REVIEW', TRUE, g.machine_model_id, g.machine_model_version_id
        FROM work_order_items woi
        LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
-       WHERE woi.id = $4
+      WHERE woi.id = $4::integer
        ON CONFLICT (kb_code)
        DO UPDATE SET title = EXCLUDED.title,
          description = EXCLUDED.description,
