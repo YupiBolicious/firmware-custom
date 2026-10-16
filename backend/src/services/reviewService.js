@@ -132,13 +132,14 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
 const correctReviewedItem = async (itemId, { complexity_level_id, reason, user_id, ip_address }) => {
   const correction = await classificationRepository.correctReviewedClassification({
     work_order_item_id: itemId,
+    reviewed_by: user_id,
     complexity_level_id,
     reason: reason?.trim() || null,
   });
 
   if (correction.error === 'NOT_FOUND') throw new ApiError(404, 'Work order item not found');
   if (correction.error === 'LOCKED') throw new ApiError(409, 'Classification corrections are unavailable after production starts');
-  if (correction.error === 'NOT_REVIEWED') throw new ApiError(409, 'Only confirmed coder decisions can be corrected');
+  if (correction.error === 'NOT_REVIEWED') throw new ApiError(409, 'Only resolved classifications can be corrected');
   if (correction.error === 'INVALID_LEVEL') throw new ApiError(400, 'complexity_level_id must reference an active L0-L5 level');
   if (correction.error === 'UNCHANGED') throw new ApiError(400, 'The item already has that complexity level');
 
@@ -158,6 +159,7 @@ const correctReviewedItem = async (itemId, { complexity_level_id, reason, user_i
         complexity_code: correction.level.code,
         fw_related: correction.fw_related,
         status: correction.status,
+        reviewed_by: correction.classification.reviewed_by,
         reviewed_at: correction.classification.reviewed_at,
         estimated_hours: correction.estimated_hours,
         verification_mh: correction.verification_mh,
