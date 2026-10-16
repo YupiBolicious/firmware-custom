@@ -355,6 +355,7 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
     return {
       work_order: wo,
       production_tasks: await workOrderRepository.findProductionTasksByWorkOrderId(work_order_id),
+      completion_path: 'PRODUCTION',
     };
   }
   if (wo.status !== 'ANALYZED') {
@@ -375,14 +376,56 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
 
   let finalized;
   let productionTasks;
+  let completionPath;
+  let itemCount;
   try {
-    ({ workOrder: finalized, productionTasks } = await workOrderRepository.finalizeWithProductionTasks(work_order_id));
+    ({
+      workOrder: finalized,
+      productionTasks,
+      completionPath,
+      itemCount,
+    } = await workOrderRepository.finalizeWithProductionTasks(work_order_id));
   } catch (err) {
     if (err.message === 'Work order is no longer in ANALYZED state') {
       throw new ApiError(409, 'Work order state changed; reload and try again');
     }
+    if (err.message === 'Work order has items awaiting coder review') {
+      throw new ApiError(400, 'Work order has items awaiting coder review');
+    }
+    if (err.message === 'Work order has no items to finalize') {
+      throw new ApiError(400, err.message);
+    }
     throw err;
   }
+
+  if (completionPath === 'NO_FIRMWARE') {
+    await auditService.log({
+      user_id,
+      action: 'WORK_ORDER_COMPLETED',
+      entity_type: 'WORK_ORDER',
+      entity_id: finalized.id,
+      work_order_id: finalized.id,
+      details: {
+        wo_number: finalized.wo_number,
+        item_count: itemCount,
+        trigger: 'finalize_no_firmware',
+        from_status: 'ANALYZED',
+      },
+      ip_address,
+    });
+    await notifyWorkOrderRecipients({
+      work_order_id: finalized.id,
+      owner_id: finalized.created_by,
+      status: 'WO_COMPLETED',
+      message: `${finalized.wo_number} has been completed (no firmware production required)`,
+    });
+    return {
+      work_order: finalized,
+      production_tasks: [],
+      completion_path: completionPath,
+    };
+  }
+
   await auditService.log({
     user_id,
     action: 'WORK_ORDER_FINALIZED',
@@ -391,7 +434,7 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
     work_order_id: finalized.id,
     details: {
       wo_number: finalized.wo_number,
-      item_count: items.length,
+      item_count: itemCount,
       production_task_count: productionTasks.length,
     },
     ip_address,
@@ -403,7 +446,7 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
     message: `${finalized.wo_number} has been finalized`,
   });
 
-  return { work_order: finalized, production_tasks: productionTasks };
+  return { work_order: finalized, production_tasks: productionTasks, completion_path: completionPath };
 };
 
 const startProduction = async (id, { user_id, ip_address }) => {
