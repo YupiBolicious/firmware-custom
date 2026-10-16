@@ -14,6 +14,7 @@ export default function WOStatusAccess({
   openStartConfirm, 
   openCompleteConfirm, 
   reviewedItems, 
+  allNonFirmware,
   completeAllLabel, 
   countOpenItem, 
   openTaskCount,
@@ -36,7 +37,9 @@ export default function WOStatusAccess({
           )}
           {canEdit && wo.status === 'ANALYZED' && (
             <button className="btn" onClick={openFinalizeConfirm} disabled={finalizing || countOpenItem > 0} title={countOpenItem > 0 ? `${countOpenItem} item(s) awaiting coder review` : undefined}>
-              {finalizing ? 'Finalizing...' : reviewedItems}
+              {finalizing
+                ? (allNonFirmware ? 'Completing...' : 'Finalizing...')
+                : reviewedItems}
             </button>
           )}
           {isCoder && wo.status === 'FINALIZED' && (
