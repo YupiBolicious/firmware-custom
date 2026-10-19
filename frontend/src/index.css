@@ -355,6 +355,9 @@ a:hover {
   padding: 20px 24px 32px;
 }
 
+/* Page rhythm: generous section separation (20px) vs tight internal groups (8px).
+   Scale: 4 / 8 / 12 / 20 / 32. Panels keep their own padding; stacked
+   siblings get rhythm from gap, not compounded bottom margins. */
 .main > div {
   display: flex;
   flex-direction: column;
@@ -446,6 +449,10 @@ a:hover {
   white-space: nowrap;
 }
 
+/* Compact variant for half-panel tables (e.g. coder dashboard Recent Activity /
+   New Work Orders): keep the real table layout + sticky header so the columns
+   stretch with the panel, but drop the 880px floor that a split-2 half cannot
+   hold. Placed after .table-scroll > table so it wins at equal specificity. */
 .table-scroll--fit > table {
   min-width: 0;
 }
@@ -1236,9 +1243,15 @@ textarea {
 .chart-stop-kb-bot { stop-color: #0ea5e9; }
 .chart-stop-amber-top { stop-color: #fbbf24; }
 .chart-stop-amber-bot { stop-color: #f59e0b; }
+/* Coder dashboard: queued items read as an active backlog, so they get a vibrant
+   yellow instead of the shared grey (which PM's chart still uses). */
+.chart-stop-coder-queued-top { stop-color: #fde047; }
+.chart-stop-coder-queued-bot { stop-color: #eab308; }
 
 [data-theme="light"] .chart-stop-queued-top { stop-color: #8a90a8; }
 [data-theme="light"] .chart-stop-queued-bot { stop-color: #5f657f; }
+[data-theme="light"] .chart-stop-coder-queued-top { stop-color: #facc15; }
+[data-theme="light"] .chart-stop-coder-queued-bot { stop-color: #ca8a04; }
 [data-theme="light"] .chart-stop-prog-top { stop-color: #38bdf8; }
 [data-theme="light"] .chart-stop-prog-bot { stop-color: #0284c7; }
 
