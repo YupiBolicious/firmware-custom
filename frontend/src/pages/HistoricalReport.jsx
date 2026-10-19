@@ -1,7 +1,11 @@
 import { useValueToast } from '../components/Toast';
 import Alert from '../components/Alert';
+import StatusBadge from '../components/StatusBadge';
+import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import useHistoricalReport, { METRICS } from './useHistoricalReport';
+
+const LIST_PAGE_SIZE = 10;
 
 const years = () => {
   const y = new Date().getFullYear();
@@ -22,13 +26,16 @@ function LineTooltip({ active, payload, label, metric }) {
 }
 
 export default function HistoricalReport() {
-  const { report, error, loading, quarters, kpi, selectedIndex, year, setYear, quarter, setQuarter, metric, setMetric } = useHistoricalReport();
+  const { report, error, loading, quarters, kpi, selectedIndex, year, setYear, quarter, setQuarter, metric, setMetric, workOrders, listPage, setListPage } = useHistoricalReport();
   useValueToast(error);
 
   if (loading) return <div>Loading...</div>;
   if (!report) return null;
 
   const rows = quarters;
+  const listItems = workOrders?.items || [];
+  const listPages = Math.max(1, Math.ceil(listItems.length / LIST_PAGE_SIZE));
+  const listRows = listItems.slice((listPage - 1) * LIST_PAGE_SIZE, listPage * LIST_PAGE_SIZE);
 
   return (
     <div className="dashboard">
@@ -95,6 +102,58 @@ export default function HistoricalReport() {
                 </tbody>
               </table>
             </div>
+
+            {workOrders && (
+              <div className="table-scroll" style={{ marginBottom: 16 }}>
+                <h3>Work Orders — {report.year} Q{quarter}</h3>
+                {listItems.length === 0 ? (
+                  <div className="text-muted">No work orders created in this quarter.</div>
+                ) : (
+                  <>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>WO Number</th>
+                          <th>Customer</th>
+                          <th>Status</th>
+                          <th className="num">Items</th>
+                          <th className="num">Est. Hours</th>
+                          <th>Created</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {listRows.map((wo) => (
+                          <tr key={wo.id}>
+                            <td><Link to={`/work-orders/${wo.id}`}>{wo.wo_number}</Link></td>
+                            <td>{wo.customer || '-'}</td>
+                            <td><StatusBadge status={wo.status} /></td>
+                            <td className="num">{wo.item_count}</td>
+                            <td className="num">{Number(wo.total_estimated_hours).toFixed(2)} h</td>
+                            <td>{new Date(wo.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {workOrders.total > listItems.length && (
+                      <div className="text-muted" style={{ marginTop: 8, fontSize: 13 }}>
+                        Showing the latest {listItems.length} of {workOrders.total}
+                      </div>
+                    )}
+                    {listPages > 1 && (
+                      <div className="flex justify-between align-center" style={{ marginTop: 12, flexWrap: 'wrap', gap: 8 }}>
+                        <span className="text-muted" style={{ fontSize: 13 }}>
+                          Page {listPage} of {listPages}
+                        </span>
+                        <div className="flex gap-8">
+                          <button className="btn btn-secondary btn-sm" onClick={() => setListPage(listPage - 1)} disabled={listPage <= 1}>Prev</button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => setListPage(listPage + 1)} disabled={listPage >= listPages}>Next</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-between align-center mb-16">
               <h3 style={{ margin: 0 }}>Quarter Trend</h3>
