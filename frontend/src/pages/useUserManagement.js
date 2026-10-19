@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 
-const RESET_PASSWORD = 'CustomRequest123';
+export const RESET_PASSWORD = 'CustomRequest123';
 
 const emptyForm = {
   username: '',
@@ -19,9 +19,12 @@ export default function useUserManagement() {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [toggleTarget, setToggleTarget] = useState(null);
+  const [resetTarget, setResetTarget] = useState(null);
+  const [resetDone, setResetDone] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [message, setMessage] = useState('');
+  const [activeAdmins, setActiveAdmins] = useState(null);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('ALL');
 
@@ -30,6 +33,7 @@ export default function useUserManagement() {
       const res = await api.get('/users', { params: { page } });
       setUsers(res.data.data.items || []);
       setTotalPages(res.data.data.totalPages);
+      setActiveAdmins(res.data.data.activeAdmins ?? null);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load users');
     } finally {
@@ -96,28 +100,54 @@ export default function useUserManagement() {
     setShowForm(false);
   }, []);
 
-  const handleToggleActive = useCallback(async (user) => {
-    const action = user.is_active ? 'deactivate' : 'reactivate';
-    if (!window.confirm(`${action === 'deactivate' ? 'Deactivate' : 'Reactivate'} ${user.email}?`)) return;
+  const openToggleConfirm = useCallback((user) => {
+    setToggleTarget(user);
+  }, []);
+
+  const closeToggleConfirm = useCallback(() => {
+    if (busyId) return;
+    setToggleTarget(null);
+  }, [busyId]);
+
+  const confirmToggleActive = useCallback(async () => {
+    if (!toggleTarget) return;
+    const action = toggleTarget.is_active ? 'deactivate' : 'reactivate';
     setError('');
-    setBusyId(user.id);
+    setBusyId(toggleTarget.id);
     try {
-      await api.put(`/users/${user.id}`, { is_active: !user.is_active });
+      await api.put(`/users/${toggleTarget.id}`, { is_active: !toggleTarget.is_active });
       await load();
+      setToggleTarget(null);
     } catch (err) {
       setError(err.response?.data?.message || `Failed to ${action} user`);
     } finally {
       setBusyId(null);
     }
-  }, [load]);
+  }, [toggleTarget, load]);
 
-  const handleResetPassword = useCallback(async (user) => {
+  const openResetConfirm = useCallback((user) => {
+    setResetTarget(user);
+    setResetDone(false);
+  }, []);
+
+  const closeResetConfirm = useCallback(() => {
+    if (busyId) return;
+    setResetTarget(null);
+    setResetDone(false);
+  }, [busyId]);
+
+  const confirmResetPassword = useCallback(async () => {
+    if (!resetTarget) return;
+    if (resetDone) {
+      setResetTarget(null);
+      setResetDone(false);
+      return;
+    }
     setError('');
-    setMessage('');
-    setBusyId(user.id);
+    setBusyId(resetTarget.id);
     try {
-      await api.post(`/users/${user.id}/reset-password`, { new_password: RESET_PASSWORD });
-      setMessage(`Password for ${user.email} reset to ${RESET_PASSWORD}`);
+      await api.post(`/users/${resetTarget.id}/reset-password`, { new_password: RESET_PASSWORD });
+      setResetDone(true);
     } catch (err) {
       const errors = err.response?.data?.errors;
       setError(
@@ -128,14 +158,14 @@ export default function useUserManagement() {
     } finally {
       setBusyId(null);
     }
-  }, []);
+  }, [resetTarget, resetDone]);
 
   return {
     users,
+    activeAdmins,
     filteredUsers,
     loading,
     error,
-    message,
     form,
     editingId,
     showForm,
@@ -152,7 +182,14 @@ export default function useUserManagement() {
     handleSave,
     handleEdit,
     handleCancelEdit,
-    handleToggleActive,
-    handleResetPassword,
+    toggleTarget,
+    openToggleConfirm,
+    closeToggleConfirm,
+    confirmToggleActive,
+    resetTarget,
+    resetDone,
+    openResetConfirm,
+    closeResetConfirm,
+    confirmResetPassword,
   };
 }
