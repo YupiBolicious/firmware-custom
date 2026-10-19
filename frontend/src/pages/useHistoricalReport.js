@@ -27,6 +27,9 @@ export default function useHistoricalReport() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [listPage, setListPage] = useState(1);
+
+  useEffect(() => { setListPage(1); }, [year, quarter]);
 
   const fetchReport = useCallback(async (y, q) => {
     setLoading(true);
@@ -59,6 +62,9 @@ export default function useHistoricalReport() {
 
   return {
     report,
+    workOrders: report?.work_orders || null,
+    listPage,
+    setListPage,
     error,
     loading,
     quarters,
