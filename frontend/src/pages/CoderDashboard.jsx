@@ -254,8 +254,8 @@ export default function CoderDashboard() {
             <BarChart data={filteredTrend} margin={{ top: 12, right: 20, left: 0, bottom: 5 }} barCategoryGap="28%" barGap={3}>
               <defs>
                 <linearGradient id="coderQueued" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" className="chart-stop-queued-top" />
-                  <stop offset="100%" className="chart-stop-queued-bot" />
+                  <stop offset="0%" className="chart-stop-coder-queued-top" />
+                  <stop offset="100%" className="chart-stop-coder-queued-bot" />
                 </linearGradient>
                 <linearGradient id="coderDone" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" className="chart-stop-done-top" />
