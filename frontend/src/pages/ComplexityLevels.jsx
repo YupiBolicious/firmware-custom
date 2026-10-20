@@ -1,4 +1,5 @@
 import { useValueToast } from '../components/Toast';
+import ConfirmModal from '../components/ConfirmModal';
 import { ChevronUp, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import useComplexityLevels from './useComplexityLevels';
@@ -24,7 +25,11 @@ export default function ComplexityLevels() {
     setForm,
     toggleShowForm,
     handleSave,
-    handleDelete,
+    deleteTarget,
+    openDeleteConfirm,
+    closeDeleteConfirm,
+    confirmDelete,
+    deleting,
     handleEdit,
     handleCancelEdit,
   } = useComplexityLevels();
@@ -118,7 +123,7 @@ export default function ComplexityLevels() {
                         <button className="icon-btn" title="Edit" onClick={() => handleEdit(l)}>
                           <Pencil size={16} />
                         </button>
-                        <button className="icon-btn icon-btn-danger" title="Deactivate" onClick={() => handleDelete(l.id)}>
+                        <button className="icon-btn icon-btn-danger" title="Deactivate" onClick={() => openDeleteConfirm(l)}>
                           <Trash2 size={16} />
                         </button>
                       </span>
@@ -130,6 +135,17 @@ export default function ComplexityLevels() {
           </table>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={closeDeleteConfirm}
+        onConfirm={confirmDelete}
+        title="Deactivate Complexity Level?"
+        message={`Deactivate complexity level ${deleteTarget?.code} — ${deleteTarget?.name}?`}
+        confirmLabel="Deactivate"
+        confirmVariant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }

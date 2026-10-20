@@ -179,6 +179,12 @@ const RESULTS_PATH = 'C:/Program Files/Firmware Custom/tempLiveTest/_statefallba
 
     const filled = await fillReview(Aid);
     notes.push('fill-review count=' + filled + ' (corpus-driven, not a defect)');
+    const fwLevelId = (await query("SELECT id FROM complexity_levels WHERE code='L3' AND is_active=TRUE")).rows[0]?.id;
+    if (!fwLevelId) throw new Error('Active L3 complexity level is required for firmware lifecycle test');
+    await query(
+      `UPDATE classifications SET fw_related=TRUE, complexity_level_id=$2, status='CLASSIFIED'
+       WHERE work_order_item_id=$1`, [A.itemIds[0], fwLevelId]
+    );
 
     // finalize idempotency
     const fin = await Promise.all([
@@ -261,6 +267,58 @@ const RESULTS_PATH = 'C:/Program Files/Firmware Custom/tempLiveTest/_statefallba
     upForm2.append('files', new Blob(['SF DOC 2 ' + ts], { type: 'text/plain' }), 'sf-doc2-' + ts + '.txt');
     r = await api('POST', `/api/work-orders/${Aid}/documents`, coder, upForm2, upForm2);
     check('doc upload in COMPLETED 200 (allowed)', r.status === 201, 'status=' + r.status);
+
+    // =========================================================
+    // WO N — all non-firmware: ANALYZED -> COMPLETED without production
+    // =========================================================
+    console.log('\n===== WO N: direct completion without firmware =====');
+    const N = await createWo('N', ['Non-firmware direct completion probe']);
+    const analyzedN = await api('POST', `/api/work-orders/${N.woId}/analyze`, pm);
+    check('WO N analyze 200', analyzedN.status === 200, 'status=' + analyzedN.status);
+    const l0Id = (await query("SELECT id FROM complexity_levels WHERE code='L0' AND is_active=TRUE")).rows[0]?.id;
+    if (!l0Id) throw new Error('Active L0 complexity level is required for no-firmware finalize test');
+    await query(
+      `UPDATE classifications SET fw_related=FALSE, complexity_level_id=$2,
+         status='NON_FIRMWARE', classification_method='MANUAL', reviewed_by=NULL, reviewed_at=NULL
+       WHERE work_order_item_id = ANY($1)`,
+      [N.itemIds, l0Id]
+    );
+    const finalizedN = await Promise.all([
+      api('POST', `/api/work-orders/${N.woId}/finalize`, pm),
+      api('POST', `/api/work-orders/${N.woId}/finalize`, pm),
+    ]);
+    const directStatuses = sorted(finalizedN);
+    const directSuccess = finalizedN.find((result) => result.status === 200);
+    check('concurrent all-non-firmware finalize has one success and one conflict',
+      directStatuses[0] === 200 && (directStatuses[1] === 400 || directStatuses[1] === 409),
+      'statuses=' + directStatuses);
+    check('all-non-firmware finalize returns COMPLETED directly', directSuccess?.data?.work_order?.status === 'COMPLETED'
+      && directSuccess?.data?.completion_path === 'NO_FIRMWARE',
+      `status=${directSuccess?.status} wo=${directSuccess?.data?.work_order?.status} path=${directSuccess?.data?.completion_path}`);
+    const directTasks = (await query(
+      'SELECT COUNT(*)::int AS count FROM production_tasks WHERE work_order_id=$1', [N.woId]
+    )).rows[0].count;
+    check('direct completion creates no production tasks', directTasks === 0, 'tasks=' + directTasks);
+    const directAudit = (await query(
+      `SELECT details FROM audit_trail
+       WHERE work_order_id=$1 AND action='WORK_ORDER_COMPLETED' ORDER BY id DESC LIMIT 1`, [N.woId]
+    )).rows[0];
+    check('direct completion audit trigger recorded', directAudit?.details?.trigger === 'finalize_no_firmware'
+      && directAudit.details.from_status === 'ANALYZED', JSON.stringify(directAudit?.details));
+    let completionNotified = false;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const notifCount = (await query(
+        `SELECT COUNT(*)::int AS count FROM notifications WHERE entity_id=$1 AND status='WO_COMPLETED'`, [N.woId]
+      )).rows[0].count;
+      if (notifCount > 0) {
+        completionNotified = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    check('direct completion notification persisted', completionNotified, 'status=WO_COMPLETED');
+    const productionStartN = await api('POST', `/api/work-orders/${N.woId}/production`, coder);
+    check('direct-completed WO cannot start production', productionStartN.status === 400, 'status=' + productionStartN.status);
 
     // WO-level title mutation after COMPLETED (expected: allowed — static observation)
     const putWo = await api('PUT', `/api/work-orders/${Aid}`, pm, { title: 'SF-A renamed after complete' });

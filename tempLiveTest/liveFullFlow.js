@@ -98,6 +98,23 @@ async function runWo({ tag, woNumber, items, granteeUserId }) {
     check('no CODER_REVIEW remaining after review', cls2 === 0, 'c=' + cls2);
   }
 
+  const hasFirmwareItem = (await query(
+    `SELECT EXISTS (
+       SELECT 1 FROM classifications c
+       JOIN work_order_items woi ON woi.id=c.work_order_item_id
+       WHERE woi.work_order_id=$1 AND c.fw_related=TRUE
+     ) AS value`, [woId]
+  )).rows[0].value;
+  if (!hasFirmwareItem && itemIds.length > 0) {
+    const l3Id = (await query("SELECT id FROM complexity_levels WHERE code='L3' AND is_active=TRUE")).rows[0]?.id;
+    if (!l3Id) throw new Error('Active L3 complexity level is required for firmware production smoke');
+    await query(
+      `UPDATE classifications SET fw_related=TRUE, complexity_level_id=$2, status='CLASSIFIED'
+       WHERE work_order_item_id=$1`, [itemIds[0], l3Id]
+    );
+    console.log('NOTE forced first scratch item to firmware to exercise production flow');
+  }
+
   // finalize (PM)
   r = await api('POST', `/api/work-orders/${woId}/finalize`, pm);
   okStatus('finalize ' + tag, r, 200);

@@ -1,13 +1,21 @@
 const pool = require('../config/db');
 
 //work orders
-const findAll = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
+const findAll = async ({ page = 1, limit = 15, search = '', status = '', from = '', to = '' } = {}) => {
   const params = [];
   const conditions = [];
 
   if (status && status !== 'ALL') {
     params.push(status);
     conditions.push(`wo.status = $${params.length}`);
+  }
+  if (from) {
+    params.push(from);
+    conditions.push(`wo.created_at >= $${params.length}::date`);
+  }
+  if (to) {
+    params.push(to);
+    conditions.push(`wo.created_at < $${params.length}::date + INTERVAL '1 day'`);
   }
   const term = typeof search === 'string' ? search.trim() : '';
   if (term) {

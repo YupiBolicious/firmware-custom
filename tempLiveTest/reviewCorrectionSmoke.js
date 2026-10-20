@@ -69,6 +69,8 @@ async function cleanupWorkOrder(id) {
     for (const row of leftovers) await cleanupWorkOrder(row.id);
 
     const [pm, coder] = await Promise.all([login(EMAILS.pm), login(EMAILS.coder)]);
+    const coderId = Number((await query("SELECT id FROM users WHERE email='coder@demo.com' OR username='coder@demo' ORDER BY id LIMIT 1")).rows[0]?.id);
+    if (!coderId) throw new Error('Could not find coder user for audit assertions');
     const levels = (await query(
       `SELECT id, code FROM complexity_levels WHERE is_active=TRUE AND code IN ('L0','L2','L3','L5')`
     )).rows;
@@ -112,10 +114,6 @@ async function cleanupWorkOrder(id) {
     });
     check('confirm initial L5 review', response.status === 200, `status=${response.status}`);
 
-    const adminId = (await query("SELECT id FROM users WHERE email='admin@demo.com' OR username='admin@demo' ORDER BY id LIMIT 1")).rows[0]?.id;
-    if (!adminId) throw new Error('Could not find admin user for reviewer-ownership simulation');
-    await query('UPDATE classifications SET reviewed_by=$2 WHERE work_order_item_id=$1', [itemId, adminId]);
-
     response = await api('PUT', `/api/work-orders/items/${itemId}/review-correction`, pm, {
       complexity_level_id: levelId.L3,
     });
@@ -125,7 +123,7 @@ async function cleanupWorkOrder(id) {
       complexity_level_id: levelId.L3,
       reason: 'Corrected after checking the requirements',
     });
-    check('coder can correct another reviewer\'s L5 decision to L3', response.status === 200 && response.data?.complexity_code === 'L3', `status=${response.status}`);
+    check('coder can correct confirmed L5 decision to L3', response.status === 200 && response.data?.complexity_code === 'L3', `status=${response.status}`);
     const corrected = (await query(
       `SELECT c.status, c.fw_related, cl.code AS complexity_code, ie.complexity_level_id AS estimate_level,
               ie.total_hours, kb.complexity_level_id AS learned_level
@@ -142,8 +140,46 @@ async function cleanupWorkOrder(id) {
       && Number(corrected.estimate_level) === Number(levelId.L3)
       && Number(corrected.learned_level) === Number(levelId.L3), JSON.stringify(corrected));
 
+    const corpusVersionBeforeAutoCorrection = Number((await query(
+      'SELECT version FROM kb_corpus_version WHERE id=1'
+    )).rows[0].version);
+    await query('UPDATE classifications SET reviewed_by=NULL WHERE work_order_item_id=$1', [itemId]);
+    const nullReviewerBefore = (await query(
+      'SELECT reviewed_by FROM classifications WHERE work_order_item_id=$1', [itemId]
+    )).rows[0].reviewed_by;
+    check('prepare resolved classification without reviewer', nullReviewerBefore == null);
     response = await api('PUT', `/api/work-orders/items/${itemId}/review-correction`, coder, {
-      complexity_level_id: levelId.L3,
+      complexity_level_id: levelId.L2,
+      reason: 'Correct automatic classification',
+    });
+    check('correct resolved item without coder reviewer', response.status === 200 && response.data?.complexity_code === 'L2', `status=${response.status}`);
+    const correctedCorpusVersion = Number((await query(
+      'SELECT version FROM kb_corpus_version WHERE id=1'
+    )).rows[0].version);
+    const learnedAfterAutoCorrection = (await query(
+      `SELECT c.reviewed_by, c.complexity_level_id, kb.complexity_level_id AS learned_level
+       FROM classifications c JOIN kb_items kb ON kb.kb_code=$2
+       WHERE c.work_order_item_id=$1`, [itemId, `KB-CODER-${itemId}`]
+    )).rows[0];
+    check('auto-correction updates coder learning KB and corpus version', !!learnedAfterAutoCorrection
+      && Number(learnedAfterAutoCorrection.reviewed_by) === coderId
+      && Number(learnedAfterAutoCorrection.complexity_level_id) === Number(levelId.L2)
+      && Number(learnedAfterAutoCorrection.learned_level) === Number(levelId.L2)
+      && correctedCorpusVersion > corpusVersionBeforeAutoCorrection, JSON.stringify({ learnedAfterAutoCorrection, corpusVersionBeforeAutoCorrection, correctedCorpusVersion }));
+
+    response = await api('POST', `/api/work-orders/${workOrderId}/analyze`, pm);
+    check('re-analyze after correction rebuilds KB-backed classifier cache', response.status === 200
+      && response.data?.perf?.kbCacheHit === false, `status=${response.status} cacheHit=${response.data?.perf?.kbCacheHit}`);
+    const afterReanalyze = (await query(
+      `SELECT cl.code, c.reviewed_by FROM classifications c
+       JOIN complexity_levels cl ON cl.id=c.complexity_level_id
+       WHERE c.work_order_item_id=$1`, [itemId]
+    )).rows[0];
+    check('corrected automatic verdict remains authoritative after re-analyze', !!afterReanalyze
+      && afterReanalyze.code === 'L2' && Number(afterReanalyze.reviewed_by) === coderId, JSON.stringify(afterReanalyze));
+
+    response = await api('PUT', `/api/work-orders/items/${itemId}/review-correction`, coder, {
+      complexity_level_id: levelId.L2,
     });
     check('same-level correction rejected', response.status === 400, `status=${response.status}`);
 
@@ -181,7 +217,7 @@ async function cleanupWorkOrder(id) {
        WHERE action='ITEM_CLASSIFICATION_CORRECTED' AND entity_type='WORK_ORDER_ITEM' AND entity_id=$1
        ORDER BY id`, [itemId]
     )).rows;
-    check('three corrections recorded in audit', audit.length === 3);
+    check('four corrections recorded in audit', audit.length === 4);
     check('audit captures old/new values and reason', audit[0]?.details?.previous?.complexity_code === 'L5'
       && audit[0]?.details?.corrected?.complexity_code === 'L3'
       && audit[0]?.details?.reason === 'Corrected after checking the requirements');

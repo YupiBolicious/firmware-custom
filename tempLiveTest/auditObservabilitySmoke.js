@@ -101,6 +101,13 @@ async function sweepScratch() {
     await api('POST', '/api/work-orders/items/' + p.id + '/review', coder, { complexity_level_id: 3, notes: 'fill' });
   }
 
+  const fwLevelId = (await query("SELECT id FROM complexity_levels WHERE code='L3' AND is_active=TRUE")).rows[0]?.id;
+  if (!fwLevelId) throw new Error('Active L3 complexity level is required for production audit smoke');
+  await query(
+    `UPDATE classifications SET fw_related=TRUE, complexity_level_id=$2, status='CLASSIFIED'
+     WHERE work_order_item_id=$1`, [itemIds[0], fwLevelId]
+  );
+
   const fin = await api('POST', '/api/work-orders/' + woId + '/finalize', pm);
   check('finalize 200', fin.status === 200, 'status=' + fin.status);
   r = await api('POST', '/api/work-orders/' + woId + '/production', coder);

@@ -159,6 +159,12 @@ const sorted = (a) => [a[0].status, a[1].status].sort((x, y) => x - y);
      WHERE woi.work_order_id=$1 AND c.status='CODER_REVIEW'`, [A.woId]
   )).rows[0].c;
   check('all WO A items resolved before finalize', unresolved === 0, 'stillAwaitingReview=' + unresolved);
+  const fwLevelId = (await query("SELECT id FROM complexity_levels WHERE code='L3' AND is_active=TRUE")).rows[0]?.id;
+  if (!fwLevelId) throw new Error('Active L3 complexity level is required for production lifecycle test');
+  await query(
+    `UPDATE classifications SET fw_related=TRUE, complexity_level_id=$2, status='CLASSIFIED'
+     WHERE work_order_item_id=$1`, [A.itemIds[0], fwLevelId]
+  );
 
   // concurrent finalize x2
   const fin = await Promise.all([
