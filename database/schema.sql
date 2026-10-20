@@ -1,7 +1,3 @@
--- Firmware Custom Item Classification & Estimation System
--- Phase 6 Milestone Schema + Seed Data
--- IDENTITY AND ACCESS
-
 CREATE TABLE IF NOT EXISTS roles (
     id          SERIAL PRIMARY KEY,
     code        VARCHAR(50)  NOT NULL UNIQUE,
@@ -52,9 +48,9 @@ CREATE TABLE IF NOT EXISTS complexity_level_reference (
     reference_code        VARCHAR(50) NOT NULL,
     title                 VARCHAR(300) NOT NULL,
     description           TEXT,
-    example_text          TEXT,
     is_active             BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_complexity_level_reference_code UNIQUE (reference_code)
 );
 
 CREATE TABLE IF NOT EXISTS fw_modules (
@@ -141,7 +137,8 @@ CREATE TABLE IF NOT EXISTS work_order_items (
     description         TEXT,
     quantity            INT NOT NULL DEFAULT 1,  -- business info only; never factors into man-hours
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    documentation_readiness VARCHAR(10)
 );
 -- CLASSFDICATIONS TO CHECK LEVEL
 CREATE TABLE IF NOT EXISTS classifications (
@@ -157,6 +154,17 @@ CREATE TABLE IF NOT EXISTS classifications (
     reviewed_at           TIMESTAMPTZ,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    input_hash            VARCHAR(64),
+    kb_version            INT,
+    assist_kb_id          INT,
+    assist_kb_code        VARCHAR(50),
+    assist_match_score    NUMERIC(5,2),
+    assist_semantic_margin NUMERIC(6,3),
+    assist_complexity_level_id INT REFERENCES complexity_levels(id) ON DELETE SET NULL,
+    assist_fw_related     BOOLEAN,
+    assist_response       VARCHAR(10) CHECK (assist_response IN ('ACCEPTED','IGNORED') OR assist_response IS NULL),
+    review_reason         VARCHAR(50),
+    assist_blocked_reason VARCHAR(100),
     UNIQUE (work_order_item_id)
 );
 -- ESTIMATION FOR ANLYZING
@@ -172,9 +180,27 @@ CREATE TABLE IF NOT EXISTS item_estimations (
     total_hours           NUMERIC(10,2) NOT NULL,
     is_current            BOOLEAN NOT NULL DEFAULT TRUE,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    verification_mh       NUMERIC(10,2) NOT NULL DEFAULT 0,
     UNIQUE (work_order_item_id)
 );
--- KB/MASTER DATA TEMPORARY YEAH
+
+-- Verification tiers (doc/verification hours fixed per spec; see estimationRepository)
+CREATE TABLE IF NOT EXISTS verification_levels (
+    id                SERIAL PRIMARY KEY,
+    code              VARCHAR(10) NOT NULL UNIQUE,
+    name              VARCHAR(100) NOT NULL,
+    verification_mh   NUMERIC(10,2) NOT NULL,
+    is_active         BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Complexity -> verification tier (V1: L1-L2, V2: L3-L4, V3: L5; L0 has no tier)
+CREATE TABLE IF NOT EXISTS complexity_verification_map (
+    complexity_level_id   INT NOT NULL REFERENCES complexity_levels(id),
+    verification_level_id INT NOT NULL REFERENCES verification_levels(id),
+    UNIQUE (complexity_level_id)
+);
+
 CREATE TABLE IF NOT EXISTS kb_items (
     id                    SERIAL PRIMARY KEY,
     kb_code               VARCHAR(50) NOT NULL UNIQUE,
@@ -187,7 +213,21 @@ CREATE TABLE IF NOT EXISTS kb_items (
     source                VARCHAR(30) NOT NULL DEFAULT 'SEED',
     is_active             BOOLEAN NOT NULL DEFAULT TRUE,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    machine_model_id      INT REFERENCES machine_model(id),
+    machine_model_version_id INT REFERENCES machine_model_ver(id)
+);
+
+-- assist_kb_id FK (kb_items created after classifications)
+ALTER TABLE classifications
+  ADD CONSTRAINT classifications_assist_kb_id_fkey FOREIGN KEY (assist_kb_id) REFERENCES kb_items(id) ON DELETE SET NULL;
+
+-- KB corpus version (single row id=1): reuse gate for incremental analyze + cache key
+CREATE TABLE IF NOT EXISTS kb_corpus_version (
+    id          INT PRIMARY KEY DEFAULT 1,
+    version     INT NOT NULL DEFAULT 1,
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT kb_corpus_version_single CHECK (id = 1)
 );
 
 CREATE TABLE IF NOT EXISTS classification_matches (
@@ -233,16 +273,16 @@ CREATE TABLE IF NOT EXISTS audit_trail (
     entity_id     INT,
     details       JSONB,
     ip_address    VARCHAR(50),
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    work_order_id INT REFERENCES work_orders(id) ON DELETE SET NULL
 );
 -- WORK ORDER ACCESS GRANTS (unique pair guards grantWorkOrderAccess ON CONFLICT)
 CREATE TABLE IF NOT EXISTS work_order_access (
-    id              SERIAL PRIMARY KEY,
     work_order_id   INT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
     user_id         INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     granted_by      INT REFERENCES users(id),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE (work_order_id, user_id)
+    PRIMARY KEY (work_order_id, user_id)
 );
 
 -- IN-APP NOTIFICATIONS (event-driven, see reports/notification-flow.md)
@@ -263,13 +303,22 @@ CREATE INDEX IF NOT EXISTS idx_classifications_status ON classifications(status)
 CREATE INDEX IF NOT EXISTS idx_classifications_reviewed_by_status ON classifications(reviewed_by, status);
 CREATE INDEX IF NOT EXISTS idx_classifications_created_at ON classifications(created_at);
 CREATE INDEX IF NOT EXISTS idx_classifications_reviewed_at ON classifications(reviewed_at) WHERE reviewed_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_classifications_assist ON classifications(assist_kb_id) WHERE assist_kb_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_work_orders_status ON work_orders(status);
+CREATE INDEX IF NOT EXISTS idx_work_orders_created_at ON work_orders(created_at);
 CREATE INDEX IF NOT EXISTS idx_work_order_groups_work_order_id ON work_order_groups(work_order_id);
 CREATE INDEX IF NOT EXISTS idx_work_order_items_work_order_id ON work_order_items(work_order_id);
+CREATE INDEX IF NOT EXISTS idx_kb_items_model ON kb_items (machine_model_id, machine_model_version_id) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_kb_items_created_at ON kb_items(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_trail_action_created ON audit_trail(action, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_trail_work_order_id ON audit_trail (work_order_id) WHERE work_order_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_trail_created_at ON audit_trail (created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_trail_created_at_desc ON audit_trail (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_item_estimations_work_order_item_id ON item_estimations(work_order_item_id);
 CREATE INDEX IF NOT EXISTS idx_production_tasks_work_order_id ON production_tasks(work_order_id);
--- SEED DATA EAK
+CREATE INDEX IF NOT EXISTS idx_production_tasks_completed ON production_tasks(work_order_id, completed);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_classification_matches_entity ON classification_matches (classification_id, COALESCE(kb_item_id, 0), COALESCE(rule_id, 0));
+-- SEED DATA (roles, demo users, complexity levels, verification tiers)
 -- Roles
 INSERT INTO roles (code, name, description) VALUES
 ('PM',    'Project Manager', 'Creates and manages Work Orders, requests estimation, reviews previews'),
@@ -302,99 +351,23 @@ INSERT INTO complexity_levels (code, name, description, requirement_review_h, co
 ('L5', 'System-Level Development',        'New firmware architecture without existing base', 8, 72, 16, 16, 24)
 ON CONFLICT (code) DO NOTHING;
 
--- Complexity Level References
-INSERT INTO complexity_level_reference (complexity_level_id, reference_code, title, description)
-SELECT cl.id, ref.reference_code, ref.title, ref.description
-FROM complexity_levels cl
-JOIN (VALUES
-    ('L0', 'REF-L0-001', 'Non Firmware Related', 'Items that are not firmware related'),
-    ('L1', 'REF-L1-001', 'UI Text Changes', 'Changes to displayed text only'),
-    ('L2', 'REF-L2-001', 'Alarm Setpoint Adjustment', 'Adjust alarm setpoint configuration'),
-    ('L2', 'REF-L2-002', 'I/O Configuration Changes', 'I/O configuration changes without additional hardware board'),
-    ('L3', 'REF-L3-001', 'Menu Tree Modification', 'Modify the menu tree structure'),
-    ('L3', 'REF-L3-002', 'Menu Tree Reorganization', 'Reorganize the menu tree'),
-    ('L3', 'REF-L3-003', 'Additional Use Case (no new HW)', 'Additional use case without additional hardware board'),
-    ('L4', 'REF-L4-001', 'Additional Use Case (new HW)', 'Additional use case with additional hardware board'),
-    ('L4', 'REF-L4-002', 'Closed-Loop Control Implementation', 'Implement closed-loop control'),
-    ('L5', 'REF-L5-001', 'New Firmware Architecture', 'New firmware architecture without existing base software')
-) AS ref(level_key, reference_code, title, description)
-  ON cl.code = ref.level_key
-ON CONFLICT (reference_code) DO NOTHING;
+-- KB corpus version
+INSERT INTO kb_corpus_version (id, version) VALUES (1, 1) ON CONFLICT (id) DO NOTHING;
 
--- Classification Rules (deterministic, priority-ordered)
-INSERT INTO classification_rules (rule_code, keyword_pattern, fw_related, complexity_level_id, confidence_score, priority) VALUES
-('RULE-NONFW-LABEL',   'mechanical label',        FALSE, NULL, 98.00, 10),
-('RULE-NONFW-PACKAGING','packaging',              FALSE, NULL, 98.00, 10),
-('RULE-L1-UI-TEXT',    'ui text',                 TRUE,  (SELECT id FROM complexity_levels WHERE code='L1'), 98.00, 20),
-('RULE-L1-COSMETIC',   'cosmetic',                TRUE,  (SELECT id FROM complexity_levels WHERE code='L1'), 95.00, 20),
-('RULE-L2-ALARM',      'alarm setpoint',          TRUE,  (SELECT id FROM complexity_levels WHERE code='L2'), 96.00, 30),
-('RULE-L2-IO-CONFIG',  'io configuration',        TRUE,  (SELECT id FROM complexity_levels WHERE code='L2'), 95.00, 30),
-('RULE-L3-MENU',       'menu tree',               TRUE,  (SELECT id FROM complexity_levels WHERE code='L3'), 94.00, 40),
-('RULE-L3-USECASE',    'use case',                TRUE,  (SELECT id FROM complexity_levels WHERE code='L3'), 92.00, 40),
-('RULE-L4-CLOSEDLOOP', 'closed-loop',             TRUE,  (SELECT id FROM complexity_levels WHERE code='L4'), 93.00, 50),
-('RULE-L4-NEWHW',      'additional hardware board', TRUE, (SELECT id FROM complexity_levels WHERE code='L4'), 91.00, 50),
-('RULE-L5-ARCH',       'new firmware architecture', TRUE, (SELECT id FROM complexity_levels WHERE code='L5'), 90.00, 60)
-ON CONFLICT (rule_code) DO NOTHING;
+-- Verification tiers (fixed per spec: 8/24/40 MH)
+INSERT INTO verification_levels (code, name, verification_mh) VALUES
+('V1', 'Verification Level 1', 8.00),
+('V2', 'Verification Level 2', 24.00),
+('V3', 'Verification Level 3', 40.00)
+ON CONFLICT (code) DO NOTHING;
 
--- Confidence Thresholds
-INSERT INTO confidence_thresholds (threshold_code, high_confidence_min, low_confidence_max, description) VALUES
-('DEFAULT', 90.00, 60.00, 'High confidence >= 90 auto-classifies; low/unknown < 60 goes to coder review')
-ON CONFLICT (threshold_code) DO NOTHING;
-
--- Knowledge Base (seed items for exact matching)
-INSERT INTO kb_items (kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score, source) VALUES
-('KB-0001', 'Change alarm setpoint configuration', 'Adjust alarm setpoint configuration value', 'alarm,setpoint,configuration', TRUE,  (SELECT id FROM complexity_levels WHERE code='L2'), 96.00, 'SEED'),
-('KB-0002', 'Update UI text', 'Update displayed UI text', 'ui,text,display', TRUE,  (SELECT id FROM complexity_levels WHERE code='L1'), 98.00, 'SEED'),
-('KB-0003', 'Mechanical label change', 'Change mechanical label', 'mechanical,label', FALSE, (SELECT id FROM complexity_levels WHERE code='L0'), 98.00, 'SEED'),
-('KB-0004', 'Menu tree modification', 'Modify menu tree structure', 'menu,tree,modify', TRUE,  (SELECT id FROM complexity_levels WHERE code='L3'), 94.00, 'SEED'),
-('KB-0005', 'Closed-loop control implementation', 'Implement closed-loop control', 'closed,loop,control', TRUE,  (SELECT id FROM complexity_levels WHERE code='L4'), 93.00, 'SEED')
-ON CONFLICT (kb_code) DO NOTHING;
-
--- Machine models (seed)
-INSERT INTO machine_model (model_code, name, description) VALUES
-('FWX-100', 'FWX-100 Series', 'Base firmware platform for standard production units'),
-('FWX-200', 'FWX-200 Series', 'Advanced platform with expanded I/O and connectivity'),
-('FWX-300', 'FWX-300 Series', 'High-performance platform for industrial applications')
-ON CONFLICT (model_code) DO NOTHING;
-
-INSERT INTO machine_model_ver (machine_model_id, version_code, description)
-SELECT id, 'v1.0', 'Initial release' FROM machine_model WHERE model_code = 'FWX-100'
-UNION ALL
-SELECT id, 'v2.0', 'Updated communication protocols' FROM machine_model WHERE model_code = 'FWX-100'
-UNION ALL
-SELECT id, 'v1.0', 'Initial release' FROM machine_model WHERE model_code = 'FWX-200'
-UNION ALL
-SELECT id, 'v1.1', 'Bugfix release' FROM machine_model WHERE model_code = 'FWX-200'
-UNION ALL
-SELECT id, 'v2.0', 'Major rewrite with new HAL' FROM machine_model WHERE model_code = 'FWX-200'
-UNION ALL
-SELECT id, 'v1.0', 'Initial release' FROM machine_model WHERE model_code = 'FWX-300'
-ON CONFLICT DO NOTHING;
-
--- MOCK WORK ORDER WO-2026-001 (for validation)
--- created_at pinned to Q1 2026 so the row matches its title (default NOW() would land it in the install quarter).
-INSERT INTO work_orders (wo_number, title, customer, status, created_by, created_at, updated_at)
-SELECT 'WO-2026-001', 'Firmware Custom Items - Q1 2026', 'Acme Corp', 'DRAFT', u.id,
-       TIMESTAMPTZ '2026-02-15 12:00:00+00', TIMESTAMPTZ '2026-02-15 12:00:00+00'
-FROM users u WHERE u.username = 'pm@demo'
-ON CONFLICT (wo_number) DO NOTHING;
-
-INSERT INTO work_order_groups (work_order_id, machine_model_id, machine_model_version_id)
-SELECT wo.id, mm.id, mmv.id
-FROM work_orders wo
-JOIN machine_model mm ON mm.model_code = 'FWX-100'
-JOIN machine_model_ver mmv ON mmv.machine_model_id = mm.id AND mmv.version_code = 'v1.0'
-WHERE wo.wo_number = 'WO-2026-001'
-  AND NOT EXISTS (SELECT 1 FROM work_order_groups wog WHERE wog.work_order_id = wo.id);
-
-INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, description, quantity)
-SELECT wo.id, NULL, it.item_number, it.title, it.description, it.quantity
-FROM work_orders wo
-JOIN (VALUES
-    ('ITEM-001', 'Change alarm setpoint configuration', 'Adjust the alarm setpoint configuration for the machine', 1),
-    ('ITEM-002', 'Update UI text', 'Update the displayed UI text on the operator panel', 1),
-    ('ITEM-003', 'Add new adaptive control logic', 'Add new adaptive control logic to the firmware', 1),
-    ('ITEM-004', 'Mechanical label change', 'Change the mechanical label on the enclosure', 1)
-) AS it(item_number, title, description, quantity)
-WHERE wo.wo_number = 'WO-2026-001'
-  AND NOT EXISTS (SELECT 1 FROM work_order_items woi WHERE woi.work_order_id = wo.id);
+-- Complexity -> tier: V1 L1-L2, V2 L3-L4, V3 L5 (L0 has no tier)
+INSERT INTO complexity_verification_map (complexity_level_id, verification_level_id)
+SELECT cl.id, v.id FROM complexity_levels cl
+JOIN verification_levels v ON v.code = CASE
+  WHEN cl.code IN ('L1', 'L2') THEN 'V1'
+  WHEN cl.code IN ('L3', 'L4') THEN 'V2'
+  WHEN cl.code =  'L5' THEN 'V3'
+END
+WHERE cl.code IN ('L1', 'L2', 'L3', 'L4', 'L5')
+ON CONFLICT (complexity_level_id) DO NOTHING;

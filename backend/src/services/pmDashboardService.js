@@ -147,7 +147,11 @@ const getPMDashboard = async (query = {}) => {
       kind: r.kind,
       priority: r.priority,
       message: r.message,
-      age_hours: r.age_hours != null ? Math.round(Number(r.age_hours)) : null,
+      affected_count: Number(r.affected_count) || 0,
+      age_hours: r.age_hours != null ? Math.floor(Number(r.age_hours)) : null,
+      sample_item: r.sample_item || null,
+      sample_title: r.sample_title || null,
+      next_action: r.next_action,
     })),
     status_distribution: statusDistribution.map((r) => ({
       status: r.status,

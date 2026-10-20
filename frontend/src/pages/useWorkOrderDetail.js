@@ -50,7 +50,11 @@ export default function useWorkOrderDetail() {
 
   const { analyzing, setAnalysis, handleAnalyze } = useWOAnalysis(id, load, setMessage, setError);
   const { access, accessBusy, users, handleGrantAccess, handleRevokeAccess } = useWOAccess(id, setMessage, setError);
-  const { groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup, cancelGroupForm, handleSubmitGroup, handleDeleteGroup } = useWOModelSerial(id, load, setMessage, setError);
+  const {
+    groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
+    cancelGroupForm, handleSubmitGroup, handleDeleteGroup, deleteGroupConfirm, deletingGroup,
+    openDeleteGroupConfirm, closeDeleteGroupConfirm,
+  } = useWOModelSerial(id, load, setMessage, setError);
   const { savingTaskId, notes, setNotes, savingNotes, editing, setEditing, handleCompleteTask, handleSaveNotes } = useWOProductionNotes(id, wo?.notes, setMessage, setError);
 
   useEffect(() => {
@@ -135,15 +139,18 @@ export default function useWorkOrderDetail() {
   };
 
   const handleDeleteItem = async (itemId) => {
-    if (!window.confirm('Delete this item?')) return;
+    const id = itemId ?? deleteItemConfirm.itemId;
+    if (id == null) { closeDeleteItemConfirm(); return; }
     setError('');
     try {
-      await api.delete(`/work-orders/items/${itemId}`);
+      await api.delete(`/work-orders/items/${id}`);
       setAnalysis(null);
       setMessage('Item deleted');
+      closeDeleteItemConfirm();
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete item');
+      closeDeleteItemConfirm();
     }
   };
 
@@ -208,6 +215,9 @@ export default function useWorkOrderDetail() {
   const [finalizeConfirm, setFinalizeConfirm] = useState(false);
   const [startConfirm, setStartConfirm] = useState(false);
   const [completeConfirm, setCompleteConfirm] = useState(false);
+  const [deleteItemConfirm, setDeleteItemConfirm] = useState({ open: false, itemId: null });
+  const openDeleteItemConfirm = (itemId) => setDeleteItemConfirm({ open: true, itemId });
+  const closeDeleteItemConfirm = () => setDeleteItemConfirm({ open: false, itemId: null });
   
   const openFinalizeConfirm = () => setFinalizeConfirm(true);
   const closeFinalizeConfirm = () => { if (finalizing) return; setFinalizeConfirm(false); };
@@ -320,6 +330,10 @@ export default function useWorkOrderDetail() {
     cancelGroupForm,
     handleSubmitGroup,
     handleDeleteGroup,
+    deleteGroupConfirm,
+    deletingGroup,
+    openDeleteGroupConfirm,
+    closeDeleteGroupConfirm,
     handleAnalyze,
     handleFinalize,
     handleStartProduction,
@@ -336,5 +350,8 @@ export default function useWorkOrderDetail() {
     handleCompleteTask: (taskId, completed) => handleCompleteTask(taskId, completed, load),
     handleGrantAccess,
     handleRevokeAccess,
+    deleteItemConfirm,
+    openDeleteItemConfirm,
+    closeDeleteItemConfirm,
   };
 }

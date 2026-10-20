@@ -33,9 +33,17 @@ const WORK_QUEUE_SQL = `
             GROUP BY cl.code ORDER BY COUNT(*) DESC LIMIT 1) AS complexity_code,
            BOOL_AND(COALESCE(c.fw_related, FALSE)) AS all_fw_related,
            BOOL_OR(c.status = 'CODER_REVIEW') AS has_pending_review,
-           BOOL_OR(c.status = 'CODER_REVIEW' AND c.created_at < NOW() - INTERVAL '48 hours') AS has_overdue,
+           BOOL_OR(c.status = 'CODER_REVIEW' AND c.created_at <= NOW() - INTERVAL '48 hours') AS has_overdue,
            ARRAY_AGG(DISTINCT woi.title) FILTER (WHERE woi.title IS NOT NULL) AS item_titles,
-           MAX(GREATEST(wo.updated_at, c.reviewed_at)) AS last_activity
+           GREATEST(
+             wo.updated_at,
+             (SELECT MAX(woi2.updated_at) FROM work_order_items woi2 WHERE woi2.work_order_id = wo.id),
+             (SELECT MAX(c2.updated_at)
+              FROM classifications c2
+              JOIN work_order_items woi2 ON woi2.id = c2.work_order_item_id
+              WHERE woi2.work_order_id = wo.id),
+             (SELECT MAX(pt.updated_at) FROM production_tasks pt WHERE pt.work_order_id = wo.id)
+           ) AS last_activity
     FROM work_orders wo
     LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
     LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
@@ -122,75 +130,134 @@ const findWorkQueue = async ({ page, limit, filters }) => {
 const findAttentionItems = async (filters) => {
   const { where, params } = buildFilters(filters);
   const result = await pool.query(`
-    SELECT * FROM (
-      -- 1. Blocked: awaiting coder review for more than 48 hours
-      SELECT wo.id AS work_order_id, wo.wo_number, COALESCE(wo.title, '') AS title,
-             'blocked_48h' AS kind, 'danger' AS priority,
-             'Waiting >48h for coder review' AS message,
-             EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600 AS age_hours
-      FROM classifications c
-      JOIN work_order_items woi ON woi.id = c.work_order_item_id
-      JOIN work_orders wo ON wo.id = woi.work_order_id
-      WHERE c.status = 'CODER_REVIEW'
-        AND c.created_at < NOW() - INTERVAL '48 hours'
-        AND c.reviewed_by IS NOT NULL
-        AND wo.status NOT IN ('FINALIZED', 'COMPLETED')
-      UNION ALL
-      -- 2. Coder review pending (24-48h window, not yet blocked)
-      SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title,
-             'coder_review' AS kind, 'warning' AS priority,
-             'Waiting for coder review' AS message,
-             EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600 AS age_hours
-      FROM classifications c
-      JOIN work_order_items woi ON woi.id = c.work_order_item_id
-      JOIN work_orders wo ON wo.id = woi.work_order_id
-      WHERE c.status = 'CODER_REVIEW'
-        AND c.created_at >= NOW() - INTERVAL '48 hours'
-        AND c.reviewed_by IS NOT NULL
-        AND wo.status NOT IN ('FINALIZED', 'COMPLETED')
-      UNION ALL
-      -- 3. Review item with no coder assigned
-      SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title,
-             'unassigned_review' AS kind, 'info' AS priority,
-             'Review item unassigned to a coder' AS message,
-             EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 3600 AS age_hours
-      FROM classifications c
-      JOIN work_order_items woi ON woi.id = c.work_order_item_id
-      JOIN work_orders wo ON wo.id = woi.work_order_id
-      WHERE c.status = 'CODER_REVIEW'
-        AND c.reviewed_by IS NULL
-        AND wo.status NOT IN ('FINALIZED', 'COMPLETED')
-      UNION ALL
-      -- 4. Unclassified items in an active work order
-      SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title,
-             'unclassified' AS kind, 'warning' AS priority,
-             COUNT(DISTINCT woi.id)::text || ' unclassified item present' AS message,
-             NULL::numeric AS age_hours
-      FROM work_orders wo
-      JOIN work_order_items woi ON woi.work_order_id = wo.id
-      JOIN classifications c ON c.work_order_item_id = woi.id
-      WHERE c.status = 'PENDING'
-        AND wo.status NOT IN ('FINALIZED', 'COMPLETED')
-      GROUP BY wo.id, wo.wo_number, COALESCE(wo.title, '')
-      UNION ALL
-      -- 5. Stale: no progress for 7+ days while still active
-      SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title,
-             'stale' AS kind, 'warning' AS priority,
-             'No progress in 7+ days' AS message,
-             EXTRACT(EPOCH FROM (NOW() - GREATEST(COALESCE(wo.updated_at, '2000-01-01'),
-                     COALESCE(MAX(c.reviewed_at), '2000-01-01')))) / 3600 AS age_hours
-      FROM work_orders wo
-      LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
+    WITH filtered_work_orders AS (
+      SELECT q.id, q.wo_number, q.title, q.status
+      FROM (${WORK_QUEUE_SQL}) q
+      ${where}
+    ), item_summary AS (
+      SELECT woi.work_order_id,
+             COUNT(*)::int AS item_count,
+             COUNT(*) FILTER (WHERE c.status = 'CODER_REVIEW')::int AS review_count,
+             COUNT(*) FILTER (WHERE c.id IS NULL OR c.status = 'PENDING')::int AS pending_count,
+             COUNT(*) FILTER (
+               WHERE c.id IS NULL OR c.status NOT IN ('CLASSIFIED', 'NON_FIRMWARE') OR c.fw_related IS NULL
+             )::int AS unresolved_count,
+             MIN(c.created_at) FILTER (WHERE c.status = 'CODER_REVIEW') AS oldest_review_at,
+             (ARRAY_AGG(woi.item_number ORDER BY c.created_at, woi.item_number)
+               FILTER (WHERE c.status = 'CODER_REVIEW'))[1] AS review_sample_item,
+             (ARRAY_AGG(woi.title ORDER BY c.created_at, woi.item_number)
+               FILTER (WHERE c.status = 'CODER_REVIEW'))[1] AS review_sample_title,
+             (ARRAY_AGG(woi.item_number ORDER BY woi.item_number)
+               FILTER (WHERE c.id IS NULL OR c.status = 'PENDING'))[1] AS pending_sample_item
+      FROM work_order_items woi
       LEFT JOIN classifications c ON c.work_order_item_id = woi.id
-      WHERE wo.status IN ('DRAFT', 'ANALYZED', 'PRODUCTION')
-      GROUP BY wo.id, wo.wo_number, COALESCE(wo.title, ''), wo.updated_at
-      HAVING GREATEST(COALESCE(wo.updated_at, '2000-01-01'),
-                      COALESCE(MAX(c.reviewed_at), '2000-01-01')) < NOW() - INTERVAL '7 days'
-    ) alerts
-    WHERE alerts.work_order_id IN (SELECT q.id FROM (${WORK_QUEUE_SQL}) q ${where})
+      GROUP BY woi.work_order_id
+    ), production_summary AS (
+      SELECT pt.work_order_id,
+             COUNT(*) FILTER (WHERE NOT pt.completed)::int AS open_task_count,
+             MIN(pt.created_at) FILTER (WHERE NOT pt.completed) AS oldest_open_task_at
+      FROM production_tasks pt
+      GROUP BY pt.work_order_id
+    ), activity AS (
+      SELECT wo.id AS work_order_id,
+             GREATEST(
+               wo.updated_at,
+               (SELECT MAX(woi.updated_at) FROM work_order_items woi WHERE woi.work_order_id = wo.id),
+               (SELECT MAX(c.updated_at)
+                FROM classifications c
+                JOIN work_order_items woi ON woi.id = c.work_order_item_id
+                WHERE woi.work_order_id = wo.id),
+               (SELECT MAX(pt.updated_at) FROM production_tasks pt WHERE pt.work_order_id = wo.id)
+             ) AS last_activity_at
+      FROM work_orders wo
+      JOIN filtered_work_orders fwo ON fwo.id = wo.id
+    ), action_alerts AS (
+      SELECT fwo.id AS work_order_id, fwo.wo_number, fwo.title,
+             'coder_review' AS kind,
+             CASE WHEN EXTRACT(EPOCH FROM (NOW() - s.oldest_review_at)) >= 48 * 3600 THEN 'danger'
+                  WHEN EXTRACT(EPOCH FROM (NOW() - s.oldest_review_at)) >= 24 * 3600 THEN 'warning'
+                  ELSE 'info' END AS priority,
+             s.review_count AS affected_count,
+             EXTRACT(EPOCH FROM (NOW() - s.oldest_review_at)) / 3600 AS age_hours,
+             s.review_sample_item AS sample_item,
+             COALESCE(s.review_sample_title, '') AS sample_title,
+             s.review_count::text || ' item' || CASE WHEN s.review_count = 1 THEN '' ELSE 's' END || ' waiting for coder review' AS message,
+             'Open the work order and complete the pending coder review.' AS next_action
+      FROM filtered_work_orders fwo
+      JOIN item_summary s ON s.work_order_id = fwo.id
+      WHERE fwo.status NOT IN ('FINALIZED', 'COMPLETED') AND s.review_count > 0
+
+      UNION ALL
+
+      SELECT fwo.id, fwo.wo_number, fwo.title,
+             'analysis_needed', 'info', s.item_count,
+              NULL::numeric,
+             NULL::varchar, NULL::varchar,
+             s.item_count::text || ' item' || CASE WHEN s.item_count = 1 THEN '' ELSE 's' END || ' waiting for analysis',
+             'Run Estimate to classify the work-order items.'
+      FROM filtered_work_orders fwo
+      JOIN item_summary s ON s.work_order_id = fwo.id
+      WHERE fwo.status = 'DRAFT' AND s.item_count > 0
+
+      UNION ALL
+
+      SELECT fwo.id, fwo.wo_number, fwo.title,
+             'classification_pending', 'warning', s.pending_count,
+             NULL::numeric, s.pending_sample_item, NULL::varchar,
+             s.pending_count::text || ' item' || CASE WHEN s.pending_count = 1 THEN '' ELSE 's' END || ' still need classification',
+             'Re-run analysis or resolve the pending classification.'
+      FROM filtered_work_orders fwo
+      JOIN item_summary s ON s.work_order_id = fwo.id
+      WHERE fwo.status = 'ANALYZED' AND s.pending_count > 0
+
+      UNION ALL
+
+      SELECT fwo.id, fwo.wo_number, fwo.title,
+             'ready_to_finalize', 'info', s.item_count,
+             NULL::numeric, NULL::varchar, NULL::varchar,
+             'All ' || s.item_count::text || ' item' || CASE WHEN s.item_count = 1 THEN '' ELSE 's are' END || ' classified and ready',
+             'Review the estimate and finalize the work order.'
+      FROM filtered_work_orders fwo
+      JOIN item_summary s ON s.work_order_id = fwo.id
+      WHERE fwo.status = 'ANALYZED' AND s.item_count > 0 AND s.unresolved_count = 0
+
+      UNION ALL
+
+      SELECT fwo.id, fwo.wo_number, fwo.title,
+             'production_followup', 'warning', ps.open_task_count,
+             EXTRACT(EPOCH FROM (NOW() - ps.oldest_open_task_at)) / 3600,
+             NULL::varchar, NULL::varchar,
+             ps.open_task_count::text || ' production task' || CASE WHEN ps.open_task_count = 1 THEN '' ELSE 's are' END || ' still open',
+             'Update production task progress on the work order.'
+      FROM filtered_work_orders fwo
+      JOIN production_summary ps ON ps.work_order_id = fwo.id
+      WHERE fwo.status = 'PRODUCTION' AND ps.open_task_count > 0
+
+    ), alerts AS (
+      SELECT * FROM action_alerts
+      UNION ALL
+      SELECT fwo.id, fwo.wo_number, fwo.title,
+             'stale', 'warning', 1,
+             EXTRACT(EPOCH FROM (NOW() - a.last_activity_at)) / 3600,
+             NULL::varchar, NULL::varchar,
+             'No work-order progress for 7+ days',
+             'Review the work order and confirm its next step.'
+      FROM filtered_work_orders fwo
+      JOIN activity a ON a.work_order_id = fwo.id
+      WHERE fwo.status IN ('DRAFT', 'ANALYZED', 'PRODUCTION')
+        AND a.last_activity_at < NOW() - INTERVAL '7 days'
+        AND NOT EXISTS (
+          SELECT 1 FROM action_alerts existing
+          WHERE existing.work_order_id = fwo.id
+            AND existing.kind IN ('coder_review', 'analysis_needed', 'classification_pending', 'ready_to_finalize', 'production_followup')
+        )
+    )
+    SELECT * FROM alerts
     ORDER BY
       CASE priority WHEN 'danger' THEN 1 WHEN 'warning' THEN 2 ELSE 3 END,
-      COALESCE(age_hours, 0) DESC
+      COALESCE(age_hours, 0) DESC,
+      work_order_id,
+      kind
   `, params);
   return result.rows;
 };
@@ -242,13 +309,6 @@ const findOptions = async (filters) => {
     WHERE g->>'machine_model_id' IS NOT NULL
     ORDER BY g->>'model_code'
   `);
-  // const versionParams = filters.model ? [filters.model] : [];
-  // const versions = await pool.query(`
-  //   SELECT DISTINCT g->>'machine_model_id' AS model_id
-  //   FROM (${WORK_QUEUE_SQL}) q, jsonb_array_elements(q.groups) g
-  //   WHERE g->>'machine_model_id' ::int = $1::int" : ''
-  //   ORDER BY g->>'machine_model_id'
-  // `, versionParams);
   const complexityParams = filters.model ? [filters.model] : [];
   const complexities = await pool.query(`
     SELECT DISTINCT q.complexity_code AS code

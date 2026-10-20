@@ -30,6 +30,14 @@ function TrendTooltip({ active, payload, label }) {
   );
 }
 
+function formatAttentionAge(hours, kind) {
+  const label = kind === 'coder_review' ? 'Oldest review' : kind === 'production_followup' ? 'Oldest open task' : 'Inactive';
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  const duration = days > 0 ? `${days}d ${remainingHours}h` : `${hours}h`;
+  return `${label}: ${duration}`;
+}
+
 export default function PMDashboard() {
   const {
     data, error, loading, formatStatus,
@@ -311,14 +319,25 @@ export default function PMDashboard() {
           <div className="text-muted">No attention required.</div>
         ) : (
           <div className="attention-list">
-            {filteredAttention.map((a, i) => (
-              <div key={i} className={`attention-item attention-${a.priority}`}>
-                <div className="attention-body">
-                  <span className="attention-title"><strong>{a.wo_number}</strong></span>
-                  <span className="attention-message">{a.message}</span>
-                  {a.age_hours != null && (
-                    <span className="attention-age text-muted">{Math.floor(a.age_hours)}h</span>
+            {filteredAttention.map((a) => (
+              <div key={`${a.work_order_id}-${a.kind}`} className={`attention-item attention-${a.priority}`}>
+                <div className="attention-copy">
+                  <div className="attention-body">
+                    <span className="attention-title"><strong>{a.wo_number}</strong></span>
+                    <span className="attention-message">{a.message}</span>
+                    {a.age_hours != null && (
+                      <span className="attention-age text-muted">{formatAttentionAge(a.age_hours, a.kind)}</span>
+                    )}
+                    {a.affected_count > 0 && a.kind !== 'stale' && (
+                      <span className="attention-age text-muted">{a.affected_count} affected</span>
+                    )}
+                  </div>
+                  {a.sample_item && (
+                    <span className="attention-detail text-muted">
+                      Example: {a.sample_item}{a.sample_title ? ` — ${a.sample_title}` : ''}
+                    </span>
                   )}
+                  {a.next_action && <span className="attention-action">Next: {a.next_action}</span>}
                 </div>
                 <Link to={`/work-orders/${a.work_order_id}`} className="btn btn-sm">View WO</Link>
               </div>

@@ -11,7 +11,7 @@ Firmware custom-item classification & estimation system. Express + PostgreSQL ba
 ./
 ├── backend/        # Express API (port 5000), layered: routes→controllers→services→repositories
 ├── frontend/       # Vite + React SPA (port 5173, /api proxied to :5000)
-├── database/       # schema.sql + alter/* migration files (apply manually)
+├── database/       # schema.sql (single source of truth; apply with backend/scripts/apply-schema.js or in Docker initdb)
 ├── reports/        # QA/QC reports (*.md)
 └── tempLiveTest/   # live smoke-test harness (re-runnable scripts + reports)
 ```

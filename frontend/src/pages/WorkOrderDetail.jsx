@@ -24,9 +24,11 @@ export default function WorkOrderDetail() {
     handleStartProduction, handleCompleteProduction, handleCompleteTask,
     groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
+    deleteGroupConfirm, deletingGroup, openDeleteGroupConfirm, closeDeleteGroupConfirm,
     access, accessBusy, users, canEdit, canManageAccess,
     notes, setNotes, savingNotes, editing, setEditing, handleSaveNotes,
-    handleGrantAccess, handleRevokeAccess 
+    handleGrantAccess, handleRevokeAccess,
+    deleteItemConfirm, openDeleteItemConfirm, closeDeleteItemConfirm,
   } = useWorkOrderDetail();
 
   useValueToast(error);
@@ -94,7 +96,7 @@ export default function WorkOrderDetail() {
         items={items}
         openAddGroup={openAddGroup}
         openEditGroup={openEditGroup}
-        handleDeleteGroup={handleDeleteGroup}
+        openDeleteGroupConfirm={openDeleteGroupConfirm}
         showAddGroup={showAddGroup}
         editingGroupId={editingGroupId}
         handleSubmitGroup={handleSubmitGroup}
@@ -127,6 +129,7 @@ export default function WorkOrderDetail() {
         handleUpdateItem={handleUpdateItem}
         cancelEdit={cancelEdit}
         handleDeleteItem={handleDeleteItem}
+        openDeleteItemConfirm={openDeleteItemConfirm}
       />
 
       <WOProductionNotes 
@@ -181,6 +184,27 @@ export default function WorkOrderDetail() {
         message={correctionConfirmMessage}
         confirmLabel="Save"
         loading={correctingItemId != null}
+      />
+      <ConfirmModal
+        isOpen={!!(deleteItemConfirm && deleteItemConfirm.open)}
+        onClose={closeDeleteItemConfirm}
+        onConfirm={() => handleDeleteItem(deleteItemConfirm.itemId)}
+        title="Delete item"
+        message="Are you sure you want to delete this item?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        confirmVariant="danger"
+      />
+      <ConfirmModal
+        isOpen={deleteGroupConfirm.open}
+        onClose={closeDeleteGroupConfirm}
+        onConfirm={handleDeleteGroup}
+        title="Delete serial number?"
+        message="Are you sure you want to delete this serial number?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        confirmVariant="danger"
+        loading={deletingGroup}
       />
     </div>
   );

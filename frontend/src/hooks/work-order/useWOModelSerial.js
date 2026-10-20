@@ -7,6 +7,8 @@ export default function useWOModelSerial(id, load, setMessage, setError) {
   const [groupForm, setGroupForm] = useState(emptyGroupForm);
   const [editingGroupId, setEditingGroupId] = useState(null);
   const [showAddGroup, setShowAddGroup] = useState(false);
+  const [deleteGroupConfirm, setDeleteGroupConfirm] = useState({ open: false, groupId: null });
+  const [deletingGroup, setDeletingGroup] = useState(false);
 
   const handleGroupFormChange = (event) => {
     const { name, value } = event.target;
@@ -57,16 +59,28 @@ export default function useWOModelSerial(id, load, setMessage, setError) {
     }
   };
 
-  const handleDeleteGroup = async (groupId) => {
-    if (!window.confirm('Delete this group?')) return;
+  const openDeleteGroupConfirm = (groupId) => setDeleteGroupConfirm({ open: true, groupId });
+  const closeDeleteGroupConfirm = () => {
+    if (deletingGroup) return;
+    setDeleteGroupConfirm({ open: false, groupId: null });
+  };
+
+  const handleDeleteGroup = async () => {
+    const groupId = deleteGroupConfirm.groupId;
+    if (groupId == null) { closeDeleteGroupConfirm(); return; }
     setError('');
     setMessage('');
+    setDeletingGroup(true);
     try {
       await api.delete(`/work-orders/${id}/groups/${groupId}`);
       setMessage('Group deleted');
+      setDeleteGroupConfirm({ open: false, groupId: null });
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete group');
+      setDeleteGroupConfirm({ open: false, groupId: null });
+    } finally {
+      setDeletingGroup(false);
     }
   };
 
@@ -79,6 +93,10 @@ export default function useWOModelSerial(id, load, setMessage, setError) {
     openEditGroup,
     cancelGroupForm,
     handleSubmitGroup,
-    handleDeleteGroup
+    handleDeleteGroup,
+    deleteGroupConfirm,
+    deletingGroup,
+    openDeleteGroupConfirm,
+    closeDeleteGroupConfirm,
   };
 }
