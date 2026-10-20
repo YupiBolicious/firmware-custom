@@ -35,7 +35,7 @@ export default function WorkOrderCreate() {
             
             <div className="form-row">
               <label style={{ marginBottom: 4 }}>Model Code</label>
-              <input className="wo-input-text sn-input" name="model" value={form.model} onChange={handleChange} placeholder="e.g. FWX-100" required readOnly={isEditMode} />
+              <input className="wo-input-text sn-input" name="model" value={form.model.toUpperCase()} onChange={handleChange} placeholder="e.g. FWX-100" required readOnly={isEditMode} />
               {isEditMode && (
                 <small className="form-help" style={{color: '#6b7280', opacity: 0.7, fontWeight: 500}}>
                   Managed on the Work Order page.
@@ -47,7 +47,7 @@ export default function WorkOrderCreate() {
               <input
                 className="wo-input-text sn-input"
                 name="serial_numbers"
-                value={form.serial_numbers || ''}
+                value={(form.serial_numbers || '').toUpperCase()}
                 onChange={handleChange}
                 placeholder="e.g. SN001, SN002, SN003"
                 required
@@ -68,14 +68,14 @@ export default function WorkOrderCreate() {
                 name="itemsText"
                 value={form.itemsText}
                 onChange={handleChange}
-                placeholder="Item one, Item two, Item three"
+                placeholder={"1. Item one\n2. Item two\n3. Item three"}
                 rows={4}
                 readOnly={isEditMode}
               />
               <small className="form-help" style={{color: '#6b7280', opacity: 0.7, fontWeight: 500}}>
                 {isEditMode
                   ? 'Managed on the Work Order page: add, edit or remove custom items individually.'
-                  : 'Separate items with commas.'}
+                  : 'Enter one item per line. You can use numbering (1., 2.) or just plain text. Commas inside an item are preserved.'}
               </small>
             </div>
             <div className='form-grid' style={{marginBottom:12}}>

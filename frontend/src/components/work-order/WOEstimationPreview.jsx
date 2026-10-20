@@ -25,7 +25,8 @@ export default function WOEstimationPreview({
   handleEditItem,
   handleUpdateItem,
   cancelEdit,
-  handleDeleteItem
+  handleDeleteItem,
+  openDeleteItemConfirm
 }) {
   const editable = canEdit && itemsEditable;
   const showActions = editable || canCorrectDecisions;

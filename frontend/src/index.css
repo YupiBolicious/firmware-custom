@@ -775,6 +775,13 @@ textarea {
   min-width: 0;
 }
 
+.attention-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .attention-title {
   color: var(--text);
   white-space: nowrap;
@@ -788,6 +795,15 @@ textarea {
 .attention-age {
   font-size: 12px;
   white-space: nowrap;
+}
+
+.attention-detail,
+.attention-action {
+  font-size: 12px;
+}
+
+.attention-action {
+  color: var(--text-muted);
 }
 
 /* Summary stats: compact strip. Tight 10px gaps + 12px padding so the

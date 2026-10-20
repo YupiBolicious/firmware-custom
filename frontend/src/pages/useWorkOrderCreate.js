@@ -42,12 +42,13 @@ export default function useWorkOrderCreate() {
           itemsText: (workOrder.items || [])
             .map((item) => item.title)
             .filter(Boolean)
-            .join(', '),
+            .join('\n'),
           customer: workOrder.customer || '',
-          model: workOrder.groups?.[0]?.machine_model_code || '',
+          model: (workOrder.groups?.[0]?.machine_model_code || '').toUpperCase(),
           serial_numbers: (workOrder.groups || [])
             .map((g) => g.serial_number)
             .filter(Boolean)
+            .map((s) => s.toUpperCase())
             .join(', '),
         });
       } catch (err) {
@@ -61,28 +62,63 @@ export default function useWorkOrderCreate() {
   }, [id, isEditMode]);
 
   const handleChange = (event) => {
-    setForm({ ...form, [event.target.name]: event.target.value });
+    const value = event.target.name === 'model' || event.target.name === 'serial_numbers'
+      ? event.target.value.toUpperCase()
+      : event.target.value;
+    setForm({ ...form, [event.target.name]: value });
   };
 
   const buildBody = () => {
     const serialNumbers = (form.serial_numbers || '')
       .split(',')
-      .map((sn) => sn.trim())
+      .map((sn) => sn.trim().toUpperCase())
       .filter(Boolean);
 
     const groups = serialNumbers.map((serial_number) => ({
-      machine_model_id: form.model.trim(),
+      machine_model_id: form.model.trim().toUpperCase(),
       serial_number,
     }));
 
-    const items = (form.itemsText || '')
-      .split(',')
-      .map((title) => title.trim())
-      .filter(Boolean)
-      .map((title) => ({
-        title: capitalizeWords(title),
-        quantity: 1,
-      }));
+    const itemsText = form.itemsText || '';
+    const splitByNewline = itemsText.includes('\n') || itemsText.includes('\r');
+    let rawItems = [];
+    if (splitByNewline) {
+      rawItems = itemsText
+        .split(/\r?\n/)
+        .map((title) => title.replace(/^\s*\d+[.)]?\s*/, '').trim())
+        .map((title) => (title.startsWith('.') || title.startsWith(')') ? title.slice(1).trim() : title))
+        .filter(Boolean);
+    } else {
+      rawItems = itemsText
+        .split(',')
+        .map((title) => title.replace(/^\s*\d+[.)]?\s*/, '').trim())
+        .map((title) => (title.startsWith('.') || title.startsWith(')') ? title.slice(1).trim() : title))
+        .filter(Boolean);
+    }
+    const items = rawItems.map((title) => {
+      let clean = String(title).trim();
+      // Use backend logic exactly: sum ALL multipliers anywhere; keep title intact
+      const MULT_RE = /(?<![\w./:\-])(\d+)\s*[xX](?![\w./:\-%])/g;
+      const matches = [...clean.matchAll(MULT_RE)];
+      if (matches.length) {
+        const total = matches.reduce((s, mm) => s + (parseInt(mm[1], 10) || 0), 0);
+        if (total > 0) {
+          return {
+            title: capitalizeWords(clean),
+            quantity: total,
+          };
+        }
+      }
+      // Generic fallback: first count not unit-followed (frontend has no next word; keep safe)
+      const COUNT_RE = /(?<![\w./:\-])(\d+)(?![\w./:\-%])/g;
+      for (const mm of clean.matchAll(COUNT_RE)) {
+        const v = parseInt(mm[1], 10) || 0;
+        if (v < 1) continue;
+        if (/(AMP|AMPS|VAC|VDC|HZ|KHZ|MHZ|MM|CM|METER|FEET|INCH|LB|LBS|KG|G|PSI|BAR|RA|%)/i.test(clean.slice((mm.index || 0) + mm[0].length))) continue;
+        return { title: capitalizeWords(clean), quantity: v };
+      }
+      return { title: capitalizeWords(clean), quantity: 1 };
+    });
 
     return {
       wo_number: form.wo_number.trim().toUpperCase(),

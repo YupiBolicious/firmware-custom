@@ -39,7 +39,8 @@ const classifyFlow = async (item, refs) => {
   }
   const wrapped = await shadowClassify.classifyWithShadow(item, refs, lexical);
   const { verdict, blocked } = await trySemanticDecision(item, wrapped.semantic);
-  if (verdict) {
+  const allowAutoClaim = process.env.SEMANTIC_AUTO_CLAIM !== '0';
+  if (verdict && allowAutoClaim) {
     return { path: PATH_SEMANTIC, result: verdict, semantic: wrapped.semantic, assist: wrapped.assist, lexical, decisionBlocked: null };
   }
   return { path: PATH_REVIEW, result: lexical, semantic: wrapped.semantic, assist: wrapped.assist, lexical, decisionBlocked: blocked };

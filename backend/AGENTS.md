@@ -16,7 +16,7 @@ src/
 ├── middleware/       # auth.js, errorHandler.js (ApiError + PG-code map), validateParams.js
 └── config/db.js      # pg pool (PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD)
 ```
-- `scripts/purge-audit-log.js` — audit_trail retention purge (`--dry-run` / `--months N`), index added by `database/alter_audit_retention.sql`
+- `scripts/purge-audit-log.js` — audit_trail retention purge (`--dry-run` / `--months N`)
 - Semantic classification is env-gated: `SEMANTIC_ENABLED=0` in `.env` disables the whole pipeline (kill switch, no code change). Full variable list in `.env.example`.
 
 ## WHERE TO LOOK
