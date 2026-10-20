@@ -24,6 +24,17 @@ export default function useWorkOrderDetail() {
   const [itemForm, setItemForm] = useState(emptyItemForm);
   const [editingItemId, setEditingItemId] = useState(null);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
+  const [correctionLevels, setCorrectionLevels] = useState([]);
+  const [correctionForm, setCorrectionForm] = useState(null);
+  const [correctingItemId, setCorrectingItemId] = useState(null);
+  const [correctionConfirmOpen, setCorrectionConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    if (!hasRole('CODER')) return;
+    api.get('/complexity-levels')
+      .then((res) => setCorrectionLevels((res.data.data || []).filter((level) => level.is_active && /^L[0-5]$/.test(level.code))))
+      .catch((err) => setError(err.response?.data?.message || 'Failed to load complexity levels'));
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -136,12 +147,68 @@ export default function useWorkOrderDetail() {
     }
   };
 
-  const woModelCode = wo && wo.groups && wo.groups.length > 0 ? wo.groups[0].machine_model_code || '' : '';
+  const beginCorrection = (item) => {
+    setCorrectionForm({
+      itemId: item.id,
+      complexityLevelId: String(item.complexity_level_id || ''),
+      reason: '',
+    });
+  };
 
+  const cancelCorrection = () => {
+    setCorrectionConfirmOpen(false);
+    setCorrectionForm(null);
+  };
+
+  const updateCorrectionForm = (patch) => {
+    setCorrectionForm((current) => current ? { ...current, ...patch } : current);
+  };
+
+  const saveCorrection = async (item) => {
+    if (!correctionForm || Number(correctionForm.itemId) !== Number(item.id)) return;
+    const level = correctionLevels.find((candidate) => String(candidate.id) === correctionForm.complexityLevelId);
+    if (!level) return;
+    setCorrectionConfirmOpen(true);
+  };
+
+  const confirmCorrection = async () => {
+    if (!correctionForm) return;
+    const item = (wo?.items || []).find((candidate) => Number(candidate.id) === Number(correctionForm.itemId));
+    const level = correctionLevels.find((candidate) => String(candidate.id) === correctionForm.complexityLevelId);
+    if (!item || !level) return;
+    setError('');
+    setCorrectingItemId(item.id);
+    try {
+      await api.put(`/work-orders/items/${item.id}/review-correction`, {
+        complexity_level_id: Number(level.id),
+        reason: correctionForm.reason.trim() || undefined,
+      });
+      setCorrectionConfirmOpen(false);
+      setCorrectionForm(null);
+      setMessage(`Decision corrected to ${level.code}`);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to correct classification');
+      if (err.response?.status === 409) await load();
+    } finally {
+      setCorrectingItemId(null);
+    }
+  };
+
+  const correctionConfirmMessage = (() => {
+    if (!correctionForm) return '';
+    const item = (wo?.items || []).find((candidate) => Number(candidate.id) === Number(correctionForm.itemId));
+    const level = correctionLevels.find((candidate) => String(candidate.id) === correctionForm.complexityLevelId);
+    return item && level
+      ? `Change ${item.item_number} from ${item.complexity_code || 'unassigned'} to ${level.code}?`
+      : '';
+  })();
+
+  const woModelCode = wo && wo.groups && wo.groups.length > 0 ? wo.groups[0].machine_model_code || '' : '';
   const [finalizeConfirm, setFinalizeConfirm] = useState(false);
   const [startConfirm, setStartConfirm] = useState(false);
   const [completeConfirm, setCompleteConfirm] = useState(false);
-
+  
   const openFinalizeConfirm = () => setFinalizeConfirm(true);
   const closeFinalizeConfirm = () => { if (finalizing) return; setFinalizeConfirm(false); };
   const openStartConfirm = () => setStartConfirm(true);
@@ -149,13 +216,16 @@ export default function useWorkOrderDetail() {
   const openCompleteConfirm = () => setCompleteConfirm(true);
   const closeCompleteConfirm = () => { if (completing) return; setCompleteConfirm(false); };
 
+
   const handleFinalize = async () => {
     setError('');
     setMessage('');
     setFinalizing(true);
     try {
-      await api.post(`/work-orders/${id}/finalize`);
-      setMessage('Work order finalized');
+      const response = await api.post(`/work-orders/${id}/finalize`);
+      setMessage(response.data?.data?.work_order?.status === 'COMPLETED'
+        ? 'Work order completed; no firmware production was required'
+        : 'Work order finalized');
       await load();
       setFinalizeConfirm(false);
     } catch (err) {
@@ -190,6 +260,7 @@ export default function useWorkOrderDetail() {
       await api.post(`/work-orders/${id}/production/complete`);
       setMessage('Work order completed');
       await load();
+      setCompleteForm(false);
       setCompleteConfirm(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to complete work order');
@@ -233,6 +304,16 @@ export default function useWorkOrderDetail() {
     handleUpdateItem,
     cancelEdit,
     handleDeleteItem,
+    correctionLevels,
+    correctionForm,
+    correctingItemId,
+    correctionConfirmOpen,
+    correctionConfirmMessage,
+    beginCorrection,
+    cancelCorrection,
+    updateCorrectionForm,
+    saveCorrection,
+    confirmCorrection,
     handleGroupFormChange,
     openAddGroup: () => openAddGroup(woModelCode),
     openEditGroup,

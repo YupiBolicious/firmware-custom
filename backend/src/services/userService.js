@@ -10,8 +10,14 @@ const BCRYPT_ROUNDS = 10;
 
 const listUsers = async ({ page = 1, limit = 15 } = {}) => {
   const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
-  const res = await userRepository.findAll({ page: parsedPage, limit: parsedLimit });
-  return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
+  const [res, activeAdmins] = await Promise.all([
+    userRepository.findAll({ page: parsedPage, limit: parsedLimit }),
+    userRepository.countActiveAdmins(),
+  ]);
+  return {
+    ...paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit),
+    activeAdmins,
+  };
 };
 
 const listPmUsers = async () => {
@@ -69,14 +75,17 @@ const updateUser = async ({ actorId, id, body, ip_address }) => {
     }
   }
 
-  if (Number(id) === Number(actorId)
-    && body.is_active === false
-    && existing.is_active === true
-    && Array.isArray(existing.roles)
-    && existing.roles.includes('ADMIN')) {
+  // Second active admin is the safety net for a forgotten password: never let the system
+  // drop to zero usable ADMINs, whether by deactivating one or by taking its ADMIN role away.
+  // ponytail: read-then-write without a lock; two admins demoting each other in the same
+  // instant can still race to zero. Serialize if that ever matters.
+  const losesAdmin = existing.is_active
+    && Array.isArray(existing.roles) && existing.roles.includes('ADMIN')
+    && (body.is_active === false || (Array.isArray(body.roles) && !body.roles.includes('ADMIN')));
+  if (losesAdmin) {
     const activeAdmins = await userRepository.countActiveAdmins();
     if (activeAdmins <= 1) {
-      throw new ApiError(400, 'Cannot deactivate your own account while you are the only active ADMIN');
+      throw new ApiError(400, 'Cannot remove the last active ADMIN: add another active ADMIN before deactivating this one or dropping its ADMIN role');
     }
   }
 

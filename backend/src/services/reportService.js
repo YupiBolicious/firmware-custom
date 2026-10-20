@@ -1,8 +1,13 @@
 const reportRepository = require('../repositories/reportRepository');
+const workOrderRepository = require('../repositories/workOrderRepository');
 const { assertOptionalDate } = require('../utils/validation');
 const { ApiError } = require('../middleware/errorHandler');
 
 const MAX_REPORT_SPAN_DAYS = 5 * 366;
+
+const WORK_ORDER_LIST_LIMIT = 50;
+
+const pad2 = (n) => String(n).padStart(2, '0');
 
 const quarterLabel = (ymd) => {
   const m = Number(ymd.slice(5, 7));
@@ -92,11 +97,29 @@ const getHistoricalReport = async (query = {}) => {
     coder_reviews: r.coder_reviews,
   }));
 
+  // One extra query, only for a drill-down into a single quarter. total is the
+  // window count, so it stays exact even when the 50-row cap bites.
+  let workOrders = null;
+  if (quarterNo) {
+    const from = `${year}-${pad2((quarterNo - 1) * 3 + 1)}-01`;
+    const list = await workOrderRepository.findAll({
+      page: 1,
+      limit: WORK_ORDER_LIST_LIMIT,
+      from,
+      to: quarterEnd(from),
+    });
+    workOrders = {
+      total: list.total,
+      items: list.items.map(({ total, ...rest }) => rest),
+    };
+  }
+
   return {
     year,
     quarter: quarterNo,
     selected_quarter: quarterNo ? quarters[quarterNo - 1] : null,
     quarters,
+    work_orders: workOrders,
   };
 };
 

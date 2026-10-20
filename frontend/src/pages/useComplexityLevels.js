@@ -19,6 +19,8 @@ export default function useComplexityLevels() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -50,16 +52,29 @@ export default function useComplexityLevels() {
     }
   }, [editingId, form, load]);
 
-  const handleDelete = useCallback(async (id) => {
-    if (!window.confirm('Deactivate this complexity level?')) return;
+  const openDeleteConfirm = useCallback((level) => {
+    setDeleteTarget(level);
+  }, []);
+
+  const closeDeleteConfirm = useCallback(() => {
+    if (deleting) return;
+    setDeleteTarget(null);
+  }, [deleting]);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
     setError('');
+    setDeleting(true);
     try {
-      await api.delete(`/complexity-levels/${id}`);
+      await api.delete(`/complexity-levels/${deleteTarget.id}`);
       await load();
+      setDeleteTarget(null);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to deactivate complexity level');
+    } finally {
+      setDeleting(false);
     }
-  }, [load]);
+  }, [deleteTarget, load]);
 
   const handleEdit = useCallback((level) => {
     setEditingId(level.id);
@@ -92,7 +107,11 @@ export default function useComplexityLevels() {
     setForm,
     toggleShowForm: () => setShowForm((v) => !v),
     handleSave,
-    handleDelete,
+    openDeleteConfirm,
+    closeDeleteConfirm,
+    confirmDelete,
+    deleteTarget,
+    deleting,
     handleEdit,
     handleCancelEdit,
   };

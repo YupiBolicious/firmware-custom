@@ -87,7 +87,7 @@ export default function WOModelSerial({
                 <td>{group.serial_number || '—'}</td>
                 {canEdit && (
                   <td>
-                    <button className="icon-btn" onClick={() => openEditGroup(group)} disabled={!groupsEditable} title="Edit serial number" aria-label="Edit serial number"><Pencil size={16} strokeWidth={1.5} /></button>
+                    {/* <button className="icon-btn" onClick={() => openEditGroup(group)} disabled={!groupsEditable} title="Edit serial number" aria-label="Edit serial number"><Pencil size={16} strokeWidth={1.5} /></button> */}
                     <button className="icon-btn icon-btn-danger" onClick={() => handleDeleteGroup(group.id)} disabled={!groupsEditable || group.item_count > 0} title={group.item_count > 0 ? 'Serial number still referenced by legacy items' : 'Delete serial number'} aria-label="Delete serial number"><Trash2 size={16} strokeWidth={1.5} /></button>
                   </td>
                 )}

@@ -33,6 +33,19 @@ const reviewItem = async (req, res, next) => {
   }
 };
 
+const correctReviewedItem = async (req, res, next) => {
+  try {
+    const data = await workOrderService.correctReviewedItem(req.params.itemId, {
+      ...req.body,
+      user_id: req.user.id,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Coder decision corrected', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getById = async (req, res, next) => {
   try {
     const data = await workOrderService.getWorkOrder(req.params.id);
@@ -193,7 +206,13 @@ const finalize = async (req, res, next) => {
       roles: req.user.roles,
       ip_address: req.ip,
     });
-    res.json({ success: true, message: 'Work order finalized successfully', data });
+    res.json({
+      success: true,
+      message: data.work_order.status === 'COMPLETED'
+        ? 'Work order completed; no firmware production was required'
+        : 'Work order finalized successfully',
+      data,
+    });
   } catch (err) {
     next(err);
   }
@@ -395,6 +414,7 @@ module.exports = {
   list,
   reviewQueue,
   reviewItem,
+  correctReviewedItem,
   getById,
   create,
   previewWorkOrder,

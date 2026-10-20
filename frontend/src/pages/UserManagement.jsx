@@ -1,6 +1,7 @@
 import { useValueToast } from '../components/Toast';
+import ConfirmModal from '../components/ConfirmModal';
 import { ChevronUp, KeyRound, Pencil, Plus, Trash2, UserCheck } from 'lucide-react';
-import useUserManagement from './useUserManagement';
+import useUserManagement, { RESET_PASSWORD } from './useUserManagement';
 
 const ROLE_OPTIONS = [
   { code: 'PM', label: 'Project Manager' },
@@ -11,10 +12,10 @@ const ROLE_OPTIONS = [
 export default function UserManagement() {
   const {
     users,
+    activeAdmins,
     filteredUsers,
     loading,
     error,
-    message,
     form,
     editingId,
     showForm,
@@ -31,11 +32,17 @@ export default function UserManagement() {
     handleSave,
     handleEdit,
     handleCancelEdit,
-    handleToggleActive,
-    handleResetPassword,
+    toggleTarget,
+    openToggleConfirm,
+    closeToggleConfirm,
+    confirmToggleActive,
+    resetTarget,
+    resetDone,
+    openResetConfirm,
+    closeResetConfirm,
+    confirmResetPassword,
   } = useUserManagement();
   useValueToast(error);
-  useValueToast(message, 'success');
 
   const toggleRole = (code) => {
     setForm({
@@ -51,6 +58,14 @@ export default function UserManagement() {
   return (
     <div>
       <h1>User Management</h1>
+      {activeAdmins !== null && activeAdmins < 2 && (
+        <div className="alert alert-warning mb-16" role="alert">
+          <div className="alert-title">Only {activeAdmins} active ADMIN account</div>
+          <div className="alert-description">
+            Add a second active admin. If the only admin's password is lost, nobody can reset it from the app.
+          </div>
+        </div>
+      )}
       
 
       {showForm ? (
@@ -159,15 +174,15 @@ export default function UserManagement() {
                       <button className="icon-btn" title="Edit" onClick={() => handleEdit(u)}>
                         <Pencil size={16} />
                       </button>
-                      <button className="icon-btn" title="Reset password" disabled={busyId === u.id} onClick={() => handleResetPassword(u)}>
+                      <button className="icon-btn" title="Reset password" disabled={busyId === u.id} onClick={() => openResetConfirm(u)}>
                         <KeyRound size={16} />
                       </button>
                       {u.is_active ? (
-                        <button className="icon-btn icon-btn-danger" title="Deactivate" disabled={busyId === u.id} onClick={() => handleToggleActive(u)}>
+                        <button className="icon-btn icon-btn-danger" title="Deactivate" disabled={busyId === u.id} onClick={() => openToggleConfirm(u)}>
                           <Trash2 size={16} />
                         </button>
                       ) : (
-                        <button className="icon-btn" title="Reactivate" disabled={busyId === u.id} onClick={() => handleToggleActive(u)}>
+                        <button className="icon-btn" title="Reactivate" disabled={busyId === u.id} onClick={() => openToggleConfirm(u)}>
                           <UserCheck size={16} />
                         </button>
                       )}
@@ -190,6 +205,33 @@ export default function UserManagement() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!toggleTarget}
+        onClose={closeToggleConfirm}
+        onConfirm={confirmToggleActive}
+        title={toggleTarget?.is_active ? 'Deactivate User' : 'Reactivate User'}
+        message={toggleTarget?.is_active
+          ? `Deactivate ${toggleTarget?.email}? They cannot log in until reactivated.`
+          : `Reactivate ${toggleTarget?.email}? They will be able to log in again.`}
+        confirmLabel={toggleTarget?.is_active ? 'Deactivate' : 'Reactivate'}
+        confirmVariant={toggleTarget?.is_active ? 'danger' : 'primary'}
+        loading={busyId === toggleTarget?.id}
+      />
+
+      <ConfirmModal
+        isOpen={!!resetTarget}
+        onClose={closeResetConfirm}
+        onConfirm={confirmResetPassword}
+        title={resetDone ? 'Password Reset' : 'Reset Password'}
+        message={resetDone
+          ? `Password for ${resetTarget?.email} has been reset to ${RESET_PASSWORD}. Share it with the user, they should change it after signing in.`
+          : `Reset the password for ${resetTarget?.email} to the default password? Their current password will stop working.`}
+        confirmLabel={resetDone ? 'Done' : 'Reset Password'}
+        confirmVariant={resetDone ? 'primary' : 'danger'}
+        hideCancel={resetDone}
+        loading={busyId === resetTarget?.id}
+      />
     </div>
   );
 }

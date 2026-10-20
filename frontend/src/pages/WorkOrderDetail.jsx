@@ -10,8 +10,10 @@ import ConfirmModal from '../components/ConfirmModal';
 export default function WorkOrderDetail() {
   const { hasRole } = useAuth();
   const isCoder = hasRole('CODER');
-  const { 
-    wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message, 
+  const {
+    wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message,
+    correctionLevels, correctionForm, correctingItemId, correctionConfirmOpen, correctionConfirmMessage,
+    beginCorrection, cancelCorrection, updateCorrectionForm, saveCorrection, confirmCorrection,
     handleItemChange, handleEditItem, handleUpdateItem, cancelEdit,
     showAddItemForm, openAddItem, handleAddItem, handleDeleteItem, handleAnalyze, handleFinalize,
     finalizeConfirm, startConfirm, completeConfirm,
@@ -36,7 +38,11 @@ export default function WorkOrderDetail() {
 
   const items = wo.items || [];
   const countOpenItem = items.filter((t) => t.classification_status === 'CODER_REVIEW' || t.fw_related === null).length;
-  const reviewedItems = countOpenItem > 0 ? `Waiting for (${countOpenItem} left)` : `Finalize Work Order`;
+  const allNonFirmware = items.length > 0 && items.every((item) => item.fw_related === false
+    && ['CLASSIFIED', 'NON_FIRMWARE'].includes(item.classification_status));
+  const reviewedItems = countOpenItem > 0
+    ? `Waiting for (${countOpenItem} left)`
+    : allNonFirmware ? 'Complete Work Order' : 'Finalize Work Order';
   
   const productionTasks = wo.production_tasks || [];
   const openTaskCount = productionTasks.filter((t) => !t.completed).length;
@@ -63,6 +69,7 @@ export default function WorkOrderDetail() {
         openStartConfirm={openStartConfirm}
         openCompleteConfirm={openCompleteConfirm}
         reviewedItems={reviewedItems}
+        allNonFirmware={allNonFirmware}
         completeAllLabel={completeAllLabel}
         countOpenItem={countOpenItem}
         openTaskCount={openTaskCount}
@@ -102,6 +109,14 @@ export default function WorkOrderDetail() {
         groups={groups}
         canEdit={canEdit}
         itemsEditable={itemsEditable}
+        canCorrectDecisions={isCoder && !['PRODUCTION', 'COMPLETED'].includes(wo.status)}
+        correctionLevels={correctionLevels}
+        correctionForm={correctionForm}
+        correctingItemId={correctingItemId}
+        beginCorrection={beginCorrection}
+        cancelCorrection={cancelCorrection}
+        updateCorrectionForm={updateCorrectionForm}
+        saveCorrection={saveCorrection}
         showAddItemForm={showAddItemForm}
         openAddItem={openAddItem}
         handleAddItem={handleAddItem}
@@ -132,9 +147,11 @@ export default function WorkOrderDetail() {
         isOpen={finalizeConfirm}
         onClose={closeFinalizeConfirm}
         onConfirm={handleFinalize}
-        title="Finalize Work Order?"
-        message="Are you sure you want to finalize this work order? This action cannot be undone."
-        confirmLabel="Finalize"
+        title={allNonFirmware ? 'Complete Work Order?' : 'Finalize Work Order?'}
+        message={allNonFirmware
+          ? 'This work order has no firmware-related items. Confirming will complete it directly without starting production. This action cannot be undone.'
+          : 'Are you sure you want to finalize this work order? This action cannot be undone.'}
+        confirmLabel={allNonFirmware ? 'Complete Work Order' : 'Finalize'}
         loading={finalizing}
         confirmVariant="primary"
       />
@@ -155,6 +172,15 @@ export default function WorkOrderDetail() {
         message="Are you sure you want to complete this work order?"
         confirmLabel="Complete"
         loading={completing}
+      />
+      <ConfirmModal
+        isOpen={correctionConfirmOpen}
+        onClose={cancelCorrection}
+        onConfirm={confirmCorrection}
+        title="Correct classification?"
+        message={correctionConfirmMessage}
+        confirmLabel="Save"
+        loading={correctingItemId != null}
       />
     </div>
   );

@@ -77,21 +77,23 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, on
           />
         </div>
 
-        <div className="form-row">
-          <label>Revision</label>
-          <div>{Number.isInteger(form.revision) && form.revision >= 0 ? form.revision : 'Not detected'}</div>
-        </div>
+        <div className='form-grid'>
+          <div>
+            <label>Revision</label>
+            <div>{Number.isInteger(form.revision) && form.revision >= 0 ? form.revision : 'Not detected'}</div>
+          </div>
 
-        <div className="form-row">
-          <label>Customer</label>
-          <input
-            className="wo-input-text"
-            name="customer"
-            value={form.customer}
-            onChange={(e) => setForm({ ...form, customer: e.target.value })}
-          />
+          <div>
+            <label>Customer</label>
+            <input
+              className="wo-input-text"
+              name="customer"
+              value={form.customer}
+              onChange={(e) => setForm({ ...form, customer: e.target.value })}
+            />
+          </div>
         </div>
-
+        
         <div className="form-row">
           <label>Model Code</label>
           <input
