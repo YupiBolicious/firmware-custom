@@ -5,10 +5,11 @@ import WOStatusAccess from '../components/work-order/WOStatusAccess';
 import WOModelSerial from '../components/work-order/WOModelSerial';
 import WOEstimationPreview from '../components/work-order/WOEstimationPreview';
 import WOProductionNotes from '../components/work-order/WOProductionNotes';
+import WOComments from '../components/work-order/WOComments';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function WorkOrderDetail() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const isCoder = hasRole('CODER');
   const {
     wo, error, loading, analyzing, finalizing, startingProduction, completing, savingTaskId, message,
@@ -56,7 +57,13 @@ export default function WorkOrderDetail() {
   const groupsEditable = wo.status === 'DRAFT' || wo.status === 'ANALYZED';
   const itemsEditable = groupsEditable;
   const staleVerdicts = wo.status === 'DRAFT' && items.some((i) => i.verdict_stale === true);
-
+  const isOwner = Number(wo.created_by) === Number((useAuth().user?.id));
+  const isGranted = access.some((a) => Number(a.user_id) === Number((useAuth().user?.id)));
+  const canComment = hasRole('ADMIN') || hasRole('CODER') || (hasRole('PM') && (isOwner || isGranted));
+  const assignedCoderId = wo.assigned_coder_id;
+  const isAssignedToMe = hasRole('CODER') && assignedCoderId != null && user && Number(assignedCoderId) === Number(user.id);
+  const blockedByAssignment = hasRole('CODER') && !hasRole('ADMIN') && assignedCoderId != null && !isAssignedToMe;
+  
   return (
     <div className="glass-page">
       <WOStatusAccess 
@@ -111,7 +118,7 @@ export default function WorkOrderDetail() {
         groups={groups}
         canEdit={canEdit}
         itemsEditable={itemsEditable}
-        canCorrectDecisions={isCoder && !['PRODUCTION', 'COMPLETED'].includes(wo.status)}
+        canCorrectDecisions={isCoder && !blockedByAssignment && !['PRODUCTION', 'COMPLETED'].includes(wo.status)}
         correctionLevels={correctionLevels}
         correctionForm={correctionForm}
         correctingItemId={correctingItemId}
@@ -131,6 +138,13 @@ export default function WorkOrderDetail() {
         handleDeleteItem={handleDeleteItem}
         openDeleteItemConfirm={openDeleteItemConfirm}
       />
+
+      <WOComments woId={wo.id} canComment={canComment && !blockedByAssignment} />
+      {blockedByAssignment && (
+        <div className="panel" style={{ marginTop: 12 }}>
+          <div className="text-muted">This work order is assigned to another coder</div>
+        </div>
+      )}
 
       <WOProductionNotes 
         wo={wo}

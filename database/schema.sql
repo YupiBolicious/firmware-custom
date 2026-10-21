@@ -297,6 +297,22 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 
 -- PERFORMANCE INDEXES
+-- WORK ORDER COMMENTS (CODER/PM discussion thread)
+CREATE TABLE IF NOT EXISTS work_order_comments (
+  id              SERIAL PRIMARY KEY,
+  work_order_id   INT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE,
+  user_id         INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content         TEXT NOT NULL CHECK (char_length(trim(content)) > 0),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_work_order_comments_wo_created ON work_order_comments(work_order_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_work_order_comments_user ON work_order_comments(user_id);
+
+ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS assigned_coder_id INT REFERENCES users(id);
+CREATE INDEX IF NOT EXISTS idx_work_orders_assigned_coder ON work_orders(assigned_coder_id);
+
 CREATE INDEX IF NOT EXISTS idx_work_order_access_work_order_id ON work_order_access(work_order_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_classifications_status ON classifications(status);

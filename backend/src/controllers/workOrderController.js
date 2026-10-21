@@ -25,6 +25,7 @@ const reviewItem = async (req, res, next) => {
     const data = await workOrderService.reviewItem(req.params.itemId, {
       ...req.body,
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Item review confirmed', data });
@@ -38,6 +39,7 @@ const correctReviewedItem = async (req, res, next) => {
     const data = await workOrderService.correctReviewedItem(req.params.itemId, {
       ...req.body,
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Coder decision corrected', data });
@@ -222,6 +224,7 @@ const startProduction = async (req, res, next) => {
   try {
     const data = await workOrderService.startProduction(req.params.id, {
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Work order moved to production', data });
@@ -234,6 +237,7 @@ const completeProduction = async (req, res, next) => {
   try {
     const data = await workOrderService.completeProduction(req.params.id, {
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({ success: true, message: 'Work order completed', data });
@@ -248,6 +252,7 @@ const completeProductionTask = async (req, res, next) => {
     const data = await workOrderService.completeProductionTask(req.params.taskId, {
       completed,
       user_id: req.user.id,
+      roles: req.user.roles,
       ip_address: req.ip,
     });
     res.json({
@@ -410,6 +415,45 @@ const revokeAccess = async (req, res, next) => {
   }
 };
 
+const listComments = async (req, res, next) => {
+  try {
+    const data = await workOrderService.listWorkOrderComments(req.params.id, {
+      user_id: req.user.id,
+      roles: req.user.roles,
+    });
+    res.json({ success: true, message: 'Comments retrieved', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createComment = async (req, res, next) => {
+  try {
+    const data = await workOrderService.addWorkOrderComment(req.params.id, {
+      content: req.body.content,
+      user_id: req.user.id,
+      roles: req.user.roles,
+      ip_address: req.ip,
+    });
+    res.status(201).json({ success: true, message: 'Comment added', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteComment = async (req, res, next) => {
+  try {
+    const data = await workOrderService.deleteWorkOrderComment(req.params.id, req.params.commentId, {
+      user_id: req.user.id,
+      roles: req.user.roles,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Comment deleted', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   list,
   reviewQueue,
@@ -435,4 +479,7 @@ module.exports = {
   listAccess,
   grantAccess,
   revokeAccess,
+  listComments,
+  createComment,
+  deleteComment,
 };

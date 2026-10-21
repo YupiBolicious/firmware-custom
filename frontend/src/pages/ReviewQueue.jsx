@@ -2,8 +2,10 @@ import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import useReviewQueue from './useReviewQueue';
 import { reviewReasonLabel } from '../lib/reviewLabels';
+import { useAuth } from '../context/AuthContext';
 
 export default function ReviewQueue() {
+  const { user, hasRole } = useAuth();
   const {
     items, error, loading, levels,
     selections, setSelections,
@@ -32,12 +34,17 @@ export default function ReviewQueue() {
               <th>Reason</th>
               <th>Suggestion</th>
               <th>Complexity</th>
-              <th>Keywords</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {items.map((item) => {
+              const isAdmin = hasRole('ADMIN');
+              const isCoder = hasRole('CODER');
+              const assigned = item.assigned_coder_id != null;
+              const isAssignedToMe = assigned && user && Number(item.assigned_coder_id) === Number(user.id);
+              const blockedByAssignment = isCoder && !isAdmin && assigned && !isAssignedToMe;
+              return (
               <tr key={item.item_id}>
                 <td><Link to={`/work-orders/${item.work_order_id}`}>{item.wo_number}</Link></td>
                 <td>
@@ -50,7 +57,7 @@ export default function ReviewQueue() {
                   ) : null}
                 </td>
                 <td>
-                  {item.assist_kb_code ? (() => {
+                  {item.assist_kb_code && !blockedByAssignment ? (() => {
                     const decided = assistResponses[item.item_id] || item.assist_response;
                     const level = levels.find(
                       (l) => String(l.id) === String(item.assist_complexity_level_id)
@@ -98,18 +105,13 @@ export default function ReviewQueue() {
                               Suggested {level.code}
                             </span>
                           )}
-                        </div>
-
-                        {/* Quality */}
-                        <div className="text-muted" style={{ fontSize: 11 }}>
-                          {score}% match
-                          {/* {score}% match · margin {margin.toFixed(1)}% */}
+                          <span className='text-muted'>{score}% match  {/* {score}% match · margin {margin.toFixed(1)}% */}</span>
                         </div>
 
                         {/* Decision */}
-                        <div className="flex gap-8 align-center">
+                        <div style={{display:'flex', justifyContent: 'flex-end'}} className='gap-8'>
                           <button
-                            className={`btn btn-sm ${
+                            className={`btn btn-secondary badge-info ${
                               decided === 'ACCEPTED' ? 'btn-secondary' : ''
                             }`}
                             onClick={() => acceptAssist(item)}
@@ -119,20 +121,14 @@ export default function ReviewQueue() {
                           </button>
 
                           <button
-                            className={`btn btn-sm ${
+                            className={`btn btn-secondary ${
                               decided === 'IGNORED' ? 'btn-secondary' : ''
                             }`}
                             onClick={() => ignoreAssist(item)}
                             disabled={reviewing === item.item_id}
                           >
-                            Ignore
+                            Decline
                           </button>
-
-                          {assistPending(item) && (
-                            <span className="text-muted" style={{ fontSize: 11 }}>
-                              Response required
-                            </span>
-                          )}
                         </div>
                       </div>
                     );
@@ -141,29 +137,30 @@ export default function ReviewQueue() {
                   )}
                 </td>
                 <td>
-                  <select
-                    value={selections[item.item_id] || ''}
-                    onChange={(event) => setSelections({ ...selections, [item.item_id]: event.target.value })}
-                  >
-                    <option value="">Select L0-L5</option>
-                    {levels.map((level) => <option key={level.id} value={level.id}>{level.code} - {level.name}</option>)}
-                  </select>
+                  {blockedByAssignment ? (
+                    <span className="text-muted" style={{ fontSize: 12 }}>Assigned to {item.assigned_coder_name || 'another coder'}</span>
+                  ) : (
+                    <select
+                      value={selections[item.item_id] || ''}
+                      onChange={(event) => setSelections({ ...selections, [item.item_id]: event.target.value })}
+                    >
+                      <option value="">Select L0-L5</option>
+                      {levels.map((level) => <option key={level.id} value={level.id}>{level.code} - {level.name}</option>)}
+                    </select>
+                  )}
                 </td>
                 <td>
-                  <input
-                    placeholder="optional keywords"
-                    value={keywordInputs[item.item_id] || ''}
-                    onChange={(event) => setKeywordInputs({ ...keywordInputs, [item.item_id]: event.target.value })}
-                  />
-                </td>
-                <td>
-                  <Link className="btn btn-secondary btn-sm" to={`/work-orders/${item.work_order_id}`}>Open</Link>{' '}
-                  <button className="btn btn-sm" onClick={() => review(item)} disabled={!canConfirm(item) || reviewing === item.item_id}>
-                    {reviewing === item.item_id ? 'Saving...' : 'Confirm'}
-                  </button>
+                  {blockedByAssignment ? (
+                    <span className="text-muted" style={{ fontSize: 12 }}>-</span>
+                  ) : (
+                    <button className="btn btn-sm" onClick={() => review(item)} disabled={!canConfirm(item) || reviewing === item.item_id}>
+                      {reviewing === item.item_id ? 'Saving...' : '✔'}
+                    </button>
+                  )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       )}

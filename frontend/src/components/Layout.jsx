@@ -42,31 +42,32 @@ const NAV_ITEMS = [
     roles: ['ADMIN'],
     icon: <Users size={16} strokeWidth={1.5} />,
   },
-
-  {
-    to: '/audit-log',
-    label: 'Audit Log',
-    roles: ['ADMIN', 'PM', 'CODER'],
-    icon: <List size={16} strokeWidth={1.5} />,
-  },
-  {
-    to: '/reports/quarterly',
-    label: 'Quarterly Report',
-    roles: ['PM', 'ADMIN', 'CODER'],
-    icon: <CalendarRange size={16} strokeWidth={1.5} />,
-  },
-  {
+ {
     to: '/reports/historical',
     label: 'Historical Report',
     roles: ['PM', 'ADMIN', 'CODER'],
     icon: <LineChart size={16} strokeWidth={1.5} />,
-  },
+  }, 
   {
     to: '/change-password',
     label: 'Change Password',
     roles: ['ADMIN', 'PM', 'CODER'],
     icon: <Lock size={16} strokeWidth={1.5} />,
   },
+  {
+    to: '/audit-log',
+    label: 'Audit Log',
+    roles: ['ADMIN', 'PM', 'CODER'],
+    icon: <List size={16} strokeWidth={1.5} />,
+  },
+  // {
+  //   to: '/reports/quarterly',
+  //   label: 'Quarterly Report',
+  //   roles: ['PM', 'ADMIN', 'CODER'],
+  //   icon: <CalendarRange size={16} strokeWidth={1.5} />,
+  // },
+ 
+ 
 ];
 
 const resolvePageName = (pathname) => {

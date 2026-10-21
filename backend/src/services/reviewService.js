@@ -10,8 +10,9 @@ const notificationService = require('../services/notificationService');
 const workOrderAccessRepository = require('../repositories/workOrderAccessRepository');
 const { ApiError } = require('../middleware/errorHandler');
 const { buildKeywords } = require('../utils/tokenPolicy');
+const { assertCoderAssignment } = require('./workOrders/guards');
 
-const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semantic_assist_response, user_id, ip_address }) => {
+const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semantic_assist_response, user_id, roles, ip_address }) => {
   const item = await workOrderRepository.findItemWithWorkOrder(itemId);
   if (!item) {
     throw new ApiError(404, 'Work order item not found');
@@ -40,6 +41,9 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
   const reason = notes?.trim()
     ? `Coder review: ${notes.trim()}`
     : `Coder review confirmed ${level.code} (${level.name})`;
+  const wo = await workOrderRepository.findById(item.work_order_id);
+  await assertCoderAssignment(wo, user_id, roles || []);
+
   const saved = await classificationRepository.reviewClassification({
     work_order_item_id: itemId,
     fw_related: isFirmware,
@@ -107,15 +111,18 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
     ip_address,
   });
 
-  const granteeIds = await workOrderAccessRepository.findUserIdsByWorkOrderId(item.work_order_id);
-  const recipientIds = new Set([item.wo_created_by, ...granteeIds].filter((x) => x != null));
-  for (const uid of recipientIds) {
-    notificationService.notify({
-      user_id: uid,
-      status: 'ITEM_REVIEWED',
-      message: `item ${item.item_number} in ${item.wo_number} has been reviewed by a FW engineer`,
-      entity_id: item.work_order_id,
-    });
+  const remaining = await workOrderRepository.countCoderReviewRemainingByWorkOrderId(item.work_order_id);
+  if (remaining === 0) {
+    const granteeIds = await workOrderAccessRepository.findUserIdsByWorkOrderId(item.work_order_id);
+    const recipientIds = new Set([item.wo_created_by, ...granteeIds].filter((x) => x != null));
+    for (const uid of recipientIds) {
+      notificationService.notify({
+        user_id: uid,
+        status: 'ITEM_REVIEWED',
+        message: `All items in ${item.wo_number} have been reviewed by a FW engineer`,
+        entity_id: item.work_order_id,
+      });
+    }
   }
 
   return {
@@ -129,7 +136,12 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
   };
 };
 
-const correctReviewedItem = async (itemId, { complexity_level_id, reason, user_id, ip_address }) => {
+const correctReviewedItem = async (itemId, { complexity_level_id, reason, user_id, roles, ip_address }) => {
+  const item = await workOrderRepository.findItemWithWorkOrder(itemId);
+  if (item) {
+    const wo = await workOrderRepository.findById(item.work_order_id);
+    await assertCoderAssignment(wo, user_id, roles || []);
+  }
   const correction = await classificationRepository.correctReviewedClassification({
     work_order_item_id: itemId,
     reviewed_by: user_id,
