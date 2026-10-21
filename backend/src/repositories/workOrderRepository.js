@@ -1,4 +1,4 @@
-﻿const pool = require('../config/db');
+const pool = require('../config/db');
 
 //work orders
 const findAll = async ({ page = 1, limit = 15, search = '', status = '', from = '', to = '' } = {}) => {

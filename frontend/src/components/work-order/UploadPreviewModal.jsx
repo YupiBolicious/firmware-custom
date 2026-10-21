@@ -6,10 +6,10 @@ const emptyItem = { title: '', quantity: 1 };
 export default function UploadPreviewModal({ extracted, warnings, confirming, onConfirm, onCancel }) {
   const [form, setForm] = useState(() => ({
     wo_number: (extracted.wo_number || '').trim(),
-    revision: extracted.revision,
     customer: (extracted.customer || '').trim(),
     model_code: (extracted.model_code || '').trim(),
     serial_numbers: (extracted.serial_numbers || []).join(', '),
+    revision: extracted.revision ?? 0,
     items: (extracted.customize_with || [])
       .map((item) => ({
         title: item.title || '',
@@ -33,9 +33,9 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, on
   const handleConfirm = () => {
     onConfirm({
       wo_number: form.wo_number.trim(),
-      revision: form.revision,
       customer: form.customer.trim(),
       model_code: form.model_code.trim(),
+      revision: Number.isFinite(Number(form.revision)) && Number(form.revision) >= 0 ? Number(form.revision) : 0,
       serial_numbers: form.serial_numbers.split(',').map((s) => s.trim()).filter(Boolean),
       customize_with: form.items
         .filter((item) => item.title.trim())
@@ -62,7 +62,7 @@ export default function UploadPreviewModal({ extracted, warnings, confirming, on
 
         {warnings.length > 0 && (
           <div className="alert" style={{ marginBottom: 16 }}>
-            Missing from PDF (not imported): {warnings.join(', ')} — edit below before confirming.
+            Missing from file: edit below before confirming.
           </div>
         )}
 

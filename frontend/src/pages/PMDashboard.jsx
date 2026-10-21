@@ -317,7 +317,52 @@ export default function PMDashboard() {
           </ResponsiveContainer>
         )}
       </div>
+<<<<<<< HEAD
 
+=======
+<div className="panel">
+        <div className="flex justify-between align-center mb-16">
+          <h3 style={{ margin: 0 }}>
+            Attention Required
+            {filteredAttention.length > 0 && (
+              <span
+                className="badge"
+                style={{
+                  marginLeft: 8,
+                  background: filteredAttention.some((a) => a.priority === 'danger') ? 'var(--badge-deleted-bg)' : 'var(--badge-updated-bg)',
+                  color: filteredAttention.some((a) => a.priority === 'danger') ? 'var(--danger)' : 'var(--warning)',
+                }}
+              >
+                {filteredAttention.length}
+              </span>
+            )}
+          </h3>
+        </div>
+
+        {filteredAttention.length === 0 ? (
+          <div className="text-muted">No attention required.</div>
+        ) : (
+          <div className="attention-list">
+            {filteredAttention.map((a) => (
+              <div key={`${a.work_order_id}-${a.kind}`} className={`attention-item attention-${a.priority}`}>
+                <div className="attention-copy">
+                  <div className="attention-body">
+                    <span className="attention-title"><strong>{a.wo_number}</strong></span>
+                    <span className="attention-message">{a.message}</span>
+                    {a.age_hours != null && (
+                      <span className="attention-age text-muted">{formatAttentionAge(a.age_hours, a.kind)}</span>
+                    )}
+                  </div>
+                  
+                  {a.next_action && <span className="attention-action">Next: {a.next_action}</span>}
+                </div>
+                <Link to={`/work-orders/${a.work_order_id}`} className="btn btn-sm">View WO</Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+>>>>>>> a323d9b7d4004156d7d94fc4e9cda84ee0b7ad75
 
       </div>
   );

@@ -9,7 +9,11 @@ export const METRICS = {
   custom_items: 'Custom Items',
   estimated_hours: 'Estimated Hours',
   completed_hours: 'Completed Hours',
+<<<<<<< HEAD
   coder_reviews: 'Reviews',
+=======
+  coder_reviews: 'Engineer Reviews',
+>>>>>>> a323d9b7d4004156d7d94fc4e9cda84ee0b7ad75
 };
 
 const emptyMetrics = () => ({

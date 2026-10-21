@@ -194,4 +194,8 @@ const correctReviewedItem = async (itemId, { complexity_level_id, reason, user_i
   };
 };
 
+<<<<<<< HEAD
 module.exports = { reviewItem, correctReviewedItem };
+=======
+module.exports = { reviewItem, correctReviewedItem };
+>>>>>>> a323d9b7d4004156d7d94fc4e9cda84ee0b7ad75
