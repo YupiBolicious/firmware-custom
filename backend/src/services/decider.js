@@ -94,7 +94,7 @@ const decideBest = ({ bestKb, bestKbScore, bestKbBonus, bestKbJTitle, coverageCo
       complexity_level_id: null,
       classification_method: 'SIMILARITY',
       confidence_score: null,
-      classification_reason: `Similar to knowledge base item ${bestKb.kb_code} (similarity ${(bestKbScore * 100).toFixed(0)}%${contextNote(bestKbBonus)}). Requires coder review.`,
+      classification_reason: `Similar to ${bestKb.kb_code} with similarity level ${(bestKbScore * 100).toFixed(0)}%${contextNote(bestKbBonus)}). Requires coder review.`,
       status: 'CODER_REVIEW',
       kb_item_id: bestKb.id,
       match_score: bestKbScore,
@@ -133,16 +133,12 @@ const decideBest = ({ bestKb, bestKbScore, bestKbBonus, bestKbJTitle, coverageCo
   };
 };
 
-// Semantic margin floor: provisional hypothesis, not calibrated production
-// truth. Read at call time so ablation can sweep values without code hooks.
 const semanticMarginFloor = () => {
   const v = Number(process.env.SEMANTIC_MARGIN);
   return Number.isFinite(v) && v > 0 ? v : 0.15;
 };
 
-// Semantic decision (policy only — candidates, embeddings, and retrieval live
-// outside). Returns { verdict, blocked }: verdict set on accept, otherwise
-// blocked carries the machine-readable reason for telemetry. Never throws.
+// Semantic decision
 const decideSemantic = ({ itemText, matches, margin, rowText, row }) => {
   const blocked = (reason, detail) => ({
     verdict: null,

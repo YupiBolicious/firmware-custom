@@ -105,7 +105,7 @@ export default function HistoricalReport() {
 
             {workOrders && (
               <div className="table-scroll" style={{ marginBottom: 16 }}>
-                <h3>Work Orders — {report.year} Q{quarter}</h3>
+                <h3 style={{padding: 8}}>Work Orders — {report.year} Q{quarter}</h3>
                 {listItems.length === 0 ? (
                   <div className="text-muted">No work orders created in this quarter.</div>
                 ) : (
@@ -156,13 +156,13 @@ export default function HistoricalReport() {
             )}
 
             <div className="flex justify-between align-center mb-16">
-              <h3 style={{ margin: 0 }}>Quarter Trend</h3>
+              <h3 style={{ padding:8 }}>Quarter Trend</h3>
             </div>
             <div className="flex" style={{ gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
               {Object.entries(METRICS).map(([key, label]) => (
                 <button
                   key={key}
-                  className="btn btn-sm"
+                  className="btn btn-secondary"
                   style={key === metric ? { color: 'var(--accent)' } : undefined}
                   onClick={() => setMetric(key)}
                 >

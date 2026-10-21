@@ -6,7 +6,7 @@ const classificationService = require('../classificationService');
 const kbRepository = require('../../repositories/kbRepository');
 const { ApiError } = require('../../middleware/errorHandler');
 const { validatePagination, paginatedPayload } = require('../../utils/pagination');
-const { resolveGroupTargets, assertCanEditWorkOrder } = require('./guards');
+const { resolveGroupTargets, assertCanEditWorkOrder, assertCoderAssignment } = require('./guards');
 
 const listWorkOrders = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
   const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);

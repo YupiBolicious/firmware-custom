@@ -51,7 +51,18 @@ export default function useReviewQueue() {
         return remaining;
       });
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to confirm review');
+      const msg = err.response?.data?.message || 'Failed to confirm review';
+      if (msg === 'This work order is assigned to another coder') {
+        alert('You do not have access to review items for this work order (assigned to another coder).');
+        // Remove this item from queue
+        setItems((current) => {
+          const remaining = current.filter((currentItem) => currentItem.item_id !== item.item_id);
+          if (remaining.length === 0 && page > 1) setPage(page - 1);
+          return remaining;
+        });
+      } else {
+        setError(msg);
+      }
     } finally {
       setReviewing(null);
     }

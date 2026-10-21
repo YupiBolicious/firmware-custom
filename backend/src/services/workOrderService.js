@@ -4,6 +4,7 @@ const items = require('./workOrders/items');
 const lifecycle = require('./workOrders/lifecycle');
 const access = require('./workOrders/access');
 const { reviewItem, correctReviewedItem } = require('./reviewService');
+const comments = require('./workOrders/comments');
 
 module.exports = {
   listWorkOrders: core.listWorkOrders,
@@ -31,4 +32,7 @@ module.exports = {
   listWorkOrderAccess: access.listWorkOrderAccess,
   grantWorkOrderAccess: access.grantWorkOrderAccess,
   revokeWorkOrderAccess: access.revokeWorkOrderAccess,
+  listWorkOrderComments: comments.listWorkOrderComments,
+  addWorkOrderComment: comments.addWorkOrderComment,
+  deleteWorkOrderComment: comments.deleteWorkOrderComment,
 };

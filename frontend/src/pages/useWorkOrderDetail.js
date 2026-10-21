@@ -255,7 +255,12 @@ export default function useWorkOrderDetail() {
       await load();
       setStartConfirm(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to start production');
+      const msg = err.response?.data?.message || 'Failed to start production';
+      if (msg === 'This work order is assigned to another coder') {
+        alert('You do not have access to take action on this work order (assigned to another coder).');
+      } else {
+        setError(msg);
+      }
       if (err.response?.status === 409) { await load(); }
     } finally {
       setStartingProduction(false);
@@ -270,10 +275,14 @@ export default function useWorkOrderDetail() {
       await api.post(`/work-orders/${id}/production/complete`);
       setMessage('Work order completed');
       await load();
-      setCompleteForm(false);
       setCompleteConfirm(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to complete work order');
+      const msg = err.response?.data?.message || 'Failed to complete work order';
+      if (msg === 'This work order is assigned to another coder') {
+        alert('You do not have access to take action on this work order (assigned to another coder).');
+      } else {
+        setError(msg);
+      }
       if (err.response?.status === 409) { await load(); }
     } finally {
       setCompleting(false);

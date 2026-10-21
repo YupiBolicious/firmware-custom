@@ -83,5 +83,9 @@ router.post('/:id/production/complete', authorize('CODER'), requireIntegerParams
 
 router.put('/:id/notes', authorize('CODER'), requireIntegerParams('id'), validateWorkOrderNotes, workOrderController.updateNotes);
 
+router.get('/:id/comments', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.listComments);
+router.post('/:id/comments', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.createComment);
+router.delete('/:id/comments/:commentId', authorize('PM', 'CODER', 'ADMIN'), requireIntegerParams('id', 'commentId'), workOrderController.deleteComment);
+
 
 module.exports = router;

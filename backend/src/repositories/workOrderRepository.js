@@ -39,7 +39,7 @@ const findAll = async ({ page = 1, limit = 15, search = '', status = '', from = 
     /* wo relation with model and version has to be deleted because it would interfere the classification.
      added new relation: to groupWO to get and store ids*/
     `SELECT wo.id, wo.wo_number, wo.title, wo.customer, wo.status,
-            wo.revision, wo.created_by, wo.created_at, wo.updated_at,
+            wo.revision, wo.created_by, wo.assigned_coder_id, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
             COUNT(woi.id)::int AS item_count,
             COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0) AS total_estimated_hours,
@@ -68,7 +68,7 @@ const findAll = async ({ page = 1, limit = 15, search = '', status = '', from = 
 const findById = async (id) => {
   const result = await pool.query(
     `SELECT wo.id, wo.wo_number, wo.title, wo.customer, wo.status, wo.notes,
-            wo.revision, wo.created_by, wo.created_at, wo.updated_at,
+            wo.revision, wo.created_by, wo.assigned_coder_id, wo.created_at, wo.updated_at,
             u.full_name AS created_by_name,
 COALESCE((SELECT SUM(COALESCE(ie.total_hours, 0))
                        FROM work_order_items woi
@@ -105,11 +105,14 @@ const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
             c.review_reason, c.assist_blocked_reason,
             kb_s.title AS assist_kb_title,
             kb_s.confidence_score AS assist_kb_confidence_score,
+            wo.assigned_coder_id,
+            assigned.full_name AS assigned_coder_name,
             COUNT(*) OVER ()::int AS total
      FROM work_order_items woi
      JOIN work_orders wo ON wo.id = woi.work_order_id
      JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN kb_items kb_s ON kb_s.id = c.assist_kb_id
+     LEFT JOIN users assigned ON assigned.id = wo.assigned_coder_id
      WHERE c.status = 'CODER_REVIEW'
      ORDER BY c.created_at ASC, wo.id, woi.item_number
      LIMIT $1 OFFSET $2`, [limit, (page - 1) * limit]
@@ -612,12 +615,81 @@ const countItemsByWorkOrderId = async (workOrderId) => {
   return result.rows[0].count;
 };
 
+const countCoderReviewRemainingByWorkOrderId = async (workOrderId) => {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS cnt
+     FROM work_order_items woi
+     JOIN classifications c ON c.work_order_item_id = woi.id
+     WHERE woi.work_order_id = $1
+       AND c.status = 'CODER_REVIEW'`,
+    [workOrderId]
+  );
+  return result.rows[0]?.cnt || 0;
+};
+
+const assignCoderIfUnassigned = async (workOrderId, coderId) => {
+  const result = await pool.query(
+    `UPDATE work_orders
+     SET assigned_coder_id = $2, updated_at = NOW()
+     WHERE id = $1 AND assigned_coder_id IS NULL
+     RETURNING *`,
+    [workOrderId, coderId]
+  );
+  if (result.rows[0]) return result.rows[0];
+  const cur = await pool.query(`SELECT * FROM work_orders WHERE id = $1`, [workOrderId]);
+  return cur.rows[0] || null;
+};
+
 const updateStatus = async (id, status, fromStatus) => {
   const result = await pool.query(
     `UPDATE work_orders SET status = $2, updated_at = NOW()
      WHERE id = $1 AND ($3::text IS NULL OR status = $3)
      RETURNING *`,
     [id, status, fromStatus || null]
+  );
+  return result.rows[0] || null;
+};
+
+// ---------- Work Order Comments ----------
+const findCommentsByWorkOrderId = async (workOrderId) => {
+  const result = await pool.query(
+    `SELECT c.id, c.work_order_id, c.user_id, c.content, c.created_at, c.updated_at,
+            u.full_name, u.username,
+            (SELECT string_agg(r.code, ',') FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = u.id) AS roles
+     FROM work_order_comments c
+     JOIN users u ON u.id = c.user_id
+     WHERE c.work_order_id = $1
+     ORDER BY c.created_at ASC, c.id ASC`,
+    [workOrderId]
+  );
+  return result.rows;
+};
+
+const createComment = async ({ work_order_id, user_id, content }) => {
+  const result = await pool.query(
+    `INSERT INTO work_order_comments (work_order_id, user_id, content)
+     VALUES ($1, $2, $3)
+     RETURNING id, work_order_id, user_id, content, created_at, updated_at`,
+    [work_order_id, user_id, content]
+  );
+  return result.rows[0];
+};
+
+const deleteComment = async (commentId) => {
+  const result = await pool.query(
+    `DELETE FROM work_order_comments WHERE id = $1 RETURNING id`,
+    [commentId]
+  );
+  return result.rows[0] || null;
+};
+
+const findCommentById = async (commentId) => {
+  const result = await pool.query(
+    `SELECT c.*, u.full_name, u.username
+     FROM work_order_comments c
+     JOIN users u ON u.id = c.user_id
+     WHERE c.id = $1`,
+    [commentId]
   );
   return result.rows[0] || null;
 };
@@ -651,5 +723,11 @@ module.exports = {
   updateItem,
   deleteItem,
   countItemsByWorkOrderId,
+  countCoderReviewRemainingByWorkOrderId,
+  assignCoderIfUnassigned,
   updateStatus,
+  findCommentsByWorkOrderId,
+  createComment,
+  deleteComment,
+  findCommentById
 };

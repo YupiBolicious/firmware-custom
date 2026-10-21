@@ -75,7 +75,7 @@ export default function WorkOrderCreate() {
               <small className="form-help" style={{color: '#6b7280', opacity: 0.7, fontWeight: 500}}>
                 {isEditMode
                   ? 'Managed on the Work Order page: add, edit or remove custom items individually.'
-                  : 'Enter one item per line. You can use numbering (1., 2.) or just plain text. Commas inside an item are preserved.'}
+                  : 'Enter one item per line. Use numbering (1., 2.) or plain text.'}
               </small>
             </div>
             <div className='form-grid' style={{marginBottom:12}}>
