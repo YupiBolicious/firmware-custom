@@ -4,7 +4,7 @@ import api from '../api/client';
 const CLASSIFICATION_STATUS_LABELS = {
   CLASSIFIED: 'Classified',
   NON_FIRMWARE: 'Non-Firmware',
-  CODER_REVIEW: 'Coder Review',
+  CODER_REVIEW: 'Review',
   PENDING: 'Pending',
 };
 
