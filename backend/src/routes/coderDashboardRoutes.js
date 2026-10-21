@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(authenticate);
 router.use(authorize('CODER'));
 
+router.get('/team', coderDashboardController.getTeamCoderDashboard);
 router.get('/', coderDashboardController.getCoderDashboard);
 
 module.exports = router;

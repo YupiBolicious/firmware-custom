@@ -8,6 +8,7 @@ const findKpis = async (userId) => {
         JOIN work_order_items woi ON woi.id = c.work_order_item_id
         JOIN work_orders wo ON wo.id = woi.work_order_id
         WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
+          AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
        ) AS pending_count,
        (SELECT COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0)::numeric
         FROM classifications c
@@ -15,6 +16,7 @@ const findKpis = async (userId) => {
         JOIN work_orders wo ON wo.id = woi.work_order_id
         JOIN item_estimations ie ON ie.work_order_item_id = woi.id
         WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
+          AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
        ) AS pending_hours,
        (SELECT COUNT(*)::int
         FROM classifications c
@@ -37,6 +39,7 @@ const findKpis = async (userId) => {
         JOIN work_orders wo ON wo.id = woi.work_order_id
         WHERE c.status = 'CODER_REVIEW'
           AND wo.status != 'FINALIZED'
+          AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
           AND c.created_at < NOW() - INTERVAL '48 hours'
        ) AS overdue_count`,
     [userId]
@@ -44,11 +47,11 @@ const findKpis = async (userId) => {
   return result.rows[0];
 };
 
-const findReviewQueue = async () => {
+const findReviewQueue = async (userId) => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number,
             woi.title, woi.description, woi.quantity,
-            wo.wo_number, wo.title AS work_order_title,
+            wo.wo_number, wo.assigned_coder_id, wo.title AS work_order_title,
             (SELECT string_agg(DISTINCT mm2.model_code, '; ')
                FROM work_order_groups g2
                LEFT JOIN machine_model mm2 ON mm2.id = g2.machine_model_id
@@ -64,12 +67,14 @@ const findReviewQueue = async () => {
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
      WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
-     ORDER BY c.created_at ASC, wo.id, woi.item_number`
+       AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
+     ORDER BY c.created_at ASC, wo.id, woi.item_number`,
+    [userId]
   );
   return result.rows;
 };
 
-const findWorkQueue = async () => {
+const findWorkQueue = async (userId) => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title, woi.description,
             woi.quantity,             wo.wo_number, wo.title AS work_order_title,
@@ -89,14 +94,20 @@ const findWorkQueue = async () => {
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
      WHERE wo.status != 'FINALIZED'
-     ORDER BY wo.id, woi.item_number`
+       AND (c.reviewed_by = $1 OR wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
+     ORDER BY wo.id, woi.item_number`,
+    [userId]
   );
   return result.rows;
 };
 
-const buildWorkOrderConds = ({ search, woStatus, complexity, classification, dateFrom, dateTo } = {}) => {
+const buildWorkOrderConds = ({ search, woStatus, complexity, classification, dateFrom, dateTo, userId } = {}) => {
   const conds = [];
   const params = [];
+  if (userId) {
+    params.push(userId);
+    conds.push(`(wo.assigned_coder_id = $${params.length} OR wo.assigned_coder_id IS NULL)`);
+  }
   if (search) {
     params.push(`%${search}%`);
     conds.push(`(wo.wo_number ILIKE $${params.length} OR wo.title ILIKE $${params.length} OR wo.customer ILIKE $${params.length})`);
@@ -160,7 +171,7 @@ const findWorkOrderQueue = async ({ page = 1, limit = 10, ...filters } = {}) => 
   return result.rows;
 };
 
-const findWeeklyTrend = async (weeks = 13) => {
+const findWeeklyTrend = async (weeks = 13, userId) => {
   const result = await pool.query(
     `WITH weeks AS (
        SELECT generate_series(
@@ -182,8 +193,10 @@ const findWeeklyTrend = async (weeks = 13) => {
               COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0)::numeric AS hrs
        FROM classifications c
        JOIN work_order_items woi ON woi.id = c.work_order_item_id
+       JOIN work_orders wo ON wo.id = woi.work_order_id
        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
        WHERE c.status = 'CODER_REVIEW'
+         AND (wo.assigned_coder_id = $2 OR wo.assigned_coder_id IS NULL)
        GROUP BY date_trunc('week', c.created_at)
      ) queued ON queued.week_start = w.week_start
      LEFT JOIN (
@@ -195,10 +208,11 @@ const findWeeklyTrend = async (weeks = 13) => {
        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
        WHERE c.reviewed_at IS NOT NULL
          AND c.status IN ('CLASSIFIED', 'NON_FIRMWARE')
+         AND c.reviewed_by = $2
        GROUP BY date_trunc('week', c.reviewed_at)
      ) completed ON completed.week_start = w.week_start
      ORDER BY w.week_start ASC`,
-    [weeks]
+    [weeks, userId]
   );
   return result.rows;
 };

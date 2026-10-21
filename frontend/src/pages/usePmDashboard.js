@@ -121,7 +121,6 @@ export default function usePmDashboard() {
     filteredWorkload: data?.workload || { queued: 0, in_progress: 0, completed: 0 },
     filteredTrend: data?.trend || [],
     trendUnit: data?.trend_unit || 'day',
-    trendWindow: data?.trend_window || null,
-    filteredAttention: data?.attention || [],
+    trendWindow: data?.trend_window || null
   };
 }

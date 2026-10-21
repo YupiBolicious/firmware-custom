@@ -38,12 +38,15 @@ export default function CoderDashboard() {
   if (!data) return null;
 
   const allQueue = data?.work_queue || [];
-  const globalDone = allQueue.filter((r) => ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)).length;
-  const globalOpen = allQueue.filter((r) => r.classification_status === 'CODER_REVIEW').length;
+  const myDone = allQueue.filter((r) => ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)).length;
+  const myOpen = allQueue.filter((r) => r.classification_status === 'CODER_REVIEW').length;
 
   return (
     <div className='dashboard'>
-      
+      <div className="flex justify-between align-center mb-16" style={{ gap: 12, flexWrap: 'wrap' }}>
+        <h1 style={{ margin: 0 }}>My Work</h1>
+        <Link className="btn btn-secondary" to="/coder-dashboard/team">View Team Dashboard</Link>
+      </div>
 
       {/* 1. Personal KPI Summary */}
       <div className="stats-grid mb-16">
@@ -72,40 +75,7 @@ export default function CoderDashboard() {
           </div>
         )}
       </div>
-      
-      {/* 3. Workload + Overall Progress */}
-      <div className="panel mb-16">
-        <h3 className="mb-16">Workload</h3>
-        <div className="stats-grid">
-          <div className="stat">
-            <div className="label">Queued Hours</div>
-            <div className="value">{filteredWorkload.queued_hours.toFixed(1)}h</div>
-          </div>
-          <div className="stat">
-            <div className="label">In Progress Hours</div>
-            <div className="value">{filteredWorkload.in_progress_hours.toFixed(1)}h</div>
-          </div>
-          <div className="stat">
-            <div className="label">Completed Hours</div>
-            <div className="value" style={{ color: 'var(--success)' }}>{filteredWorkload.completed_hours.toFixed(1)}h</div>
-          </div>
-          <div className="stat">
-            <div className="label">Total Hours</div>
-            <div className="value">{(filteredWorkload.queued_hours + filteredWorkload.in_progress_hours + filteredWorkload.completed_hours).toFixed(1)}h</div>
-          </div>
-        </div>
-        <h3 className="mt-16 mb-16">Overall Progress</h3>
-        <div className="stats-grid">
-          <div className="stat">
-            <div className="label">Items Completed</div>
-            <div className="value" style={{ color: 'var(--success)' }}>{globalDone}</div>
-          </div>
-          <div className="stat">
-            <div className="label">Items Open</div>
-            <div className="value" style={{ color: globalOpen > 0 ? 'var(--warning)' : undefined }}>{globalOpen}</div>
-          </div>
-        </div>
-      </div>
+
 
       {/* 4. Work Orders */}
       <div className="panel mb-16">

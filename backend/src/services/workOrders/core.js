@@ -10,11 +10,20 @@ const { resolveGroupTargets, assertCanEditWorkOrder, assertCoderAssignment } = r
 
 const listWorkOrders = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
   const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
+  const validStatuses = new Set(['DRAFT', 'ANALYZED', 'FINALIZED', 'PRODUCTION', 'COMPLETED']);
+  const statuses = (Array.isArray(status) ? status : [status])
+    .flatMap((value) => String(value || '').split(','))
+    .map((value) => value.trim().toUpperCase())
+    .filter(Boolean);
+  if (statuses.includes('ALL') && statuses.length === 1) statuses.length = 0;
+  if (statuses.some((value) => !validStatuses.has(value))) {
+    throw new ApiError(400, 'Invalid work order status filter');
+  }
   const res = await workOrderRepository.findAll({
     page: parsedPage,
     limit: parsedLimit,
     search: typeof search === 'string' ? search.slice(0, 100) : '',
-    status: typeof status === 'string' ? status : '',
+    statuses: [...new Set(statuses)],
   });
   return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
 };

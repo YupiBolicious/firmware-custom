@@ -4,7 +4,7 @@ import api from '../api/client';
 const CLASSIFICATION_STATUS_LABELS = {
   CLASSIFIED: 'Classified',
   NON_FIRMWARE: 'Non-Firmware',
-  CODER_REVIEW: 'Coder Review',
+  CODER_REVIEW: 'Review',
   PENDING: 'Pending',
 };
 
@@ -41,7 +41,7 @@ function getWeekStart(dateStr) {
   return formatLocalDate(d);
 }
 
-export default function useCoderDashboard() {
+export default function useCoderDashboard(endpoint = '/coder-dashboard') {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export default function useCoderDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get('/coder-dashboard', {
+        const res = await api.get(endpoint, {
           params: {
             work_order_page: workOrderPage,
             work_order_search: filters.search,
@@ -75,7 +75,7 @@ export default function useCoderDashboard() {
       }
     };
     load();
-  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
+  }, [endpoint, workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => {

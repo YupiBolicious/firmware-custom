@@ -355,9 +355,6 @@ a:hover {
   padding: 20px 24px 32px;
 }
 
-/* Page rhythm: generous section separation (20px) vs tight internal groups (8px).
-   Scale: 4 / 8 / 12 / 20 / 32. Panels keep their own padding; stacked
-   siblings get rhythm from gap, not compounded bottom margins. */
 .main > div {
   display: flex;
   flex-direction: column;
@@ -369,8 +366,6 @@ a:hover {
   margin-bottom: 0;
 }
 
-/* Page root sits one level below the wrapper, so it owns its own stack rhythm:
-   same 20px gap the wrapper would otherwise hand to stacked siblings. */
 .dashboard {
   display: flex;
   flex-direction: column;
@@ -416,8 +411,6 @@ a:hover {
   min-width: 0;
 }
 
-/* Scroll container for wide tables: scrolls the table, not the page.
-   Keeps header visible and preserves DOM order for keyboard/AT. */
 .table-scroll {
   overflow-x: auto;
   border: 1px solid var(--border);

@@ -5,7 +5,7 @@ const findAll = async ({ page = 1, limit = 15, search = '', status = '', from = 
   const params = [];
   const conditions = [];
 
-  if (status && status !== 'ALL') {
+    if (status && status !== 'ALL') {
     params.push(status);
     conditions.push(`wo.status = $${params.length}`);
   }

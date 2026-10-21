@@ -62,7 +62,7 @@ export default function WorkOrderList() {
     setStatus(value);
     setPage(1);
   };
-
+  
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Work order list unavailable.</div>;
 

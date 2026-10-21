@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useValueToast } from '../components/Toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Sun, Moon } from 'lucide-react';
 import RelativeTime from '../components/RelativeTime';
@@ -49,6 +49,11 @@ export default function PMDashboard() {
   } = usePmDashboard();
   useValueToast(error);
 
+  const navigate = useNavigate();
+
+  const showInProgress = () => {
+    navigate('/work-orders');
+  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
@@ -58,24 +63,42 @@ export default function PMDashboard() {
     <div className="dashboard">
       {/* 1. KPI Summary */}
       <div className="stats-grid">
-        <div className="stat">
-          <div className="label">Active WOs</div>
-          <div className="value">{filteredKpis.active_wos}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Pending Coder Review</div>
-          <div className="value" style={{ color: filteredKpis.pending_review > 0 ? 'var(--warning)' : undefined }}>
-            {filteredKpis.pending_review}
-          </div>
-        </div>
-        <div className="stat">
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.active_wos}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.active_wos> 0 ? 'var(--info)' : undefined, width:'100%', border:0}}
+        >
+          <div className='label'>Active Work Orders</div>
+          <div className='value'>{filteredKpis.active_wos}</div>
+        </button>
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.pending_review}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.pending_review> 0 ? 'var(--danger)' : undefined, width:'100%', border:0}}
+        >
+          <div className='label'>Pending for review</div>
+          <div className='value'>{filteredKpis.pending_review}</div>
+        </button>
+       
+        <button
+          type="button"
+          className="stat"
+          onClick={showInProgress}
+          aria-label={`View ${filteredKpis.in_progress} in-progress work orders`}
+          style={{
+            cursor: 'pointer',
+            textAlign: 'left',
+            font: 'inherit',
+            color:filteredKpis.in_progress > 0 ? 'var(--warning)' : undefined,
+            width: '100%',
+            border: 0,
+          }}
+        >
           <div className="label">In Progress</div>
           <div className="value">{filteredKpis.in_progress}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Completed</div>
-          <div className="value" style={{ color: 'var(--success)' }}>{filteredKpis.completed}</div>
-        </div>
+        </button>
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.completed}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.completed> 0 ? 'var(--success)' : undefined, width:'100%', border:0}}
+        >
+          <div className='label'>Completed</div>
+          <div className='value'>{filteredKpis.completed}</div>
+        </button>
         <div className="stat">
           <div className="label">Total Est. Hours</div>
           <div className="value">{filteredKpis.total_estimated_hours.toFixed(1)}h</div>
@@ -89,7 +112,7 @@ export default function PMDashboard() {
       </div>
 
       {/* 2. Work Queue */}
-      <div className="panel">
+      <div className="panel" id='work-queue'>
         <div className="flex justify-between align-center mb-8">
           <h3 style={{ margin: 0 }}>
             Work Queue
@@ -295,56 +318,6 @@ export default function PMDashboard() {
         )}
       </div>
 
-      {/* 6. Attention Required */}
-      <div className="panel">
-        <div className="flex justify-between align-center mb-16">
-          <h3 style={{ margin: 0 }}>
-            Attention Required
-            {filteredAttention.length > 0 && (
-              <span
-                className="badge"
-                style={{
-                  marginLeft: 8,
-                  background: filteredAttention.some((a) => a.priority === 'danger') ? 'var(--badge-deleted-bg)' : 'var(--badge-updated-bg)',
-                  color: filteredAttention.some((a) => a.priority === 'danger') ? 'var(--danger)' : 'var(--warning)',
-                }}
-              >
-                {filteredAttention.length}
-              </span>
-            )}
-          </h3>
-        </div>
-
-        {filteredAttention.length === 0 ? (
-          <div className="text-muted">No attention required.</div>
-        ) : (
-          <div className="attention-list">
-            {filteredAttention.map((a) => (
-              <div key={`${a.work_order_id}-${a.kind}`} className={`attention-item attention-${a.priority}`}>
-                <div className="attention-copy">
-                  <div className="attention-body">
-                    <span className="attention-title"><strong>{a.wo_number}</strong></span>
-                    <span className="attention-message">{a.message}</span>
-                    {a.age_hours != null && (
-                      <span className="attention-age text-muted">{formatAttentionAge(a.age_hours, a.kind)}</span>
-                    )}
-                    {a.affected_count > 0 && a.kind !== 'stale' && (
-                      <span className="attention-age text-muted">{a.affected_count} affected</span>
-                    )}
-                  </div>
-                  {a.sample_item && (
-                    <span className="attention-detail text-muted">
-                      Example: {a.sample_item}{a.sample_title ? ` — ${a.sample_title}` : ''}
-                    </span>
-                  )}
-                  {a.next_action && <span className="attention-action">Next: {a.next_action}</span>}
-                </div>
-                <Link to={`/work-orders/${a.work_order_id}`} className="btn btn-sm">View WO</Link>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       </div>
   );

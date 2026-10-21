@@ -6,6 +6,7 @@ import RoleRoute from './components/RoleRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import CoderDashboard from './pages/CoderDashboard';
+import AllCoderDb from './pages/AllCoderDb';
 import PMDashboard from './pages/PMDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import PlaceholderPage from './pages/PlaceholderPage';
@@ -45,6 +46,9 @@ export default function App() {
       >
         <Route path="/" element={<DashboardPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route element={<RoleRoute roles={['CODER']} />}>
+          <Route path="/coder-dashboard/team" element={<AllCoderDb />} />
+        </Route>
         <Route element={<RoleRoute roles={['PM', 'CODER', 'ADMIN']} />}>
           <Route path="/work-orders" element={<WorkOrderList />} />
         </Route>
