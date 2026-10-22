@@ -76,6 +76,19 @@ const findConfigurationCounts = async () => {
   return result.rows[0];
 };
 
+const findWorkload = async () => {
+  const result = await pool.query(`
+    SELECT
+      COALESCE(SUM(ie.total_hours) FILTER (WHERE wo.status = 'DRAFT'), 0)::numeric AS queued_hours,
+      COALESCE(SUM(ie.total_hours) FILTER (WHERE wo.status IN ('ANALYZED', 'FINALIZED', 'PRODUCTION')), 0)::numeric AS in_progress_hours,
+      COALESCE(SUM(ie.total_hours) FILTER (WHERE wo.status = 'COMPLETED'), 0)::numeric AS completed_hours
+    FROM work_order_items woi
+    JOIN work_orders wo ON wo.id = woi.work_order_id
+    LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
+  `);
+  return result.rows[0];
+};
+
 const findActivityTrend = async (from, to, granularity) => {
   const result = await pool.query(`
     WITH bounds AS (
@@ -150,5 +163,6 @@ module.exports = {
   findInactiveUsers,
   findClassificationOverview,
   findConfigurationCounts,
+  findWorkload,
   findActivityTrend,
 };

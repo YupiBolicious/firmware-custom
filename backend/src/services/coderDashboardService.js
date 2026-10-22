@@ -1,14 +1,15 @@
 const coderDashboardRepository = require('../repositories/coderDashboardRepository');
+const WORK_ORDER_LIMIT = 10;
 
-const getCoderDashboard = async (userId, { workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL', complexity = 'ALL', classificationStatus = 'ALL', dateFrom = '', dateTo = '' } = {}) => {
-  const WORK_ORDER_LIMIT = 10;
+const getCoderDashboard = async (userId, { workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL', complexity = 'ALL', classificationStatus = 'ALL', dateFrom = '', dateTo = '', scope = 'my' } = {}) => {
+  const viewAll = scope === 'all' ? 'all' : 'my';
   const [kpis, reviewQueue, workQueue, workOrderQueue, workOrderQueueTotal, trend] = await Promise.all([
-    coderDashboardRepository.findKpis(userId),
-    coderDashboardRepository.findReviewQueue(userId),
-    coderDashboardRepository.findWorkQueue(userId),
-    coderDashboardRepository.findWorkOrderQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo, userId }),
-    coderDashboardRepository.countWorkOrderQueue({ search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo, userId }),
-    coderDashboardRepository.findWeeklyTrend(13, userId),
+    coderDashboardRepository.findKpis(userId, viewAll),
+    coderDashboardRepository.findReviewQueue(userId, viewAll),
+    coderDashboardRepository.findWorkQueue(userId, viewAll),
+    coderDashboardRepository.findWorkOrderQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo, coderId:userId, scope:viewAll}),
+    coderDashboardRepository.countWorkOrderQueue({ search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo, coderId:userId, scope:viewAll }),
+    coderDashboardRepository.findWeeklyTrend(13, userId, viewAll),
   ]);
 
   return {

@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const findKpis = async (userId) => {
+const findKpis = async (userId, scope = 'my') => {
   const result = await pool.query(
     `SELECT
        (SELECT COUNT(*)::int
@@ -8,30 +8,35 @@ const findKpis = async (userId) => {
         JOIN work_order_items woi ON woi.id = c.work_order_item_id
         JOIN work_orders wo ON wo.id = woi.work_order_id
         WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
+<<<<<<< HEAD
           AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
+=======
+          AND ($2 = 'all' OR wo.assigned_coder_id = $1)
+>>>>>>> e4bd116 (detail adjustment)
        ) AS pending_count,
        (SELECT COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0)::numeric
         FROM classifications c
         JOIN work_order_items woi ON woi.id = c.work_order_item_id
         JOIN work_orders wo ON wo.id = woi.work_order_id
-        JOIN item_estimations ie ON ie.work_order_item_id = woi.id
+        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
         WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
+<<<<<<< HEAD
           AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
+=======
+          AND ($2 = 'all' OR wo.assigned_coder_id = $1)
+>>>>>>> e4bd116 (detail adjustment)
        ) AS pending_hours,
        (SELECT COUNT(*)::int
-        FROM classifications c
-        JOIN work_order_items woi ON woi.id = c.work_order_item_id
-        JOIN work_orders wo ON wo.id = woi.work_order_id
-        WHERE c.reviewed_by = $1
-          AND c.status IN ('CLASSIFIED', 'NON_FIRMWARE')
+        FROM work_orders wo
+        WHERE wo.status = 'COMPLETED'
+          AND ($2 = 'all' OR wo.assigned_coder_id = $1)
        ) AS completed_count,
        (SELECT COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0)::numeric
-        FROM classifications c
-        JOIN work_order_items woi ON woi.id = c.work_order_item_id
-        JOIN work_orders wo ON wo.id = woi.work_order_id
-        JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-        WHERE c.reviewed_by = $1
-          AND c.status IN ('CLASSIFIED', 'NON_FIRMWARE')
+        FROM work_orders wo
+        JOIN work_order_items woi ON woi.work_order_id = wo.id
+        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
+        WHERE wo.status = 'COMPLETED'
+          AND ($2 = 'all' OR wo.assigned_coder_id = $1)
        ) AS completed_hours,
        (SELECT COUNT(*)::int
         FROM classifications c
@@ -39,15 +44,20 @@ const findKpis = async (userId) => {
         JOIN work_orders wo ON wo.id = woi.work_order_id
         WHERE c.status = 'CODER_REVIEW'
           AND wo.status != 'FINALIZED'
+<<<<<<< HEAD
           AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
           AND c.created_at < NOW() - INTERVAL '48 hours'
+=======
+              AND c.created_at < NOW() - INTERVAL '48 hours'
+              AND ($2 = 'all' OR wo.assigned_coder_id = $1)
+>>>>>>> e4bd116 (detail adjustment)
        ) AS overdue_count`,
-    [userId]
+            [userId, scope]
   );
   return result.rows[0];
 };
 
-const findReviewQueue = async (userId) => {
+const findReviewQueue = async (userId, scope = 'my') => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number,
             woi.title, woi.description, woi.quantity,
@@ -67,14 +77,14 @@ const findReviewQueue = async (userId) => {
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
      WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
-       AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
-     ORDER BY c.created_at ASC, wo.id, woi.item_number`,
-    [userId]
+       AND ($1 = 'all' OR wo.assigned_coder_id = $2)
+     ORDER BY c.created_at ASC, wo.id, woi.item_number`
+    , [scope, userId]
   );
   return result.rows;
 };
 
-const findWorkQueue = async (userId) => {
+const findWorkQueue = async (userId, scope = 'my') => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title, woi.description,
             woi.quantity,             wo.wo_number, wo.title AS work_order_title,
@@ -94,19 +104,19 @@ const findWorkQueue = async (userId) => {
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
      WHERE wo.status != 'FINALIZED'
-       AND (c.reviewed_by = $1 OR wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
-     ORDER BY wo.id, woi.item_number`,
-    [userId]
+       AND ($1 = 'all' OR wo.assigned_coder_id = $2)
+     ORDER BY wo.id, woi.item_number`
+    , [scope, userId]
   );
   return result.rows;
 };
 
-const buildWorkOrderConds = ({ search, woStatus, complexity, classification, dateFrom, dateTo, userId } = {}) => {
+const buildWorkOrderConds = ({ search, woStatus, complexity, classification, dateFrom, dateTo, coderId, scope } = {}) => {
   const conds = [];
   const params = [];
-  if (userId) {
-    params.push(userId);
-    conds.push(`(wo.assigned_coder_id = $${params.length} OR wo.assigned_coder_id IS NULL)`);
+  if (scope !== 'all' && coderId != null) {
+    params.push(coderId);
+    conds.push(`wo.assigned_coder_id = $${params.length}`);
   }
   if (search) {
     params.push(`%${search}%`);
@@ -171,7 +181,7 @@ const findWorkOrderQueue = async ({ page = 1, limit = 10, ...filters } = {}) => 
   return result.rows;
 };
 
-const findWeeklyTrend = async (weeks = 13, userId) => {
+const findWeeklyTrend = async (weeks = 13, userId, scope = 'my') => {
   const result = await pool.query(
     `WITH weeks AS (
        SELECT generate_series(
@@ -196,7 +206,11 @@ const findWeeklyTrend = async (weeks = 13, userId) => {
        JOIN work_orders wo ON wo.id = woi.work_order_id
        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
        WHERE c.status = 'CODER_REVIEW'
+<<<<<<< HEAD
          AND (wo.assigned_coder_id = $2 OR wo.assigned_coder_id IS NULL)
+=======
+         AND ($2 = 'all' OR wo.assigned_coder_id = $3)
+>>>>>>> e4bd116 (detail adjustment)
        GROUP BY date_trunc('week', c.created_at)
      ) queued ON queued.week_start = w.week_start
      LEFT JOIN (
@@ -205,14 +219,15 @@ const findWeeklyTrend = async (weeks = 13, userId) => {
               COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0)::numeric AS hrs
        FROM classifications c
        JOIN work_order_items woi ON woi.id = c.work_order_item_id
+       JOIN work_orders wo ON wo.id = woi.work_order_id
        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
        WHERE c.reviewed_at IS NOT NULL
          AND c.status IN ('CLASSIFIED', 'NON_FIRMWARE')
-         AND c.reviewed_by = $2
+         AND ($2 = 'all' OR wo.assigned_coder_id = $3)
        GROUP BY date_trunc('week', c.reviewed_at)
      ) completed ON completed.week_start = w.week_start
      ORDER BY w.week_start ASC`,
-    [weeks, userId]
+    [weeks, scope, userId]
   );
   return result.rows;
 };

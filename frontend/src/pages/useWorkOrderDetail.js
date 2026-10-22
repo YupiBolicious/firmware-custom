@@ -207,7 +207,7 @@ export default function useWorkOrderDetail() {
     const item = (wo?.items || []).find((candidate) => Number(candidate.id) === Number(correctionForm.itemId));
     const level = correctionLevels.find((candidate) => String(candidate.id) === correctionForm.complexityLevelId);
     return item && level
-      ? `Change ${item.item_number} from ${item.complexity_code || 'unassigned'} to ${level.code}?`
+      ? `Change ${item.title} from ${item.complexity_code || 'unassigned'} to ${level.code}?`
       : '';
   })();
 

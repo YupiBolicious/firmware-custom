@@ -1,6 +1,6 @@
 import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import useAdminDashboard, { RANGE_PRESETS } from './useAdminDashboard';
 
 const HEALTH_COLORS = { online: 'var(--success)', warning: 'var(--warning)', offline: 'var(--danger)' };
@@ -50,22 +50,9 @@ function TrendTooltip({ active, payload, label }) {
   );
 }
 
-// function ConfigCard({ configs }) {
-//   return (
-//     <div className="config-cards">
-//       {configs.map(({ label, count, to }) => (
-//         <div key={label} className="config-card">
-//           <div className="config-card-name">{label}</div>
-//           <div className="config-card-count">{count}</div>
-//           <Link className="btn btn-secondary btn-sm" to={to}>Manage</Link>
-//         </div>
-//       ))}
-//     </div>
-//   );
-// }
 
 export default function AdminDashboard() {
-  const { data, error, loading, preset, changePreset, trendRefreshing, trendError } =   useAdminDashboard();
+  const { data, error, loading, preset, changePreset, trendRefreshing, trendError, workload } =   useAdminDashboard();
   useValueToast(error);
   useValueToast(trendError);
 
@@ -117,28 +104,6 @@ export default function AdminDashboard() {
           <div className="label">KB Entries</div>
           <div className="value">{kpis.kb_entries}</div>
         </div>
-        <div className="stat">
-          <div className="label">Classification Rules</div>
-          <div className="value">{kpis.classification_rules}</div>
-        </div>
-      </div>
-
-      {/* 2. System Health */}
-      <div className="panel mb-16">
-        <h3 className="mb-16">System Health</h3>
-        <div className="flex gap-16" style={{ flexWrap: 'wrap' }}>
-          {Object.entries(health).map(([key, status]) => (
-            <div key={key} className="flex align-center" style={{ gap: 8, fontSize: 13 }}>
-              <span className="badge" style={{ background: 'var(--bg-input)', color: 'var(--text)', textTransform: 'capitalize' }}>
-                {key.replace(/_/g, ' ')}
-              </span>
-              <span className="flex align-center" style={{ gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: HEALTH_COLORS[status] || 'var(--text-muted)' }} />
-                <span style={{ color: HEALTH_COLORS[status] || 'var(--text-muted)', textTransform: 'capitalize' }}>{status}</span>
-              </span>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* 3. User & Role Overview */}
@@ -169,14 +134,14 @@ export default function AdminDashboard() {
 
       {/* 4. Classification / KB Overview */}
       <div className="panel mb-16">
-        <h3 className="mb-16">Classification / Knowledge Base Overview</h3>
+        <h3 className="mb-16">Classification Overview</h3>
         <div className="stats-grid">
           <div className="stat">
-            <div className="label">Total KB Entries</div>
+            <div className="label">Knowledge Base Entries</div>
             <div className="value">{classification.total_kb_entries}</div>
           </div>
           <div className="stat">
-            <div className="label">Coder-Confirmed</div>
+            <div className="label">Items Reviewed</div>
             <div className="value" style={{ color: 'var(--success)' }}>{classification.coder_confirmed}</div>
           </div>
           <div className="stat">
@@ -184,166 +149,186 @@ export default function AdminDashboard() {
             <div className="value">{classification.high_confidence}</div>
           </div>
           <div className="stat">
-            <div className="label">Low-Confidence / Review</div>
+            <div className="label">Waiting for Review</div>
             <div className="value" style={{ color: classification.review_cases > 0 ? 'var(--warning)' : undefined }}>{classification.review_cases}</div>
           </div>
           <div className="stat">
-            <div className="label">Coder Resolution Rate</div>
+            <div className="label">Review Rate</div>
             <div className="value">{resolutionRate}%</div>
           </div>
         </div>
       </div>
 
-      {/* 5. System Configuration */}
-      {/* <div className="panel mb-16">
-        <h3 className="mb-16">System Configuration</h3>
-        <ConfigCard configs={[
-          { label: 'Complexity Levels', count: config.complexity_levels, to: '/complexity-levels' },
-          { label: 'Classification Rules', count: config.classification_rules, to: '/classification-rules' },
-          { label: 'Confidence Thresholds', count: config.confidence_thresholds, to: '/confidence-thresholds' },
-          { label: 'FW Modules', count: config.fw_modules, to: '/fw-modules' },
-          { label: 'Machine Models', count: config.machine_models, to: '/machine-models' },
-          { label: 'Machine Model Versions', count: config.machine_model_versions, to: '/machine-models' },
-        ]} />
-      </div> */}
+      {/* Workload overview */}
+      <div className="panel mb-16">
+        <h3 className="mb-16">Workload Overview</h3>
+        {(() => {
+          const queued = workload.queued;
+          const inProgress = workload.in_progress;
+          const completed = workload.completed;
+          const total = workload.total;
+          const pct = (v) => (total > 0 ? Math.round((v / total) * 100) : 0);
+          return (
+            <div className="work-grid">
+              <div className="work-card">
+                <span className="work-bar" style={{ background: 'var(--text-faint)' }} />
+                <div className="work-label">Queued Hours</div>
+                <div className="work-value">{queued.toFixed(1)}h</div>
+                <div className="work-sub">{queued > 0 ? `${pct(queued)}% pending backlog` : '0 pending backlog'}</div>
+              </div>
+              <div className="work-card">
+                <span className="work-bar" style={{ background: 'var(--accent)' }} />
+                <div className="work-label">In Progress Hours</div>
+                <div className="work-value">{inProgress.toFixed(1)}h</div>
+                <div className="work-sub" style={{ color: 'var(--accent)' }}>{pct(inProgress)}% active burden</div>
+              </div>
+              <div className="work-card">
+                <span className="work-bar" style={{ background: 'var(--success)' }} />
+                <div className="work-label">Completed Hours</div>
+                <div className="work-value">{completed.toFixed(1)}h</div>
+                <div className="work-sub" style={{ color: 'var(--success)' }}>{pct(completed)}% closed-out work</div>
+              </div>
+              <div className="work-card">
+                <span className="work-bar" style={{ background: 'var(--accent)' }} />
+                <div className="work-label">Total Hours</div>
+                <div className="work-value">{total.toFixed(1)}h</div>
+                <div className="work-sub">total estimated hours</div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
 
       {/* 6. System Activity Trend */}
-      <div className="panel mb-16">
-  <div className="flex justify-between align-center mb-16">
-    <h3 style={{ margin: 0 }}>System Activity Trend</h3>
-    <div className="flex gap-8 align-center">
-      {trendRefreshing && (
-        <span className="text-muted" style={{ fontSize: 12 }}>Updating…</span>
-      )}
-      {RANGE_PRESETS.map((p) => (
-        <button
-          key={p.key}
-          className={`btn btn-sm ${preset === p.key ? '' : 'btn-secondary'}`}
-          onClick={() => changePreset(p.key)}
-        >
-          {p.label}
-        </button>
-      ))}
+      <section className="panel admin-trend-panel mb-16">
+        <div className="admin-trend-header">
+          <div>
+            <div className="admin-trend-title-row">
+              <h3>System Activity</h3>
+              {trendRefreshing && <span className="admin-trend-updating">Updating…</span>}
+            </div>
+            <p className="admin-trend-subtitle">
+              {trend?.from && trend?.to
+                ? `${formatBucketFull(trend.from)} – ${formatBucketFull(trend.to)} · grouped by ${granularity}`
+                : 'Work orders, knowledge-base growth, and classification activity'}
+            </p>
+          </div>
+          <div className="admin-trend-range" aria-label="Activity date range">
+            {RANGE_PRESETS.map((range) => (
+              <button
+                key={range.key}
+                type="button"
+                className={`admin-trend-range-button${preset === range.key ? ' is-active' : ''}`}
+                onClick={() => changePreset(range.key)}
+                aria-pressed={preset === range.key}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {buckets.length === 0 ? (
+          <div className="admin-trend-empty">No activity data for the selected period.</div>
+        ) : (
+          <>
+            <div className="admin-trend-summary">
+              {[
+                { label: 'Work orders', key: 'work_orders', color: 'var(--info)' },
+                { label: 'KB entries', key: 'kb_added', color: 'var(--accent)' },
+                { label: 'Items classified', key: 'items_classified', color: 'var(--success)' },
+                { label: 'Coder resolved', key: 'coder_resolved', color: 'var(--warning)' },
+              ].map((metric) => (
+                <div className="admin-trend-summary-card" key={metric.key}>
+                  <span className="admin-trend-summary-dot" style={{ background: metric.color }} />
+                  <span className="admin-trend-summary-label">{metric.label}</span>
+                  <strong>{buckets.reduce((sum, bucket) => sum + Number(bucket[metric.key] || 0), 0).toLocaleString()}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="admin-trend-grid">
+              <TrendPanel
+                title="Work Orders Created"
+                total={buckets.reduce((sum, bucket) => sum + Number(bucket.work_orders || 0), 0)}
+                buckets={buckets}
+                granularity={granularity}
+                series={[{ key: 'work_orders', name: 'Work orders', color: 'var(--info)' }]}
+              />
+              <TrendPanel
+                title="Knowledge Base Growth"
+                total={buckets.reduce((sum, bucket) => sum + Number(bucket.kb_added || 0), 0)}
+                buckets={buckets}
+                granularity={granularity}
+                series={[{ key: 'kb_added', name: 'KB entries', color: 'var(--accent)' }]}
+              />
+              <TrendPanel
+                title="Classification & Review"
+                total={buckets.reduce((sum, bucket) => sum + Number(bucket.items_classified || 0) + Number(bucket.coder_resolved || 0), 0)}
+                buckets={buckets}
+                granularity={granularity}
+                wide
+                series={[
+                  { key: 'items_classified', name: 'Items classified', color: 'var(--success)' },
+                  { key: 'coder_resolved', name: 'Coder resolved', color: 'var(--warning)' },
+                ]}
+              />
+            </div>
+          </>
+        )}
+      </section>
     </div>
-  </div>
+  );
+}
 
-  {buckets.length === 0 ? (
-    <div className="text-muted">No activity data for the selected period.</div>
-  ) : (
-    <>
-      <div style={{ display: 'grid', gap: 20 }}>
-        <div style={{ minWidth: 0 }}>
-          <h4 className="mb-8" style={{ fontWeight: 600, fontSize: 14 }}>
-            Work Orders Created
-            <span className="text-muted" style={{ fontWeight: 400, marginLeft: 8 }}>
-              total {buckets.reduce((s, b) => s + Number(b.work_orders || 0), 0)}
-            </span>
-          </h4>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={buckets} margin={{ top: 12, right: 20, left: 0, bottom: 5 }} barCategoryGap="32%">
-              <defs>
-                <linearGradient id="adminWo" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" className="chart-stop-prog-top" />
-                  <stop offset="100%" className="chart-stop-prog-bot" />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 6" stroke="var(--chart-grid)" vertical={false} />
-              <XAxis
-                dataKey="date"
-                tickFormatter={(d) => formatBucketLabel(d, granularity)}
-                stroke="var(--chart-axis)"
-                tickLine={false}
-                axisLine={{ stroke: 'var(--chart-grid)' }}
-                fontSize={12}
-              />
-              <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
-              <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} cursor={{ fill: 'var(--chart-cursor)' }} />
-              {/* <ReferenceLine
-                y={buckets.length ? buckets.reduce((s, b) => s + Number(b.work_orders || 0), 0) / buckets.length : 0}
-                stroke="var(--chart-axis)"
-                strokeDasharray="4 4"
-                label={{ value: '', fontSize: 10, fill: 'var(--chart-axis)' }}
-              /> */}
-              <Bar dataKey="work_orders" name="Work Orders Created" fill="url(#adminWo)" radius={[6, 6, 0, 0]} maxBarSize={32} />
-            </BarChart>
-          </ResponsiveContainer>
+function TrendPanel({ title, total, buckets, granularity, series, wide = false }) {
+  return (
+    <section className={`admin-trend-card${wide ? ' admin-trend-card-wide' : ''}`}>
+      <div className="admin-trend-card-heading">
+        <div>
+          <h4>{title}</h4>
+          <span className="admin-trend-card-caption">Activity by {granularity}</span>
         </div>
-
-        <div style={{ minWidth: 0 }}>
-          <h4 className="mb-8" style={{ fontWeight: 600, fontSize: 14 }}>
-            KB Entries Added
-            <span className="text-muted" style={{ fontWeight: 400, marginLeft: 8 }}>
-              total {buckets.reduce((s, b) => s + Number(b.kb_added || 0), 0)}
-            </span>
-          </h4>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={buckets} margin={{ top: 12, right: 20, left: 0, bottom: 5 }} barCategoryGap="32%">
-              <defs>
-                <linearGradient id="adminKb" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" className="chart-stop-kb-top" />
-                  <stop offset="100%" className="chart-stop-kb-bot" />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 6" stroke="var(--chart-grid)" vertical={false} />
-              <XAxis
-                dataKey="date"
-                tickFormatter={(d) => formatBucketLabel(d, granularity)}
-                stroke="var(--chart-axis)"
-                tickLine={false}
-                axisLine={{ stroke: 'var(--chart-grid)' }}
-                fontSize={12}
-              />
-              <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
-              <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} cursor={{ fill: 'var(--chart-cursor)' }} />
-              
-              <Bar dataKey="kb_added" name="KB Entries Added" fill="url(#adminKb)" radius={[6, 6, 0, 0]} maxBarSize={32} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div style={{ minWidth: 0 }}>
-          <h4 className="mb-8" style={{ fontWeight: 600, fontSize: 14 }}>
-            Classification &amp; Review Activity
-          </h4>
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={buckets} margin={{ top: 12, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 6" stroke="var(--chart-grid)" vertical={false} />
-              <XAxis
-                dataKey="date"
-                tickFormatter={(d) => formatBucketLabel(d, granularity)}
-                stroke="var(--chart-axis)"
-                tickLine={false}
-                axisLine={{ stroke: 'var(--chart-grid)' }}
-                fontSize={12}
-              />
-              <YAxis stroke="var(--chart-axis)" tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} />
-              <Tooltip content={<TrendTooltip />} labelFormatter={(l) => formatBucketFull(l)} cursor={{ fill: 'var(--chart-cursor)' }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
-              <Line
-                type="monotone"
-                dataKey="items_classified"
-                name="Items Classified"
-                stroke="var(--success)"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="coder_resolved"
-                name="Coder Resolved"
-                stroke="var(--warning)"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <strong className="admin-trend-card-total">{total.toLocaleString()}</strong>
       </div>
-    </>
-  )}
-</div>
-    </div>
+      <ResponsiveContainer width="100%" height={wide ? 250 : 220}>
+        <AreaChart data={buckets} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 6" stroke="var(--chart-grid)" vertical={false} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={(date) => formatBucketLabel(date, granularity)}
+            stroke="var(--chart-axis)"
+            tickLine={false}
+            axisLine={{ stroke: 'var(--chart-grid)' }}
+            minTickGap={24}
+            fontSize={11}
+          />
+          <YAxis
+            stroke="var(--chart-axis)"
+            tickLine={false}
+            axisLine={false}
+            allowDecimals={false}
+            width={34}
+            fontSize={11}
+          />
+          <Tooltip content={<TrendTooltip />} labelFormatter={formatBucketFull} cursor={{ stroke: 'var(--chart-axis)', strokeDasharray: '3 3' }} />
+          {series.length > 1 && <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="circle" iconSize={7} />}
+          {series.map((item) => (
+            <Area
+              key={item.key}
+              type="monotone"
+              dataKey={item.key}
+              name={item.name}
+              stroke={item.color}
+              fill={item.color}
+              fillOpacity={0.12}
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 0 }}
+            />
+          ))}
+        </AreaChart>
+      </ResponsiveContainer>
+    </section>
   );
 }

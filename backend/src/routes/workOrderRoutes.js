@@ -60,6 +60,7 @@ router.put('/items/:itemId/review-correction', authorize('CODER'), requireIntege
 
 router.get('/', authorize('PM', 'CODER'), workOrderController.list);
 router.get('/review-queue', authorize('CODER'), workOrderController.reviewQueue);
+router.get('/pending-review', authorize('PM'), workOrderController.pendingReview);
 router.post('/', authorize('PM'), validateWorkOrderCreate, workOrderController.create);
 router.post('/upload', authorize('PM'), uploadPdf.single('file'), workOrderController.previewWorkOrder);
 router.post('/upload/confirm', authorize('PM'), workOrderController.confirmUploadWorkOrder);

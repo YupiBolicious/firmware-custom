@@ -1,5 +1,5 @@
 import { useValueToast } from '../components/Toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import RelativeTime from '../components/RelativeTime';
 import useCoderDashboard from './useCoderDashboard';
@@ -24,58 +24,96 @@ export default function CoderDashboard() {
   const {
     data, error, loading,
     filters, showAdvanced, setShowAdvanced, setFilter, clearFilters,
-    filteredReviewQueue, filteredWorkQueue, filteredKpis, filteredWorkload, filteredTrend,
+    filteredReviewQueue, filteredWorkQueue, dashboardKpis, filteredWorkload, filteredTrend,
     matchingCount, totalCount, hasActiveFilters,
     uniqueComplexities,
     workOrderQueue, workOrderQueueTotal, workOrderQueueTotalPages,
     workOrderPage, setWorkOrderPage,
     CLASSIFICATION_STATUS_LABELS,
+    all,
+    setAll,
   } = useCoderDashboard();
   useValueToast(error);
+
+  const navigate = useNavigate();
+
+  const showInProgress=()=>{
+    navigate('/review-queue');
+  };
+  const showCompleted= () =>{
+    navigate('/work-orders');
+  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
 
   const allQueue = data?.work_queue || [];
-  const myDone = allQueue.filter((r) => ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)).length;
-  const myOpen = allQueue.filter((r) => r.classification_status === 'CODER_REVIEW').length;
-
+  const globalDone = allQueue.filter((r) => ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)).length;
+  const globalOpen = allQueue.filter((r) => r.classification_status === 'CODER_REVIEW').length;
   return (
-    <div className='dashboard'>
-      <div className="flex justify-between align-center mb-16" style={{ gap: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0 }}>My Work</h1>
-        <Link className="btn btn-secondary" to="/coder-dashboard/team">View Team Dashboard</Link>
+    <div className='dashboard coder-dashboard'>
+      <div className="flex gap-8 mb-16" style={{ borderBottom: '1px solid var(--border)' }}>
+        <button
+          className={`btn btn-sm ${all === 'my' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setAll('my')}
+          style={{ borderRadius: '6px 6px 0 0', marginBottom: -1 }}
+        >
+          My Work
+        </button>
+        <button
+          className={`btn btn-sm ${all === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setAll('all')}
+          style={{ borderRadius: '6px 6px 0 0', marginBottom: -1 }}
+        >
+          General
+        </button>
       </div>
 
-      {/* 1. Personal KPI Summary */}
-      <div className="stats-grid mb-16">
-        <div className="stat">
-          <div className="label">Items Pending Review</div>
-          <div className="value" style={{ color: filteredKpis.pending_review > 0 ? 'var(--warning)' : undefined }}>
-            {filteredKpis.pending_review}
-          </div>
-        </div>
-        <div className="stat">
-          <div className="label">Items In Queue (Hours)</div>
-          <div className="value">{filteredKpis.pending_hours.toFixed(1)}h</div>
-        </div>
-        <div className="stat">
-          <div className="label">Items Completed</div>
-          <div className="value" style={{ color: 'var(--success)' }}>{filteredKpis.completed}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Total Completed Hours</div>
-          <div className="value">{filteredKpis.completed_hours.toFixed(1)}h</div>
-        </div>
-        {filteredKpis.overdue > 0 && (
+      {/* User KPI card*/}
+      <div className="stats-grid mb-10">
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${dashboardKpis.pending_review}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:dashboardKpis.pending_review > 0 ? 'var(--warning)' : undefined, width:'100%'}}
+        >
+          <div className='label'>Items Waiting for Review</div>
+          <div className='value'>{dashboardKpis.pending_review}</div>
+        </button>
+
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${globalDone}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color: globalDone> 0 ? 'var(--success)' : undefined, width:'100%'}}
+        >
+          <div className='label'>Items Completed</div>
+          <div className='value'>{globalDone}</div>
+        </button>
+       
+        <button type='button' className='stat' onClick={showCompleted} aria-label={`View ${dashboardKpis.overdue}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color: dashboardKpis.overdue > 0 ? 'var(--danger)' : undefined, width:'100%'}}
+        >
+          <div className='label'>Overdue Review</div>
+          <div className='value'>{dashboardKpis.overdue}</div>
+        </button>
+    
+        <button type='button' className='stat' onClick={showCompleted} aria-label={`View ${dashboardKpis.completed}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color: dashboardKpis.completed > 0 ? 'var(--success)' : undefined, width:'100%'}}
+        >
+          <div className='label'>Completed Work Orders</div>
+          <div className='value'>{dashboardKpis.completed}</div>
+        </button>
+      </div>
+      <div className='stats-grid'>
           <div className="stat">
-            <div className="label">Overdue</div>
-            <div className="value" style={{ color: 'var(--danger)' }}>{filteredKpis.overdue}</div>
+            <div className="label">Pending Hours</div>
+            <div className="value">{filteredWorkload.in_progress_hours.toFixed(1)}h</div>
           </div>
-        )}
+          <div className="stat">
+            <div className="label">Completed Hours</div>
+            <div className="value" style={{ color: 'var(--success)' }}>{filteredWorkload.completed_hours.toFixed(1)}h</div>
+          </div>
+          <div className="stat">
+            <div className="label">Total Hours</div>
+            <div className="value">{(filteredWorkload.queued_hours + filteredWorkload.in_progress_hours + filteredWorkload.completed_hours).toFixed(1)}h</div>
+          </div>
       </div>
-
 
       {/* 4. Work Orders */}
       <div className="panel mb-16">
@@ -172,7 +210,7 @@ export default function CoderDashboard() {
             )}
           </h3>
           {data.review_queue.length > 0 && (
-            <Link to="/review-queue" className="btn btn-sm">Review</Link>
+            <Link to="/review-queue" className="btn btn-secondary">Review</Link>
           )}
         </div>
         {filteredReviewQueue.length === 0 ? (
@@ -202,7 +240,7 @@ export default function CoderDashboard() {
                   </td>
                   <td>{r.quantity}</td>
                   <td>{r.confidence_score != null ? `${r.confidence_score}%` : '-'}</td>
-                  <td>{r.complexity_code || <span className="badge badge-warning">Unassigned</span>}</td>
+                  <td>{r.complexity_code || <span className="badge badge-warning">Pending</span>}</td>
                   <td>{r.estimated_hours > 0 ? `${r.estimated_hours}h` : '-'}</td>
                   <td><RelativeTime date={r.created_at} /></td>
                 </tr>

@@ -56,16 +56,16 @@ export default function KnowledgeBase() {
         <h1>Knowledge Base</h1>
         {isAdmin && (
           <button className="btn" onClick={openCreate} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <Plus size={16} /> Add KB Item
+            <Plus size={16} /> Add Knowledge Base
           </button>
         )}
       </div>
-      <div className="text-muted mb-16">
+      <div className="text-muted mb-12">
         KB items are matched against work order items during analysis. New or edited items take effect on the next Analyze.
       </div>
       
       {showForm && (
-        <div className="panel">
+        <div className="panel flex justify-between">
           <h3>{editingId ? 'Edit KB Item' : 'Add KB Item'}</h3>
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
@@ -77,10 +77,6 @@ export default function KnowledgeBase() {
                 <label>Title</label>
                 <input name="title" value={form.title} onChange={handleChange} required />
               </div>
-            </div>
-            <div className="form-row">
-              <label>Description</label>
-              <textarea name="description" value={form.description} onChange={handleChange} />
             </div>
             <div className="form-row">
               <label>Keywords (comma separated)</label>

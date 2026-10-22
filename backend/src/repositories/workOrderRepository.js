@@ -90,16 +90,16 @@ const findByWoNumber = async (woNumber) => {
   return result.rows[0] || null;
 };
 
-const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
-  const result = await pool.query(
-    `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title,
+// Shared SELECT for the coder review queue and the PM pending-review view.
+const REVIEW_QUEUE_SQL = `
+    SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title,
             woi.description, wo.wo_number, wo.title AS work_order_title,
             (SELECT string_agg(DISTINCT mm2.model_code, '; ')
                FROM work_order_groups g2
                LEFT JOIN machine_model mm2 ON mm2.id = g2.machine_model_id
               WHERE g2.work_order_id = woi.work_order_id) AS machine_model_code,
             
-            c.classification_reason, c.status, c.created_at,
+            c.classification_reason, c.status, c.created_at, c.reviewed_at, c.reviewed_by,
             c.assist_kb_id, c.assist_kb_code, c.assist_match_score, c.assist_semantic_margin,
             c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
             c.review_reason, c.assist_blocked_reason,
@@ -107,14 +107,32 @@ const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
             kb_s.confidence_score AS assist_kb_confidence_score,
             wo.assigned_coder_id,
             assigned.full_name AS assigned_coder_name,
+            reviewer.full_name AS reviewed_by_name,
             COUNT(*) OVER ()::int AS total
      FROM work_order_items woi
      JOIN work_orders wo ON wo.id = woi.work_order_id
      JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN kb_items kb_s ON kb_s.id = c.assist_kb_id
      LEFT JOIN users assigned ON assigned.id = wo.assigned_coder_id
+     LEFT JOIN users reviewer ON reviewer.id = c.reviewed_by
+`;
+
+const findCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
+  const result = await pool.query(
+    `${REVIEW_QUEUE_SQL}
      WHERE c.status = 'CODER_REVIEW'
      ORDER BY c.created_at ASC, wo.id, woi.item_number
+     LIMIT $1 OFFSET $2`, [limit, (page - 1) * limit]
+  );
+  return { items: result.rows, total: result.rows[0] ? result.rows[0].total : 0 };
+};
+
+// PM view: items still waiting for a coder review plus the ones already reviewed.
+const findPendingReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
+  const result = await pool.query(
+    `${REVIEW_QUEUE_SQL}
+     WHERE c.status IN ('CODER_REVIEW', 'CLASSIFIED', 'NON_FIRMWARE')
+     ORDER BY (c.status = 'CODER_REVIEW') DESC, c.created_at ASC, wo.id, woi.item_number
      LIMIT $1 OFFSET $2`, [limit, (page - 1) * limit]
   );
   return { items: result.rows, total: result.rows[0] ? result.rows[0].total : 0 };
@@ -530,7 +548,8 @@ c.id AS classification_id, c.fw_related, c.complexity_level_id,
              c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
              c.review_reason, c.assist_blocked_reason,
              cl.code AS complexity_code, cl.name AS complexity_name,
-             g.serial_number, mm.model_code AS machine_model_code,
+             g.serial_number, wm.model_code AS machine_model_code,
+             wm.machine_model_id, wm.machine_model_version_id,
              COALESCE(ie.total_hours, 0) AS estimated_hours,
              ie.verification_mh, ie.total_hours AS estimation_total_hours,
              kbs.title AS assist_kb_title,
@@ -542,7 +561,15 @@ c.id AS classification_id, c.fw_related, c.complexity_level_id,
              END AS provisional_hours
      FROM work_order_items woi
      LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
-     LEFT JOIN machine_model mm ON mm.id = g.machine_model_id
+     LEFT JOIN LATERAL (
+       SELECT wg.machine_model_id, wg.machine_model_version_id, wmm.model_code
+       FROM work_order_groups wg
+       LEFT JOIN machine_model wmm ON wmm.id = wg.machine_model_id
+       WHERE wg.id = woi.work_order_group_id
+          OR (woi.work_order_group_id IS NULL AND wg.work_order_id = woi.work_order_id)
+       ORDER BY CASE WHEN wg.id = woi.work_order_group_id THEN 0 ELSE 1 END, wg.id
+       LIMIT 1
+     ) wm ON TRUE
      LEFT JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
      LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
@@ -699,6 +726,7 @@ module.exports = {
   findById,
   findByWoNumber,
   findCoderReviewQueue,
+  findPendingReviewQueue,
   findProductionTasksByWorkOrderId,
   findProductionTaskById,
   completeProductionTask,

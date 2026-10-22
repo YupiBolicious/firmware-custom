@@ -9,6 +9,7 @@ const comments = require('./workOrders/comments');
 module.exports = {
   listWorkOrders: core.listWorkOrders,
   listCoderReviewQueue: core.listCoderReviewQueue,
+  listPendingReviewQueue: core.listPendingReviewQueue,
   reviewItem,
   correctReviewedItem,
   getWorkOrder: core.getWorkOrder,

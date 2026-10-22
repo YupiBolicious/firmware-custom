@@ -21,7 +21,7 @@ export default function ReviewQueue() {
 
   return (
     <div>
-      <h1>Coder Review Queue</h1>
+      <h1>Custom Items Waiting For Review</h1>
       {items.length === 0 ? (
         <div className="panel text-muted">No items waiting for coder review.</div>
       ) : (
@@ -79,9 +79,11 @@ export default function ReviewQueue() {
                         {/* Suggested KB */}
                         <div style={{ fontSize: 12, fontWeight: 600 }}>
                           <span className="badge badge-info">Suggestion</span>
-                          <span className="badge badge-muted" style={{ marginLeft: 6 }}>
-                            {item.assist_kb_code}
-                          </span>
+                        {item.assist_fw_related != null && (
+                            <span className="badge badge-muted">
+                              {item.assist_fw_related ? 'FW' : 'Non-FW'}
+                            </span>
+                          )}
                         </div>
 
                         <div
@@ -93,19 +95,13 @@ export default function ReviewQueue() {
                         </div>
 
                         {/* Suggested classification */}
-                        <div className="flex gap-8 align-center" style={{ fontSize: 12 }}>
-                          {item.assist_fw_related != null && (
-                            <span className="badge badge-muted">
-                              {item.assist_fw_related ? 'FW' : 'Non-FW'}
-                            </span>
-                          )}
-
+                        <div className="flex gap-8 align-center" style={{ fontSize: 10 }}>
                           {level && (
                             <span className="badge badge-muted">
                               Suggested {level.code}
                             </span>
                           )}
-                          <span className='text-muted'>{score}% match  {/* {score}% match · margin {margin.toFixed(1)}% */}</span>
+                          <span className='badge badge-info'>{score}% match</span>
                         </div>
 
                         {/* Decision */}

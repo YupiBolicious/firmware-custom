@@ -1,7 +1,5 @@
 const pool = require('../config/db');
 
-// Per-work-order aggregation row. All dashboard panels filter against these
-// computed columns, so every query below wraps this same macro.
 const WORK_QUEUE_SQL = `
     SELECT wo.id, wo.wo_number, COALESCE(wo.title, '') AS title, wo.status, wo.updated_at,
            wo.customer, wo.created_at,

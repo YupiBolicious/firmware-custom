@@ -48,56 +48,37 @@ export default function PMDashboard() {
     filteredKpis, filteredStatusDistribution, filteredWorkload, filteredTrend, trendUnit, trendWindow, filteredAttention,
   } = usePmDashboard();
   useValueToast(error);
-
   const navigate = useNavigate();
-
-  const showInProgress = () => {
-    navigate('/work-orders');
-  };
+  const showInProgress = () => navigate('/work-orders');
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
 
+  const statusTotal = filteredStatusDistribution.reduce((sum, item) => sum + Number(item.count || 0), 0);
   return (
     <div className="dashboard">
       {/* 1. KPI Summary */}
       <div className="stats-grid">
-        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.active_wos}`}
-        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.active_wos> 0 ? 'var(--info)' : undefined, width:'100%', border:0}}
-        >
-          <div className='label'>Active Work Orders</div>
-          <div className='value'>{filteredKpis.active_wos}</div>
-        </button>
-        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.pending_review}`}
-        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.pending_review> 0 ? 'var(--danger)' : undefined, width:'100%', border:0}}
-        >
-          <div className='label'>Pending for review</div>
-          <div className='value'>{filteredKpis.pending_review}</div>
-        </button>
-       
-        <button
-          type="button"
-          className="stat"
-          onClick={showInProgress}
-          aria-label={`View ${filteredKpis.in_progress} in-progress work orders`}
-          style={{
-            cursor: 'pointer',
-            textAlign: 'left',
-            font: 'inherit',
-            color:filteredKpis.in_progress > 0 ? 'var(--warning)' : undefined,
-            width: '100%',
-            border: 0,
-          }}
-        >
-          <div className="label">In Progress</div>
-          <div className="value">{filteredKpis.in_progress}</div>
-        </button>
         <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.completed}`}
         style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.completed> 0 ? 'var(--success)' : undefined, width:'100%', border:0}}
         >
-          <div className='label'>Completed</div>
+          <div className='label'>Work Order Completed</div>
           <div className='value'>{filteredKpis.completed}</div>
+        </button>
+
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.pending_review}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.pending_review> 0 ? 'var(--warning)' : undefined, width:'100%', border:0}}
+        >
+          <div className='label'>Waiting for Review</div>
+          <div className='value'>{filteredKpis.pending_review}</div>
+        </button>
+        
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.in_progress}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.in_progress> 0 ? 'var(--info)' : undefined, width:'100%', border:0}}
+        >
+          <div className='label'>Work Order in Progress</div>
+          <div className='value'>{filteredKpis.in_progress}</div>
         </button>
         <div className="stat">
           <div className="label">Total Est. Hours</div>
@@ -194,36 +175,63 @@ export default function PMDashboard() {
       </div>
       <div className="split-2">
       {/* 3. Progress Overview */}
-      <div className="panel">
-        <h3 className="mb-16">Progress Overview</h3>
-        {filteredStatusDistribution.length === 0 ? (
-          <div className="text-muted">No status data available.</div>
-        ) : (
+      <section className="panel status-overview" aria-labelledby="status-overview-title">
+        <div className="status-overview-header">
           <div>
-            <div style={{display: 'flex', height: 24, borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
-              {filteredStatusDistribution.map((s) => {
-                const total = filteredStatusDistribution.reduce((sum, x) => sum + x.count, 0);
-                const pct = total > 0 ? (s.count / total) * 100 : 0;
-                return pct > 0 ? (
-                  <div
-                    key={s.status}
-                    title={`${formatStatus(s.status)}: ${s.count}`}
-                    style={{ width: `${pct}%`, background: STATUS_COLORS[s.status] || 'var(--text-muted)' }}
+            <h3 id="status-overview-title">Progress Overview</h3>
+          </div>
+        </div>
+
+        {statusTotal === 0 ? (
+          <div className="status-overview-empty">No status data for the current filters.</div>
+        ) : (
+          <>
+            <div
+              className="status-overview-bar"
+              role="img"
+              aria-label={`Status distribution across ${statusTotal} work orders`}
+            >
+              {filteredStatusDistribution.map((item) => {
+                const count = Number(item.count) || 0;
+                const percent = (count / statusTotal) * 100;
+                return count > 0 ? (
+                  <span
+                    key={item.status}
+                    className="status-overview-segment"
+                    title={`${formatStatus(item.status)}: ${count} (${Math.round(percent)}%)`}
+                    style={{ width: `${percent}%`, background: STATUS_COLORS[item.status] || 'var(--text-muted)' }}
                   />
                 ) : null;
               })}
-              </div>
-              <div className="flex gap-16" style={{ flexWrap: 'wrap' }}>
-              {filteredStatusDistribution.map((s) => (
-                <div key={s.status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 2, background: STATUS_COLORS[s.status] || 'var(--text-muted)' }} />
-                  <span className="text-muted">{formatStatus(s.status)}:</span> <strong>{s.count}</strong>
-                </div>
-              ))}
             </div>
-          </div>
+
+            <div className="status-overview-list">
+              {filteredStatusDistribution.map((item) => {
+                const count = Number(item.count) || 0;
+                const percent = Math.round((count / statusTotal) * 100);
+                return (
+                  <div
+                    key={item.status}
+                    className="status-overview-row"
+                  >
+                    <span className="status-overview-name">
+                      <span className="status-overview-dot" style={{ background: STATUS_COLORS[item.status] || 'var(--text-muted)' }} />
+                      <span>{formatStatus(item.status)}</span>
+                    </span>
+                    <span className="status-overview-metric">
+                      <strong>{count}</strong>
+                      <span>{percent}%</span>
+                    </span>
+                    <span className="status-overview-track" aria-hidden="true">
+                      <span style={{ width: `${percent}%`, background: STATUS_COLORS[item.status] || 'var(--text-muted)' }} />
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
-      </div>
+      </section>
 
       {/* 4. Workload / Estimation Overview adjustable later*/}
       <div className="panel">
@@ -264,7 +272,7 @@ export default function PMDashboard() {
           );
         })()}
       </div>
-      </div>
+    </div>
 
       {/* 5. Workload & Status Trend */}
       <div className="panel">
@@ -317,9 +325,7 @@ export default function PMDashboard() {
           </ResponsiveContainer>
         )}
       </div>
-<<<<<<< HEAD
 
-=======
 <div className="panel">
         <div className="flex justify-between align-center mb-16">
           <h3 style={{ margin: 0 }}>
@@ -362,7 +368,6 @@ export default function PMDashboard() {
           </div>
         )}
       </div>
->>>>>>> a323d9b7d4004156d7d94fc4e9cda84ee0b7ad75
 
       </div>
   );

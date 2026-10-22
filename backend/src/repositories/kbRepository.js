@@ -110,10 +110,18 @@ const remove = async (id) => {
 const upsertCoderLearning = async ({
   item_id, title, description, fw_related, complexity_level_id, keywords,
 }) => {
+  // Items are work-order level (work_order_group_id IS NULL), so the model comes from the WO's groups.
   const grp = await pool.query(
     `SELECT g.machine_model_id, g.machine_model_version_id
      FROM work_order_items woi
-     LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
+     LEFT JOIN LATERAL (
+       SELECT g.machine_model_id, g.machine_model_version_id
+       FROM work_order_groups g
+       WHERE g.id = woi.work_order_group_id
+          OR (woi.work_order_group_id IS NULL AND g.work_order_id = woi.work_order_id)
+       ORDER BY CASE WHEN g.id = woi.work_order_group_id THEN 0 ELSE 1 END, g.id
+       LIMIT 1
+     ) g ON TRUE
      WHERE woi.id = $1`,
     [item_id]
   );

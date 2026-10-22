@@ -31,7 +31,7 @@ export default function FilterSearch({
           className={`btn btn-sm ${showAdvanced ? '' : 'btn-secondary'}`}
           onClick={() => setShowAdvanced(!showAdvanced)}
         >
-          Advanced Filters {showAdvanced ? '▲' : '▼'}
+          Filters {showAdvanced ? '▲' : '▼'}
         </button>
         {hasActiveFilters && (
           <button className="btn btn-secondary btn-sm" onClick={clearFilters}>
