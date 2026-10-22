@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: firmware_custom
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d firmware_custom"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ${DOCKERHUB_USER}/firmware-custom-backend:1.0.0
+    build: ./backend
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/firmware_custom
+      JWT_SECRET: ${JWT_SECRET}
+      SEMANTIC_ENABLED: ${SEMANTIC_ENABLED:-1}
+      SEMANTIC_AUTO_CLAIM: "0"
+      DATABASE_SSL: "0"
+    volumes:
+      - backend_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: ${DOCKERHUB_USER}/firmware-custom-frontend:1.0.0
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+volumes:
+  postgres_data:
+  backend_uploads:

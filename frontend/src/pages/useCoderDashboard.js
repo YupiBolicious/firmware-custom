@@ -52,7 +52,6 @@ export default function useCoderDashboard() {
     setWorkOrderPage(1);
   }, [filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
-  const [all, setAll]=useState('my');
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -67,7 +66,6 @@ export default function useCoderDashboard() {
             classification_status: filters.classificationStatusFilter,
             date_from: filters.dateFrom,
             date_to: filters.dateTo,
-            scope: all,
           },
         });
         const dashboard = res.data?.data;
@@ -82,7 +80,7 @@ export default function useCoderDashboard() {
       }
     };
     load();
-  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo, all]);
+  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => {
@@ -245,6 +243,5 @@ export default function useCoderDashboard() {
     workOrderPage,
     setWorkOrderPage,
     CLASSIFICATION_STATUS_LABELS,
-    all, setAll,
   };
 }

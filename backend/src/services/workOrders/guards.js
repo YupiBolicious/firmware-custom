@@ -31,6 +31,7 @@ const assertCanManageAccess = async (wo, user_id, roles) => {
   throw new ApiError(403, 'Only the owner or an administrator can manage access');
 };
 
+// change to assignment granted by task manager/admin
 const assertCoderAssignment = async (wo, user_id, roles) => {
   const userRoles = roles || [];
   if (userRoles.includes('ADMIN')) return wo;

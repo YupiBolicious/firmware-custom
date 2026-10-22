@@ -11,8 +11,7 @@ const getCoderDashboard = async (req, res, next) => {
     const dateTo = typeof req.query.date_to === 'string' ? req.query.date_to.trim() : '';
     assertOptionalDate('date_from', dateFrom);
     assertOptionalDate('date_to', dateTo);
-    const viewAll = typeof req.query.scope === 'string' && req.query.scope === 'all' ? 'all' : 'my';
-    const data = await coderDashboardService.getCoderDashboard(req.user.id, {
+    const data = await coderDashboardService.getCoderDashboard({
       workOrderPage: toInt(req.query.work_order_page, 1),
       workOrderSearch: typeof req.query.work_order_search === 'string' ? req.query.work_order_search.trim() : '',
       workOrderStatus: typeof req.query.work_order_status === 'string' && req.query.work_order_status ? req.query.work_order_status : 'ALL',
@@ -20,7 +19,6 @@ const getCoderDashboard = async (req, res, next) => {
       classificationStatus: typeof req.query.classification_status === 'string' && req.query.classification_status ? req.query.classification_status : 'ALL',
       dateFrom,
       dateTo,
-      scope: viewAll,
     });
     res.json({ success: true, message: 'Coder dashboard retrieved', data });
   } catch (err) {

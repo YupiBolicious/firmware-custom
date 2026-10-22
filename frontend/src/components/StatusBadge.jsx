@@ -7,9 +7,11 @@ export default function StatusBadge({ status, stale }) {
     PENDING: { label: 'Pending', cls: 'badge-info' },
     DRAFT: { label: 'Draft', cls: 'badge-muted' },
     ANALYZED: { label: 'Analyzed', cls: 'badge-info' },
-    FINALIZED: { label: 'Finalized', cls: 'badge-warning' },
+    FINALIZED: { label: 'Finalize', cls: 'badge-info' },
     PRODUCTION: { label: 'Production', cls: 'badge-production' },
     COMPLETED: { label: 'Completed', cls: 'badge-success' },
+    ON_GOING: {label: 'On-Going', cls:'badge-warning'},
+    CLOSE: {label:'Close', cls:'badge-info'}
   };
   const item = map[status] || { label: status || 'Unknown', cls: 'badge-muted' };
   return (
