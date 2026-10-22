@@ -418,8 +418,4 @@ module.exports = {
   countReviewItemsByWorkOrderId,
   reviewClassification,
   correctReviewedClassification,
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> a323d9b7d4004156d7d94fc4e9cda84ee0b7ad75

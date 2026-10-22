@@ -386,8 +386,4 @@ JOIN verification_levels v ON v.code = CASE
   WHEN cl.code =  'L5' THEN 'V3'
 END
 WHERE cl.code IN ('L1', 'L2', 'L3', 'L4', 'L5')
-<<<<<<< HEAD
 ON CONFLICT (complexity_level_id) DO NOTHING;
-=======
-ON CONFLICT (complexity_level_id) DO NOTHING;
->>>>>>> a323d9b7d4004156d7d94fc4e9cda84ee0b7ad75

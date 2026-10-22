@@ -8,11 +8,7 @@ const findKpis = async (userId, scope = 'my') => {
         JOIN work_order_items woi ON woi.id = c.work_order_item_id
         JOIN work_orders wo ON wo.id = woi.work_order_id
         WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
-<<<<<<< HEAD
-          AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
-=======
           AND ($2 = 'all' OR wo.assigned_coder_id = $1)
->>>>>>> e4bd116 (detail adjustment)
        ) AS pending_count,
        (SELECT COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0)::numeric
         FROM classifications c
@@ -20,11 +16,7 @@ const findKpis = async (userId, scope = 'my') => {
         JOIN work_orders wo ON wo.id = woi.work_order_id
         LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
         WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
-<<<<<<< HEAD
-          AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
-=======
           AND ($2 = 'all' OR wo.assigned_coder_id = $1)
->>>>>>> e4bd116 (detail adjustment)
        ) AS pending_hours,
        (SELECT COUNT(*)::int
         FROM work_orders wo
@@ -44,13 +36,8 @@ const findKpis = async (userId, scope = 'my') => {
         JOIN work_orders wo ON wo.id = woi.work_order_id
         WHERE c.status = 'CODER_REVIEW'
           AND wo.status != 'FINALIZED'
-<<<<<<< HEAD
-          AND (wo.assigned_coder_id = $1 OR wo.assigned_coder_id IS NULL)
-          AND c.created_at < NOW() - INTERVAL '48 hours'
-=======
               AND c.created_at < NOW() - INTERVAL '48 hours'
               AND ($2 = 'all' OR wo.assigned_coder_id = $1)
->>>>>>> e4bd116 (detail adjustment)
        ) AS overdue_count`,
             [userId, scope]
   );
@@ -206,11 +193,7 @@ const findWeeklyTrend = async (weeks = 13, userId, scope = 'my') => {
        JOIN work_orders wo ON wo.id = woi.work_order_id
        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
        WHERE c.status = 'CODER_REVIEW'
-<<<<<<< HEAD
-         AND (wo.assigned_coder_id = $2 OR wo.assigned_coder_id IS NULL)
-=======
          AND ($2 = 'all' OR wo.assigned_coder_id = $3)
->>>>>>> e4bd116 (detail adjustment)
        GROUP BY date_trunc('week', c.created_at)
      ) queued ON queued.week_start = w.week_start
      LEFT JOIN (

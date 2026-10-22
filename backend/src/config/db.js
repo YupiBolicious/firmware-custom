@@ -9,9 +9,10 @@ require('dotenv').config({
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL
+  // ssl: process.env.DATABASE_URL
+    ssl: process.env.DATABASE_SSL === '1'
     ? { rejectUnauthorized: false }
-    : false,
+      : false,
 });
 
 module.exports = pool;
