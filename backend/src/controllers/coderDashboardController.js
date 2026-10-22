@@ -32,7 +32,7 @@ const getCoderDashboard = async (req, res, next) => {
     const dateTo = typeof req.query.date_to === 'string' ? req.query.date_to.trim() : '';
     assertOptionalDate('date_from', dateFrom);
     assertOptionalDate('date_to', dateTo);
-    const data = await coderDashboardService.getCoderDashboard(req.user.id, {
+    const data = await coderDashboardService.getCoderDashboard({
       workOrderPage: toInt(req.query.work_order_page, 1),
       workOrderSearch: typeof req.query.work_order_search === 'string' ? req.query.work_order_search.trim() : '',
       workOrderStatus: typeof req.query.work_order_status === 'string' && req.query.work_order_status ? req.query.work_order_status : 'ALL',
@@ -41,7 +41,6 @@ const getCoderDashboard = async (req, res, next) => {
       machineModelCode: typeof req.query.machine_model_code === 'string' ? req.query.machine_model_code.trim() : '',
       dateFrom,
       dateTo,
-      scope: viewAll,
     });
     res.json({ success: true, message: 'Coder dashboard retrieved', data });
   } catch (err) {

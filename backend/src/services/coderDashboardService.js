@@ -1,29 +1,14 @@
 const coderDashboardRepository = require('../repositories/coderDashboardRepository');
 const WORK_ORDER_LIMIT = 10;
 
-const mapWorkOrder = (r) => ({
-  id: r.id,
-  wo_number: r.wo_number,
-  title: r.title || '',
-  customer: r.customer || '',
-  status: r.status,
-  item_count: Number(r.item_count) || 0,
-  open_count: Number(r.open_count) || 0,
-  done_count: Number(r.done_count) || 0,
-  total_hours: Number(r.total_hours) || 0,
-  last_activity: r.last_activity,
-});
-
-const getCoderDashboard = async (userId, { workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL', complexity = 'ALL', classificationStatus = 'ALL', machineModelCode = '', dateFrom = '', dateTo = '' } = {}) => {
-  const [kpis, reviewQueue, workQueue, workOrderQueue, workOrderQueueTotal, myWorkOrders, trend, machineModels] = await Promise.all([
+const getCoderDashboard = async ({ workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL', complexity = 'ALL', classificationStatus = 'ALL', dateFrom = '', dateTo = '' } = {}) => {
+  const [kpis, reviewQueue, workQueue, workOrderQueue, workOrderQueueTotal, trend] = await Promise.all([
     coderDashboardRepository.findKpis(),
     coderDashboardRepository.findReviewQueue(),
     coderDashboardRepository.findWorkQueue(),
-    coderDashboardRepository.findWoQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, machineModelCode, dateFrom, dateTo }),
-    coderDashboardRepository.countWoQueue({ search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, machineModelCode, dateFrom, dateTo }),
-    coderDashboardRepository.findWoQueue({ assignedCoderId: userId, limit: WORK_ORDER_LIMIT }),
+    coderDashboardRepository.findWorkOrderQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo }),
+    coderDashboardRepository.countWorkOrderQueue({ search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo }),
     coderDashboardRepository.findWeeklyTrend(13),
-    coderDashboardRepository.findMachineModels(),
   ]);
 
   return {

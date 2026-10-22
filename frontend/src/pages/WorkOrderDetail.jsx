@@ -158,10 +158,10 @@ export default function WorkOrderDetail() {
         openDeleteItemConfirm={openDeleteItemConfirm}
       />
 
-      <WOComments woId={wo.id} canComment={canComment && !blockedByAssignment} />
+      <WOComments woId={wo.id} canComment={canComment} />
       {blockedByAssignment && (
         <div className="panel" style={{ marginTop: 12 }}>
-          <div className="text-muted">This work order is assigned to another coder</div>
+          <div className="text-muted">Read-only: this work order is assigned to another coder.</div>
         </div>
       )}
 

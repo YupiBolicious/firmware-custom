@@ -31,9 +31,19 @@ const assertCanManageAccess = async (wo, user_id, roles) => {
   throw new ApiError(403, 'Only the owner or an administrator can manage access');
 };
 
-const verifyAssignedCoder = (wo, user_id, roles = []) => {
-  if (!roles.includes('CODER')) {
-    throw new ApiError(403, 'Only assigned firmware engineer can start the production');
+// change to assignment granted by task manager/admin
+const assertCoderAssignment = async (wo, user_id, roles) => {
+  const userRoles = roles || [];
+  if (userRoles.includes('ADMIN')) return wo;
+  if (!userRoles.includes('CODER')) return wo;
+  if (wo.assigned_coder_id == null) {
+    const workOrderRepository = require('../../repositories/workOrderRepository');
+    const assigned = await workOrderRepository.assignCoderIfUnassigned(wo.id, user_id);
+    if (assigned) wo.assigned_coder_id = assigned.assigned_coder_id;
+    if (Number(wo.assigned_coder_id) !== Number(user_id)) {
+      throw new ApiError(403, 'This work order is assigned to another coder');
+    }
+    return wo;
   }
   if (wo.assigned_coder_id == null) {
     throw new ApiError(403, 'A firmware engineer should be assigned to the work order');

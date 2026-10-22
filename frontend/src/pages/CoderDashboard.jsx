@@ -31,8 +31,7 @@ export default function CoderDashboard() {
     uniqueComplexities, uniqueModels, CLASSIFICATION_STATUS_LABELS,
     workOrderQueue, workOrderQueueTotal, workOrderQueueTotalPages,
     workOrderPage, setWorkOrderPage,
-    all,
-    setAll,
+    CLASSIFICATION_STATUS_LABELS,
   } = useCoderDashboard();
   useValueToast(error);
   const workOrders = useDashboardWoList({
@@ -63,23 +62,6 @@ export default function CoderDashboard() {
   const myWorkOrders = data.my_work_orders || [];
   return (
     <div className='dashboard coder-dashboard'>
-      <div className="flex gap-8 mb-16" style={{ borderBottom: '1px solid var(--border)' }}>
-        <button
-          className={`btn btn-sm ${all === 'my' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setAll('my')}
-          style={{ borderRadius: '6px 6px 0 0', marginBottom: -1 }}
-        >
-          My Work
-        </button>
-        <button
-          className={`btn btn-sm ${all === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setAll('all')}
-          style={{ borderRadius: '6px 6px 0 0', marginBottom: -1 }}
-        >
-          General
-        </button>
-      </div>
-
       {/* User KPI card*/}
       <div className="stats-grid mb-10">
         <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${dashboardKpis.pending_review}`}

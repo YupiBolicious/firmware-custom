@@ -55,7 +55,6 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
     setWorkOrderPage(1);
   }, [filters.search, filters.statusFilter, filters.complexityFilter, filters.modelFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
-  const [all, setAll]=useState('my');
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -71,7 +70,6 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
             machine_model_code: filters.modelFilter === 'ALL' ? '' : filters.modelFilter,
             date_from: filters.dateFrom,
             date_to: filters.dateTo,
-            scope: all,
           },
         });
         const dashboard = res.data?.data;
@@ -86,8 +84,7 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
       }
     };
     load();
-  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.modelFilter, filters.dateFrom, filters.dateTo]);
-
+  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => {
@@ -252,6 +249,5 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
     workOrderPage,
     setWorkOrderPage,
     CLASSIFICATION_STATUS_LABELS,
-    all, setAll,
   };
 }

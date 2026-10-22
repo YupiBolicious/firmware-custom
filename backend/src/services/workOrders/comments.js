@@ -3,7 +3,6 @@ const workOrderAccessRepository = require('../../repositories/workOrderAccessRep
 const auditService = require('../auditService');
 const notificationService = require('../notificationService');
 const { ApiError } = require('../../middleware/errorHandler');
-const { assertCoderAssignment } = require('./guards');
 
 const hasRole = (roles, role) => Array.isArray(roles) && roles.includes(role);
 
@@ -52,9 +51,6 @@ const addWorkOrderComment = async (workOrderId, { content, user_id, roles, ip_ad
   const accessList = await workOrderAccessRepository.findGrantedByWorkOrderId(workOrderId);
   if (!canAddComment(wo, user_id, roles, accessList)) {
     throw new ApiError(403, 'Forbidden');
-  }
-  if (hasRole(roles, 'CODER')) {
-    await assertCoderAssignment(wo, user_id, roles);
   }
   const created = await workOrderRepository.createComment({ work_order_id: workOrderId, user_id, content: trimmed });
   await auditService.log({
