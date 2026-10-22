@@ -8,13 +8,12 @@ const CLASSIFICATION_STATUS_LABELS = {
   PENDING: 'Pending',
 };
 
-const WORK_ORDER_STATUS_LABELS = {
-  DRAFT: 'Draft',
-  ANALYZED: 'Analyzed',
-  FINALIZED: 'Finalized',
-  PRODUCTION: 'Production',
-  COMPLETED: 'Completed',
-};
+const KPI_FIELDS = ['pending_review', 'pending_hours', 'completed', 'completed_hours', 'overdue'];
+const isNumericValue = (value) => (
+  (typeof value === 'number' && Number.isFinite(value))
+  || (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)))
+);
+const isValidKpis = (kpis) => KPI_FIELDS.every((field) => isNumericValue(kpis?.[field]));
 
 const initialFilters = {
   search: '',
@@ -53,7 +52,10 @@ export default function useCoderDashboard() {
     setWorkOrderPage(1);
   }, [filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
+  const [all, setAll]=useState('my');
   useEffect(() => {
+    setLoading(true);
+    setError('');
     const load = async () => {
       try {
         const res = await api.get('/coder-dashboard', {
@@ -65,17 +67,22 @@ export default function useCoderDashboard() {
             classification_status: filters.classificationStatusFilter,
             date_from: filters.dateFrom,
             date_to: filters.dateTo,
+            scope: all,
           },
         });
-        setData(res.data.data);
+        const dashboard = res.data?.data;
+        if (!res.data?.success || !dashboard || !isValidKpis(dashboard.kpis)) {
+          throw new Error('Invalid coder dashboard KPI response');
+        }
+        setData(dashboard);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load dashboard');
+        setError(err.response?.data?.message || err.message || 'Failed to load dashboard');
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
+  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo, all]);
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => {
@@ -153,13 +160,9 @@ export default function useCoderDashboard() {
     || filters.classificationStatusFilter !== 'ALL' || filters.statusFilter !== 'ALL'
     || filters.dateFrom || filters.dateTo;
 
-  const filteredKpis = useMemo(() => ({
-    pending_review: filteredReviewQueue.length,
-    pending_hours: filteredReviewQueue.reduce((s, r) => s + r.estimated_hours, 0),
-    completed: data?.kpis.completed ?? 0,
-    completed_hours: data?.kpis.completed_hours ?? 0,
-    overdue: data?.kpis.overdue ?? 0,
-  }), [filteredReviewQueue, data]);
+  const dashboardKpis = useMemo(() => Object.fromEntries(
+    KPI_FIELDS.map((field) => [field, Number(data?.kpis?.[field])])
+  ), [data]);
 
   const filteredWorkload = useMemo(() => {
     const queued = filteredWorkQueue.filter((r) => r.work_order_status === 'DRAFT').reduce((s, r) => s + r.estimated_hours, 0);
@@ -229,7 +232,7 @@ export default function useCoderDashboard() {
     clearFilters,
     filteredReviewQueue,
     filteredWorkQueue,
-    filteredKpis,
+    dashboardKpis,
     filteredWorkload,
     filteredTrend,
     matchingCount,
@@ -242,6 +245,6 @@ export default function useCoderDashboard() {
     workOrderPage,
     setWorkOrderPage,
     CLASSIFICATION_STATUS_LABELS,
-    WORK_ORDER_STATUS_LABELS,
+    all, setAll,
   };
 }

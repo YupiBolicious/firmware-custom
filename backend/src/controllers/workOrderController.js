@@ -20,6 +20,15 @@ const reviewQueue = async (req, res, next) => {
   }
 };
 
+const pendingReview = async (req, res, next) => {
+  try {
+    const data = await workOrderService.listPendingReviewQueue({ page: req.query.page, limit: req.query.limit });
+    res.json({ success: true, message: 'Pending review queue retrieved', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const reviewItem = async (req, res, next) => {
   try {
     const data = await workOrderService.reviewItem(req.params.itemId, {
@@ -457,6 +466,7 @@ const deleteComment = async (req, res, next) => {
 module.exports = {
   list,
   reviewQueue,
+  pendingReview,
   reviewItem,
   correctReviewedItem,
   getById,

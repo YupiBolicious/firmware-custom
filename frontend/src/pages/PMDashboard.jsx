@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useValueToast } from '../components/Toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Sun, Moon } from 'lucide-react';
 import RelativeTime from '../components/RelativeTime';
@@ -48,34 +48,39 @@ export default function PMDashboard() {
     filteredKpis, filteredStatusDistribution, filteredWorkload, filteredTrend, trendUnit, trendWindow, filteredAttention,
   } = usePmDashboard();
   useValueToast(error);
+  const navigate = useNavigate();
+  const showInProgress = () => navigate('/work-orders');
 
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
 
+  const statusTotal = filteredStatusDistribution.reduce((sum, item) => sum + Number(item.count || 0), 0);
   return (
     <div className="dashboard">
       {/* 1. KPI Summary */}
       <div className="stats-grid">
-        <div className="stat">
-          <div className="label">Active WOs</div>
-          <div className="value">{filteredKpis.active_wos}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Pending Coder Review</div>
-          <div className="value" style={{ color: filteredKpis.pending_review > 0 ? 'var(--warning)' : undefined }}>
-            {filteredKpis.pending_review}
-          </div>
-        </div>
-        <div className="stat">
-          <div className="label">In Progress</div>
-          <div className="value">{filteredKpis.in_progress}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Completed</div>
-          <div className="value" style={{ color: 'var(--success)' }}>{filteredKpis.completed}</div>
-        </div>
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.completed}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.completed> 0 ? 'var(--success)' : undefined, width:'100%', border:0}}
+        >
+          <div className='label'>Work Order Completed</div>
+          <div className='value'>{filteredKpis.completed}</div>
+        </button>
+
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.pending_review}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.pending_review> 0 ? 'var(--warning)' : undefined, width:'100%', border:0}}
+        >
+          <div className='label'>Waiting for Review</div>
+          <div className='value'>{filteredKpis.pending_review}</div>
+        </button>
+        
+        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.in_progress}`}
+        style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.in_progress> 0 ? 'var(--info)' : undefined, width:'100%', border:0}}
+        >
+          <div className='label'>Work Order in Progress</div>
+          <div className='value'>{filteredKpis.in_progress}</div>
+        </button>
         <div className="stat">
           <div className="label">Total Est. Hours</div>
           <div className="value">{filteredKpis.total_estimated_hours.toFixed(1)}h</div>
@@ -171,36 +176,63 @@ export default function PMDashboard() {
       </div>
       <div className="split-2">
       {/* 3. Progress Overview */}
-      <div className="panel">
-        <h3 className="mb-16">Progress Overview</h3>
-        {filteredStatusDistribution.length === 0 ? (
-          <div className="text-muted">No status data available.</div>
-        ) : (
+      <section className="panel status-overview" aria-labelledby="status-overview-title">
+        <div className="status-overview-header">
           <div>
-            <div style={{display: 'flex', height: 24, borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
-              {filteredStatusDistribution.map((s) => {
-                const total = filteredStatusDistribution.reduce((sum, x) => sum + x.count, 0);
-                const pct = total > 0 ? (s.count / total) * 100 : 0;
-                return pct > 0 ? (
-                  <div
-                    key={s.status}
-                    title={`${formatStatus(s.status)}: ${s.count}`}
-                    style={{ width: `${pct}%`, background: STATUS_COLORS[s.status] || 'var(--text-muted)' }}
+            <h3 id="status-overview-title">Progress Overview</h3>
+          </div>
+        </div>
+
+        {statusTotal === 0 ? (
+          <div className="status-overview-empty">No status data for the current filters.</div>
+        ) : (
+          <>
+            <div
+              className="status-overview-bar"
+              role="img"
+              aria-label={`Status distribution across ${statusTotal} work orders`}
+            >
+              {filteredStatusDistribution.map((item) => {
+                const count = Number(item.count) || 0;
+                const percent = (count / statusTotal) * 100;
+                return count > 0 ? (
+                  <span
+                    key={item.status}
+                    className="status-overview-segment"
+                    title={`${formatStatus(item.status)}: ${count} (${Math.round(percent)}%)`}
+                    style={{ width: `${percent}%`, background: STATUS_COLORS[item.status] || 'var(--text-muted)' }}
                   />
                 ) : null;
               })}
-              </div>
-              <div className="flex gap-16" style={{ flexWrap: 'wrap' }}>
-              {filteredStatusDistribution.map((s) => (
-                <div key={s.status} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: 2, background: STATUS_COLORS[s.status] || 'var(--text-muted)' }} />
-                  <span className="text-muted">{formatStatus(s.status)}:</span> <strong>{s.count}</strong>
-                </div>
-              ))}
             </div>
-          </div>
+
+            <div className="status-overview-list">
+              {filteredStatusDistribution.map((item) => {
+                const count = Number(item.count) || 0;
+                const percent = Math.round((count / statusTotal) * 100);
+                return (
+                  <div
+                    key={item.status}
+                    className="status-overview-row"
+                  >
+                    <span className="status-overview-name">
+                      <span className="status-overview-dot" style={{ background: STATUS_COLORS[item.status] || 'var(--text-muted)' }} />
+                      <span>{formatStatus(item.status)}</span>
+                    </span>
+                    <span className="status-overview-metric">
+                      <strong>{count}</strong>
+                      <span>{percent}%</span>
+                    </span>
+                    <span className="status-overview-track" aria-hidden="true">
+                      <span style={{ width: `${percent}%`, background: STATUS_COLORS[item.status] || 'var(--text-muted)' }} />
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
-      </div>
+      </section>
 
       {/* 4. Workload / Estimation Overview adjustable later*/}
       <div className="panel">
@@ -241,7 +273,7 @@ export default function PMDashboard() {
           );
         })()}
       </div>
-      </div>
+    </div>
 
       {/* 5. Workload & Status Trend */}
       <div className="panel">
@@ -292,57 +324,6 @@ export default function PMDashboard() {
               <Bar dataKey="hours_completed" name="Completed" fill="url(#pmDone)" stackId="workload" radius={[6, 6, 0, 0]} maxBarSize={28} />
             </BarChart>
           </ResponsiveContainer>
-        )}
-      </div>
-
-      {/* 6. Attention Required */}
-      <div className="panel">
-        <div className="flex justify-between align-center mb-16">
-          <h3 style={{ margin: 0 }}>
-            Attention Required
-            {filteredAttention.length > 0 && (
-              <span
-                className="badge"
-                style={{
-                  marginLeft: 8,
-                  background: filteredAttention.some((a) => a.priority === 'danger') ? 'var(--badge-deleted-bg)' : 'var(--badge-updated-bg)',
-                  color: filteredAttention.some((a) => a.priority === 'danger') ? 'var(--danger)' : 'var(--warning)',
-                }}
-              >
-                {filteredAttention.length}
-              </span>
-            )}
-          </h3>
-        </div>
-
-        {filteredAttention.length === 0 ? (
-          <div className="text-muted">No attention required.</div>
-        ) : (
-          <div className="attention-list">
-            {filteredAttention.map((a) => (
-              <div key={`${a.work_order_id}-${a.kind}`} className={`attention-item attention-${a.priority}`}>
-                <div className="attention-copy">
-                  <div className="attention-body">
-                    <span className="attention-title"><strong>{a.wo_number}</strong></span>
-                    <span className="attention-message">{a.message}</span>
-                    {a.age_hours != null && (
-                      <span className="attention-age text-muted">{formatAttentionAge(a.age_hours, a.kind)}</span>
-                    )}
-                    {a.affected_count > 0 && a.kind !== 'stale' && (
-                      <span className="attention-age text-muted">{a.affected_count} affected</span>
-                    )}
-                  </div>
-                  {a.sample_item && (
-                    <span className="attention-detail text-muted">
-                      Example: {a.sample_item}{a.sample_title ? ` — ${a.sample_title}` : ''}
-                    </span>
-                  )}
-                  {a.next_action && <span className="attention-action">Next: {a.next_action}</span>}
-                </div>
-                <Link to={`/work-orders/${a.work_order_id}`} className="btn btn-sm">View WO</Link>
-              </div>
-            ))}
-          </div>
         )}
       </div>
 

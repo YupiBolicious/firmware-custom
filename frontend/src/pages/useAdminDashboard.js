@@ -71,5 +71,5 @@ export default function useAdminDashboard() {
 
   const changePreset = useCallback((key) => setPreset(key), []);
 
-  return { data, error, loading, preset, changePreset, trendRefreshing, trendError };
+  return { data, error, loading, preset, changePreset, trendRefreshing, trendError, workload: data?.workload || { queued: 0, in_progress: 0, completed: 0, total: 0 }, };
 }

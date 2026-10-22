@@ -3,7 +3,7 @@ export default function StatusBadge({ status, stale }) {
   const map = {
     CLASSIFIED: { label: 'Classified', cls: 'badge-success' },
     NON_FIRMWARE: { label: 'Non-Firmware', cls: 'badge-muted' },
-    CODER_REVIEW: { label: 'Coder Review', cls: 'badge-warning' },
+    CODER_REVIEW: { label: 'Pending Review', cls: 'badge-warning' },
     PENDING: { label: 'Pending', cls: 'badge-info' },
     DRAFT: { label: 'Draft', cls: 'badge-muted' },
     ANALYZED: { label: 'Analyzed', cls: 'badge-info' },

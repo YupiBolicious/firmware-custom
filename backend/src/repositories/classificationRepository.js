@@ -194,7 +194,7 @@ const reviewClassification = async ({
   return result.rows[0] || null;
 };
 
-const correctReviewedClassification = async ({ work_order_item_id, reviewed_by, complexity_level_id, reason }) => {
+const correctReviewedClassification = async ({ work_order_item_id, reviewed_by, complexity_level_id, reason, keywords }) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -332,14 +332,22 @@ const correctReviewedClassification = async ({ work_order_item_id, reviewed_by, 
          (kb_code, title, description, keywords, fw_related, complexity_level_id, confidence_score,
           source, is_active, machine_model_id, machine_model_version_id)
       SELECT $1::varchar(50), woi.title, woi.description,
-        (SELECT existing.keywords FROM kb_items existing WHERE existing.kb_code = $1::varchar(50)),
+        $5::text,
         $2::boolean, $3::integer, 99, 'CODER_REVIEW', TRUE, g.machine_model_id, g.machine_model_version_id
        FROM work_order_items woi
-       LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
+       LEFT JOIN LATERAL (
+         SELECT g.machine_model_id, g.machine_model_version_id
+         FROM work_order_groups g
+         WHERE g.id = woi.work_order_group_id
+            OR (woi.work_order_group_id IS NULL AND g.work_order_id = woi.work_order_id)
+         ORDER BY CASE WHEN g.id = woi.work_order_group_id THEN 0 ELSE 1 END, g.id
+         LIMIT 1
+       ) g ON TRUE
       WHERE woi.id = $4::integer
        ON CONFLICT (kb_code)
        DO UPDATE SET title = EXCLUDED.title,
          description = EXCLUDED.description,
+         keywords = EXCLUDED.keywords,
          fw_related = EXCLUDED.fw_related,
          complexity_level_id = EXCLUDED.complexity_level_id,
          confidence_score = EXCLUDED.confidence_score,
@@ -349,7 +357,7 @@ const correctReviewedClassification = async ({ work_order_item_id, reviewed_by, 
          machine_model_version_id = EXCLUDED.machine_model_version_id,
          updated_at = NOW()
        RETURNING id, kb_code`,
-      [`KB-CODER-${work_order_item_id}`, fwRelated, level.id, work_order_item_id]
+      [`KB-CODER-${work_order_item_id}`, fwRelated, level.id, work_order_item_id, keywords || null]
     );
 
     let productionTaskChange = null;

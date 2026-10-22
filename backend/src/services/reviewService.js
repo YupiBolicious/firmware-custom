@@ -147,6 +147,9 @@ const correctReviewedItem = async (itemId, { complexity_level_id, reason, user_i
     reviewed_by: user_id,
     complexity_level_id,
     reason: reason?.trim() || null,
+    // Same keyword vocabulary the review path learns from (title + description),
+    // so a corrected item stays matchable by the lexical/semantic pipelines.
+    keywords: item ? buildKeywords(item.title, item.description) : null,
   });
 
   if (correction.error === 'NOT_FOUND') throw new ApiError(404, 'Work order item not found');

@@ -25,6 +25,12 @@ const listCoderReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
   return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
 };
 
+const listPendingReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
+  const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
+  const res = await workOrderRepository.findPendingReviewQueue({ page: parsedPage, limit: parsedLimit });
+  return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
+};
+
 const getWorkOrder = async (id) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) {
@@ -204,6 +210,7 @@ const updateWorkOrderNotes = async (id, { notes, user_id, ip_address }) => {
 module.exports = {
   listWorkOrders,
   listCoderReviewQueue,
+  listPendingReviewQueue,
   getWorkOrder,
   createWorkOrder,
   updateWorkOrder,

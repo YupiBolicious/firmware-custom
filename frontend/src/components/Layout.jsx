@@ -30,12 +30,23 @@ const NAV_ITEMS = [
     icon: <ClipboardCheck size={16} strokeWidth={1.5} />,
   },
   {
+    to: '/pending-review',
+    label: 'Custom Items Review',
+    roles: ['PM'],
+    icon: <ClipboardCheck size={16} strokeWidth={1.5} />,
+  },
+  {
     to: '/complexity-levels',
     label: 'Complexity Levels',
     roles: ['ADMIN'],
     icon: <BarChart3 size={16} strokeWidth={1.5} />,
   },
-  
+  // {
+  //   to: '/knowledge-base',
+  //   label: 'Knowledge Base',
+  //   roles: ['ADMIN'],
+  //   icon: <BookOpen strokeWidth={1.5}/>
+  // },
   {
     to: '/users',
     label: 'Users',
@@ -56,7 +67,7 @@ const NAV_ITEMS = [
   },
   {
     to: '/audit-log',
-    label: 'Audit Log',
+    label: 'History Log',
     roles: ['ADMIN', 'PM', 'CODER'],
     icon: <List size={16} strokeWidth={1.5} />,
   },
@@ -82,6 +93,7 @@ const PAGE_NAMES = {
   '/dashboard': 'Dashboard',
   '/work-orders': 'Work Orders',
   '/review-queue': 'Review Queue',
+  '/pending-review': 'Pending Review',
   '/complexity-levels': 'Complexity Levels',
   '/machine-models': 'Machine Models',
   '/users': 'Users',

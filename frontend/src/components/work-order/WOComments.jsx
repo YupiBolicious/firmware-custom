@@ -17,7 +17,7 @@ export default function WOComments({ woId, canComment }) {
   };
 
   return (
-    <div className="panel">
+    <div className="panel mb-16">
       <div className="panel-header">
         <h2>Discussion</h2>
       </div>

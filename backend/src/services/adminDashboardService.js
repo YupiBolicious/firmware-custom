@@ -11,7 +11,7 @@ function pickGranularity(from, to) {
 
 const getAdminDashboard = async ({ from, to } = {}) => {
   const granularity = pickGranularity(from, to);
-  const [kpis, health, roleRows, inactive, classification, config, trend] = await Promise.all([
+  const [kpis, health, roleRows, inactive, classification, config, trend, workload] = await Promise.all([
     adminDashboardRepository.findKpis(),
     adminDashboardRepository.findHealth(),
     adminDashboardRepository.findUserRoleOverview(),
@@ -19,6 +19,7 @@ const getAdminDashboard = async ({ from, to } = {}) => {
     adminDashboardRepository.findClassificationOverview(),
     adminDashboardRepository.findConfigurationCounts(),
     adminDashboardRepository.findActivityTrend(from, to, granularity),
+    adminDashboardRepository.findWorkload(),
   ]);
 
   const totalUsers = Number(kpis.total_users) || 0;
@@ -60,6 +61,15 @@ const getAdminDashboard = async ({ from, to } = {}) => {
       fw_modules: Number(config.fw_modules) || 0,
       machine_models: Number(config.machine_models) || 0,
       machine_model_versions: Number(config.machine_model_versions) || 0,
+    },
+    // Workload covers every work order, not the trend date window.
+    workload: {
+      queued: Number(workload.queued_hours) || 0,
+      in_progress: Number(workload.in_progress_hours) || 0,
+      completed: Number(workload.completed_hours) || 0,
+      total: (Number(workload.queued_hours) || 0)
+        + (Number(workload.in_progress_hours) || 0)
+        + (Number(workload.completed_hours) || 0),
     },
     trend: {
       from,

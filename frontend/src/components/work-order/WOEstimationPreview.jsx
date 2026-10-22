@@ -169,14 +169,7 @@ export default function WOEstimationPreview({
                             <option value="">Select L0-L5</option>
                             {correctionLevels.map((level) => <option key={level.id} value={level.id}>{level.code} - {level.name}</option>)}
                           </select>
-                          {/* <input
-                            value={correctionForm.reason}
-                            onChange={(event) => updateCorrectionForm({ reason: event.target.value })}
-                            placeholder="Optional correction reason"
-                            maxLength={1000}
-                            aria-label={`Optional correction reason for ${r.item_number}`}
-                            disabled={correctingItemId === r.id}
-                          /> */}
+                         
                           <div className="flex gap-8 justify-end">
                             <button
                               className="btn btn-sm"
