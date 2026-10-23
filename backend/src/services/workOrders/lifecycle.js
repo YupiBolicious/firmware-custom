@@ -14,7 +14,7 @@ const auditService = require('../auditService');
 const notificationService = require('../notificationService');
 const { ApiError } = require('../../middleware/errorHandler');
 const { deriveReviewReason, pickPrimaryBlockedReason } = require('../semanticAssist');
-const { assertCanEditWorkOrder } = require('./guards');
+const { assertCanEditWorkOrder, assertCoderAssignment } = require('./guards');
 
 const notifyWorkOrderRecipients = async ({ work_order_id, owner_id, status, message }) => {
   const granteeIds = await workOrderAccessRepository.findUserIdsByWorkOrderId(work_order_id);
@@ -300,9 +300,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       assist_complexity_code: classification.status === 'CODER_REVIEW' && saved.assist_complexity_level_id != null
         ? (levelById.get(saved.assist_complexity_level_id)?.code || null)
         : null,
-      // assist_match_score is 0-100 here for frontend display ONLY. The persisted
-      // database value (saved.assist_match_score / semantic_suggestion.match_score)
-      // stays the original 0-1 score — never scale what is stored.
+      // assist_match_score is 0-100 here for frontend display ONLY. The persisted database value (saved.assist_match_score / semantic_suggestion.match_score)
       assist_kb_code: saved.assist_kb_code || null,
       assist_match_score: saved.assist_match_score != null ? Math.round(Number(saved.assist_match_score) * 100) : null,
       assist_semantic_margin: saved.assist_semantic_margin != null ? Number(saved.assist_semantic_margin) : null,
@@ -349,6 +347,10 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
   const wo = await workOrderRepository.findById(work_order_id);
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
+  }
+  const userRoles = roles || [];
+  if(!userRoles.includes('ADMIN')) {
+    throw new ApiError(403, 'only admin can finalize work order');
   }
   await assertCanEditWorkOrder(wo, user_id, roles);
   if (wo.status === 'FINALIZED') {
@@ -449,9 +451,10 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
   return { work_order: finalized, production_tasks: productionTasks, completion_path: completionPath };
 };
 
-const startProduction = async (id, { user_id, ip_address }) => {
+const startProduction = async (id, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) throw new ApiError(404, 'Work order not found');
+  await assertCoderAssignment(wo, user_id, roles || []);
   if (wo.status !== 'FINALIZED') throw new ApiError(400, 'Work order must be FINALIZED to start production');
   const updated = await workOrderRepository.updateStatus(id, 'PRODUCTION', 'FINALIZED');
   if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
@@ -467,11 +470,72 @@ const startProduction = async (id, { user_id, ip_address }) => {
   return updated;
 };
 
-const completeProductionTask = async (taskId, { completed, user_id, ip_address }) => {
+const closeWorkOrder = async (id, { user_id, roles, ip_address }) => {
+  const userRoles = roles || [];
+  if (!userRoles.includes('ADMIN')) {
+    throw new ApiError(403, 'Only administrators can close work orders');
+  }
+  const wo = await workOrderRepository.findById(id);
+  if (!wo) throw new ApiError(404, 'Work order not found');
+  if (wo.status !== 'READY_TO_CLOSE') {
+    throw new ApiError(400, 'Work order must be READY_TO_CLOSE to close');
+  }
+  const updated = await workOrderRepository.updateStatus(id, 'COMPLETED', 'READY_TO_CLOSE');
+  if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
+  await auditService.log({
+    user_id,
+    action: 'WORK_ORDER_CLOSED',
+    entity_type: 'WORK_ORDER',
+    entity_id: id,
+    work_order_id: id,
+    details: { wo_number: wo.wo_number, title: wo.title, from_status: 'READY_TO_CLOSE' },
+    ip_address,
+  });
+  await notifyWorkOrderRecipients({
+    work_order_id: id,
+    owner_id: wo.created_by,
+    status: 'WO_COMPLETED',
+    message: `${wo.wo_number} has been closed`,
+  });
+  return updated;
+};
+
+const reopenWorkOrder = async (id, { user_id, roles, ip_address }) => {
+  const userRoles = roles || [];
+  if (!userRoles.includes('ADMIN')) {
+    throw new ApiError(403, 'Only administrators can reopen work orders');
+  }
+  const wo = await workOrderRepository.findById(id);
+  if (!wo) throw new ApiError(404, 'Work order not found');
+  if (wo.status !== 'READY_TO_CLOSE') {
+    throw new ApiError(400, 'Work order must be READY_TO_CLOSE to close has reopen');
+  }
+  const updated = await workOrderRepository.updateStatus(id, 'PRODUCTION', 'READY_TO_CLOSE');
+  if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
+  await auditService.log({
+    user_id,
+    action: 'WORK_ORDER_REOPEN_TO_PRODUCTION',
+    entity_type: 'WORK_ORDER',
+    entity_id: id,
+    work_order_id: id,
+    details: { wo_number: wo.wo_number, title: wo.title, from_status: 'READY_TO_CLOSE' },
+    ip_address,
+  });
+  await notifyWorkOrderRecipients({
+    work_order_id: id,
+    owner_id: wo.created_by,
+    status: 'WO_PRODUCTION',
+    message: `${wo.wo_number} has been reopen by an admin`,
+  });
+  return updated;
+};
+
+const completeProductionTask = async (taskId, { completed, user_id, roles, ip_address }) => {
   const task = await workOrderRepository.findProductionTaskById(taskId);
   if (!task) throw new ApiError(404, 'Production task not found');
   const wo = await workOrderRepository.findById(task.work_order_id);
   if (!wo) throw new ApiError(404, 'Work order not found');
+  await assertCoderAssignment(wo, user_id, roles || []);
   if (wo.status !== 'PRODUCTION') {
     throw new ApiError(400, 'Work order must be in production to update tasks');
   }
@@ -495,9 +559,10 @@ const completeProductionTask = async (taskId, { completed, user_id, ip_address }
   return saved;
 };
 
-const completeProduction = async (id, { user_id, ip_address }) => {
+const completeProduction = async (id, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) throw new ApiError(404, 'Work order not found');
+  await assertCoderAssignment(wo, user_id, roles || []);
   if (wo.status !== 'PRODUCTION') throw new ApiError(400, 'Work order must be in PRODUCTION to complete');
   const { total, open } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
   // ponytail: count-check + status flip are not atomic; a task toggle committed between them
@@ -506,21 +571,21 @@ const completeProduction = async (id, { user_id, ip_address }) => {
   if (open > 0) {
     throw new ApiError(400, `All production items must be completed first (${open} of ${total} still open)`);
   }
-  const updated = await workOrderRepository.updateStatus(id, 'COMPLETED', 'PRODUCTION');
+  const updated = await workOrderRepository.updateStatus(id, 'READY_TO_CLOSE', 'PRODUCTION');
   if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
   await auditService.log({
     user_id,
-    action: 'WORK_ORDER_COMPLETED',
+    action: 'WORK_ORDER_READY_TO_CLOSE',
     entity_type: 'WORK_ORDER',
     entity_id: id,
     work_order_id: id,
-    details: { wo_number: wo.wo_number, title: wo.title },
+    details: { wo_number: wo.wo_number, title: wo.title, from_status: 'PRODUCTION' },
     ip_address,
   });
   await notifyWorkOrderRecipients({
     work_order_id: id,
     owner_id: wo.created_by,
-    status: 'WO_COMPLETED',
+    status: 'WO_READY_TO_CLOSE',
     message: `${wo.wo_number} has been completed`,
   });
   return updated;
@@ -531,5 +596,7 @@ module.exports = {
   finalizeWorkOrder,
   startProduction,
   completeProduction,
+  closeWorkOrder,
+  reopenWorkOrder,
   completeProductionTask,
 };

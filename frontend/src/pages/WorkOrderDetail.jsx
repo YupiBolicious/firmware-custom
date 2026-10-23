@@ -23,10 +23,12 @@ export default function WorkOrderDetail() {
     
     itemForm, editingItemId,
     handleStartProduction, handleCompleteProduction, handleCompleteTask,
+    closing, reopening, handleCloseWO, handleReopenWO, changeStatus, handleChangeStatus,
     groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
     deleteGroupConfirm, deletingGroup, openDeleteGroupConfirm, closeDeleteGroupConfirm,
-    access, accessBusy, users, canEdit, canManageAccess,
+    access, accessBusy, users, canEdit, canManageAccess, isAdmin,
+    coders, assigning, handleAssignCoder,
     notes, setNotes, savingNotes, editing, setEditing, handleSaveNotes,
     handleGrantAccess, handleRevokeAccess,
     deleteItemConfirm, openDeleteItemConfirm, closeDeleteItemConfirm,
@@ -74,6 +76,8 @@ export default function WorkOrderDetail() {
         finalizing={finalizing}
         startingProduction={startingProduction}
         completing={completing}
+        closing={closing}
+        reopening={reopening}
         openFinalizeConfirm={openFinalizeConfirm}
         openStartConfirm={openStartConfirm}
         openCompleteConfirm={openCompleteConfirm}
@@ -90,6 +94,15 @@ export default function WorkOrderDetail() {
         accessBusy={accessBusy}
         handleGrantAccess={handleGrantAccess}
         handleRevokeAccess={handleRevokeAccess}
+        isAdmin={hasRole('ADMIN')}
+        coders={coders}
+        assigning={assigning}
+        handleAssignCoder={handleAssignCoder}
+        blockedByAssignment={blockedByAssignment}
+        handleCloseWO={handleCloseWO}
+        handleReopenWO={handleReopenWO}
+        changeStatus = {changeStatus}
+        handleChangeStatus={handleChangeStatus}
       />
 
       <WOModelSerial 
@@ -148,7 +161,7 @@ export default function WorkOrderDetail() {
 
       <WOProductionNotes 
         wo={wo}
-        isCoder={isCoder}
+        canAct={isCoder && !blockedByAssignment}
         productionTasks={productionTasks}
         handleCompleteTask={handleCompleteTask}
         savingTaskId={savingTaskId}

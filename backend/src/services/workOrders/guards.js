@@ -36,15 +36,8 @@ const assertCoderAssignment = async (wo, user_id, roles) => {
   const userRoles = roles || [];
   if (userRoles.includes('ADMIN')) return wo;
   if (!userRoles.includes('CODER')) return wo;
-  if (wo.assigned_coder_id == null) {
-    const workOrderRepository = require('../../repositories/workOrderRepository');
-    const assigned = await workOrderRepository.assignCoderIfUnassigned(wo.id, user_id);
-    if (assigned) wo.assigned_coder_id = assigned.assigned_coder_id;
-    if (Number(wo.assigned_coder_id) !== Number(user_id)) {
-      throw new ApiError(403, 'This work order is assigned to another coder');
-    }
-    return wo;
-  }
+  // Unassigned work orders stay open to any coder; only an admin assigns the owner.
+  if (wo.assigned_coder_id == null) return wo;
   if (Number(wo.assigned_coder_id) !== Number(user_id)) {
     throw new ApiError(403, 'This work order is assigned to another coder');
   }

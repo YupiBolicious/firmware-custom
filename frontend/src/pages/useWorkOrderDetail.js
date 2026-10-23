@@ -20,7 +20,9 @@ export default function useWorkOrderDetail() {
   const [finalizing, setFinalizing] = useState(false);
   const [startingProduction, setStartingProduction] = useState(false);
   const [completing, setCompleting] = useState(false);
-
+  const [closing, setClose] = useState(false);
+  const [reopening, setReopen] = useState(false); 
+  const [status, setStatus] = useState(false);
   const [itemForm, setItemForm] = useState(emptyItemForm);
   const [editingItemId, setEditingItemId] = useState(null);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
@@ -28,6 +30,9 @@ export default function useWorkOrderDetail() {
   const [correctionForm, setCorrectionForm] = useState(null);
   const [correctingItemId, setCorrectingItemId] = useState(null);
   const [correctionConfirmOpen, setCorrectionConfirmOpen] = useState(false);
+  const [coders, setCoders] = useState([]);
+  const [assigning, setAssigning] = useState(false);
+  const [changeStatus, setChangeStatus] = useState(false);
 
   useEffect(() => {
     if (!hasRole('CODER')) return;
@@ -60,6 +65,27 @@ export default function useWorkOrderDetail() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!hasRole('ADMIN')) return;
+    api.get('/users/coder')
+      .then((res) => setCoders(Array.isArray(res.data.data) ? res.data.data : []))
+      .catch(() => setCoders([]));
+  }, [hasRole]);
+
+  const handleAssignCoder = async (value) => {
+    setError('');
+    setAssigning(true);
+    try {
+      await api.put(`/work-orders/${id}/assign`, { coder_id: value ? Number(value) : null });
+      setMessage(value ? 'Work order assigned' : 'Work order unassigned');
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update assignment');
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   const isAdmin = hasRole('ADMIN');
   const isOwner = !!wo && Number(wo.created_by) === Number(user?.id);
@@ -289,6 +315,51 @@ export default function useWorkOrderDetail() {
     }
   };
 
+  const handleCloseWO = async () => {
+    setError(''); setMessage(''); setClose(true);
+    try { 
+      await api.post(`/work-orders/${id}/close`);
+      setMessage('Work Order Closed'); await load();
+    } catch(err){
+      const msg = err.response?.data?.message || 'Failed to close work order';
+    }
+    finally {setClose(false);
+    }
+  };
+
+  const handleReopenWO = async() => {
+    setError('');
+    setMessage('');
+    setReopen(true);
+    try {
+      await api.post(`/work-orders/${id}/reopen`);
+      setMessage('Work Order Reopen by Admin');
+      await load();
+    } catch(err) {
+      const msg= err.response.data.message || 'Failed to reopen work order';
+    }
+    finally {
+      setReopen(false);
+    }
+  };
+
+   const handleChangeStatus = async (newStatus) => {
+    if (!wo || !newStatus || newStatus === wo.status) return;
+    setError('');
+    setMessage('');
+    setChangingStatus(true);
+    try {
+      await api.put(`/work-orders/${id}/status`, { status: newStatus });
+      setMessage('Status updated');
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update status');
+      await load();
+    } finally {
+      setChangingStatus(false);
+    }
+  };
+
   return {
     wo,
     error,
@@ -316,6 +387,9 @@ export default function useWorkOrderDetail() {
     handleSaveNotes,
     canEdit,
     canManageAccess,
+    coders,
+    assigning,
+    handleAssignCoder,
     handleItemChange,
     openAddItem,
     handleAddItem,
@@ -347,6 +421,11 @@ export default function useWorkOrderDetail() {
     handleFinalize,
     handleStartProduction,
     handleCompleteProduction,
+    closing, 
+    reopening,
+    handleCloseWO,
+    handleReopenWO,
+    changeStatus,
     finalizeConfirm,
     startConfirm,
     completeConfirm,

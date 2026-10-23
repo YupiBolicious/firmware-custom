@@ -24,6 +24,10 @@ const listPmUsers = async () => {
   return userRepository.findAllByRole('PM');
 };
 
+const listCoderUsers = async () => {
+  return userRepository.findAllByRole('CODER');
+};
+
 const createUser = async ({ actorId, body, ip_address }) => {
   userValidator.validateUserCreate(body);
 
@@ -142,4 +146,4 @@ const resetPassword = async ({ actorId, id, body, ip_address }) => {
   return { id: existing.id, email: existing.email };
 };
 
-module.exports = { listUsers, listPmUsers, createUser, updateUser, resetPassword };
+module.exports = { listUsers, listPmUsers, listCoderUsers, createUser, updateUser, resetPassword };

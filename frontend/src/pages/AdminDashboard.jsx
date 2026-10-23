@@ -2,6 +2,8 @@ import { useValueToast } from '../components/Toast';
 import { Link } from 'react-router-dom';
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import useAdminDashboard, { RANGE_PRESETS } from './useAdminDashboard';
+import WoDashboardList from './WoDashboardList';
+import useDashboardWoList from './useDashboardWoList';
 
 const HEALTH_COLORS = { online: 'var(--success)', warning: 'var(--warning)', offline: 'var(--danger)' };
 
@@ -53,8 +55,33 @@ function TrendTooltip({ active, payload, label }) {
 
 export default function AdminDashboard() {
   const { data, error, loading, preset, changePreset, trendRefreshing, trendError, workload } =   useAdminDashboard();
+  const workOrders = useDashboardWoList();
   useValueToast(error);
   useValueToast(trendError);
+  useValueToast(workOrders.error);
+    
+  const woColumns = [
+    {
+      key: 'work-order',
+      label: 'Work Order',
+      render: (w) => (
+        <Link to={`/work-orders/${w.id}`}>
+          <strong>{w.wo_number}</strong>
+        </Link>
+      ),
+    },
+    { key: 'customer', label: 'Customer', className: 'text-muted',
+      render: (w) => w.customer || '-' },
+    { key: 'model', label: 'Model', render: (w) => w.group_summary || '-' },
+    { key: 'status', label: 'Status', render: (w) => w.status },
+    { key: 'items', label: 'Items', render: (w) => w.item_count ?? 0 },
+    {
+      key: 'hours',
+      label: 'Est. Hours',
+      render: (w) => `${Number(w.total_estimated_hours || 0).toFixed(1)}h`,
+    },
+    { key: 'created-by', label: 'Created By', render: (w) => w.created_by_name || '-' },
+  ];
 
   if (loading && !data) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
@@ -159,6 +186,34 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      <WoDashboardList
+        title="Work Orders"
+        rows={workOrders.rows}
+        total={workOrders.total}
+        page={workOrders.page}
+        totalPages={workOrders.totalPages}
+        onPageChange={workOrders.setPage}
+        columns={woColumns}
+        hasActiveFilters={workOrders.hasActiveFilters}
+        filterControls={
+          <div className="toolbar mb-8">
+            <input
+              className="filter-input"
+              type="search"
+              placeholder="Search work orders..."
+              value={workOrders.searchInput}
+              onChange={(event) => workOrders.setSearchInput(event.target.value)}
+            />
+            <select className="filter-input" value={workOrders.status} onChange={(event) => workOrders.setStatus(event.target.value)}>
+              <option value="ALL">All Statuses</option>
+              {['DRAFT', 'ANALYZED', 'FINALIZED', 'PRODUCTION', 'COMPLETED'].map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+        }
+        emptyMessage={workOrders.loading ? 'Loading work orders...' : 'No work orders yet.'}
+      />
       {/* Workload overview */}
       <div className="panel mb-16">
         <h3 className="mb-16">Workload Overview</h3>

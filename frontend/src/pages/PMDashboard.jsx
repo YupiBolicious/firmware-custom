@@ -7,6 +7,7 @@ import RelativeTime from '../components/RelativeTime';
 import usePmDashboard from './usePmDashboard';
 import FilterSearch from './FilterSearch';
 import StatusBadge from '../components/StatusBadge';
+import WoDashboardList from './WoDashboardList';
 
 const STATUS_COLORS = {
   DRAFT: 'var(--text-muted)',
@@ -50,6 +51,43 @@ export default function PMDashboard() {
   useValueToast(error);
   const navigate = useNavigate();
   const showInProgress = () => navigate('/work-orders');
+  const workOrderColumns = [
+    {
+      key: 'work-order',
+      label: 'WO Number',
+      render: (workOrder) => (
+        <Link to={`/work-orders/${workOrder.id}`}><strong>{workOrder.wo_number}</strong></Link>
+      ),
+    },
+    { key: 'model', label: 'Model', className: 'meta text-muted', render: (workOrder) => workOrder.group_summary || '-' },
+    { key: 'customer', label: 'Customer', className: 'meta text-muted', render: (workOrder) => workOrder.customer || '-' },
+    { key: 'items', label: 'Items', className: 'num', render: (workOrder) => workOrder.item_count },
+    { key: 'status', label: 'Status', render: (workOrder) => <StatusBadge status={workOrder.status} /> },
+    {
+      key: 'hours',
+      label: 'Hours',
+      className: 'num',
+      render: (workOrder) => Number(workOrder.total_estimated_hours) > 0 ? `${workOrder.total_estimated_hours}h` : '-',
+    },
+    {
+      key: 'progress',
+      label: 'Progress',
+      render: (workOrder) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
+          <div className="progress-track">
+            <div style={{ width: `${workOrder.progress}%`, height: '100%', background: workOrder.progress === 100 ? 'var(--success)' : 'var(--info)', borderRadius: 3 }} />
+          </div>
+          <span className="progress-pct">{workOrder.progress}%</span>
+        </div>
+      ),
+    },
+    {
+      key: 'updated',
+      label: 'Last Update',
+      className: 'meta text-muted',
+      render: (workOrder) => <RelativeTime date={workOrder.last_activity || workOrder.updated_at} />,
+    },
+  ];
 
 
   if (loading) return <div>Loading...</div>;
@@ -94,86 +132,29 @@ export default function PMDashboard() {
       </div>
 
       {/* 2. Work Queue */}
-      <div className="panel">
-        <div className="flex justify-between align-center mb-8">
-          <h3 style={{ margin: 0 }}>
-            Work Queue
-            {hasActiveFilters && (
-              <span className="text-muted" style={{ fontSize: 13, fontWeight: 400, marginLeft: 8 }}>
-                {matchingCount} shown
-              </span>
-            )}
-          </h3>
-        </div>
-        <FilterSearch
-          filters={filters}
-          setFilter={setFilter}
-          showAdvanced={showAdvanced}
-          setShowAdvanced={setShowAdvanced}
-          clearFilters={clearFilters}
-          hasActiveFilters={hasActiveFilters}
-          uniqueModels={uniqueModels}
-          uniqueVersions={uniqueVersions}
-          uniqueComplexities={uniqueComplexities}
-        />
-
-        {filteredQueue.length === 0 ? (
-          <div className="text-muted">No work orders match the current filters.</div>
-        ) : (
-          <>
-          <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>WO Number</th>
-                <th>Model</th>
-                <th>Customer</th>
-                <th>Items</th>
-                <th>Status</th>
-                <th>Hours</th>
-                <th>Progress</th>
-                <th>Last Update</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleQueue.map((w) => (
-                <tr key={w.id}>
-                  <td className="num"><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
-                  <td className="meta text-muted">{w.group_summary || '-'}</td>
-                  <td className="meta text-muted">{w.customer || '-'}</td>
-                  <td className="num">{w.item_count}</td>
-                  <td><StatusBadge status={w.status} /></td>
-                  <td className="num">{w.total_estimated_hours > 0 ? `${w.total_estimated_hours}h` : '-'}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
-                      <div className="progress-track">
-                        <div style={{ width: `${w.progress}%`, height: '100%', background: w.progress === 100 ? 'var(--success)' : 'var(--info)', borderRadius: 3 }} />
-                      </div>
-                      <span className="progress-pct">{w.progress}%</span>
-                    </div>
-                  </td>
-                  <td className="meta text-muted">
-                    <RelativeTime date={w.last_activity || w.updated_at} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-          {queueTotalPages > 1 && (
-            <div className="flex justify-between align-center mt-8">
-              <span className="text-muted" style={{ fontSize: 13 }}>
-                Page {queuePage} of {queueTotalPages}
-              </span>
-              <div className="flex gap-8">
-                <button className="btn" disabled={queuePage <= 1} onClick={() => setQueuePage(queuePage - 1)}>Prev</button>
-                <button className="btn" disabled={queuePage >= queueTotalPages} onClick={() => setQueuePage(queuePage + 1)}>Next</button>
-              </div>
-            </div>
-          )}
-          </>
-        )}
-      </div>
+      <WoDashboardList
+        title="Work Queue"
+        rows={visibleQueue}
+        total={matchingCount}
+        page={queuePage}
+        totalPages={queueTotalPages}
+        onPageChange={setQueuePage}
+        columns={workOrderColumns}
+        hasActiveFilters={hasActiveFilters}
+        filterControls={
+          <FilterSearch
+            filters={filters}
+            setFilter={setFilter}
+            showAdvanced={showAdvanced}
+            setShowAdvanced={setShowAdvanced}
+            clearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+            uniqueModels={uniqueModels}
+            uniqueVersions={uniqueVersions}
+            uniqueComplexities={uniqueComplexities}
+          />
+        }
+      />
       <div className="split-2">
       {/* 3. Progress Overview */}
       <section className="panel status-overview" aria-labelledby="status-overview-title">

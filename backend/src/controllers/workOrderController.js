@@ -66,6 +66,19 @@ const getById = async (req, res, next) => {
   }
 };
 
+const assignCoder = async (req, res, next) => {
+  try {
+    const data = await workOrderService.assignWorkOrderCoder(req.params.id, {
+      coder_id: req.body.coder_id,
+      user_id: req.user.id,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Work order assignment updated', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const create = async (req, res, next) => {
   try {
     const data = await workOrderService.createWorkOrder({
@@ -114,6 +127,19 @@ const updateNotes = async (req, res, next) => {
     next(err);
   }
 };
+
+// const updateStatus = () => {
+//   try {
+//     const data = await workOrderService.updateWorkOrderStatus(req.params.id, {
+//       status: req.body.status,
+//       user_id: req.user.id,
+//       roles: req.user.roles,
+//       ip_address: req.ip
+//     });
+//     res.json({success: true, message: 'Work order status updated',})
+//   } catch(err) { next(err);
+//   }
+// };
 
 const addItem = async (req, res, next) => {
   try {
@@ -254,6 +280,31 @@ const completeProduction = async (req, res, next) => {
     next(err);
   }
 };
+
+const closeWO =  async(req, res, next) => {
+try{
+  const data = await workOrderService.closeWO(req.params.id, {
+    user_id: req.user.id,
+    roles: req.user.roles,
+    ip_address: req.ip,
+  }); 
+  res.json({success: true, message:'Work order Closed', data});
+}catch (err) {
+  next(err);
+}};
+
+const reopenWO = async(req, res, next) => {
+  try{
+    const data = await workOrderService.reopenWO(req.params.id, {
+      user_id: req.user.id,
+      roles: req.user.roles,
+      ip_adress: req.ip,
+    }); 
+    res.json({success: true, message:'Work Order Reopen', data});
+  }catch(err){
+    next(err);
+  }
+}
 
 const completeProductionTask = async (req, res, next) => {
   try {
@@ -470,6 +521,7 @@ module.exports = {
   reviewItem,
   correctReviewedItem,
   getById,
+  assignCoder,
   create,
   previewWorkOrder,
   confirmUploadWorkOrder,
@@ -485,6 +537,8 @@ module.exports = {
   finalize,
   startProduction,
   completeProduction,
+  closeWO,
+  reopenWO,
   completeProductionTask,
   listAccess,
   grantAccess,

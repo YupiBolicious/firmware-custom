@@ -69,13 +69,14 @@ const findById = async (id) => {
   const result = await pool.query(
     `SELECT wo.id, wo.wo_number, wo.title, wo.customer, wo.status, wo.notes,
             wo.revision, wo.created_by, wo.assigned_coder_id, wo.created_at, wo.updated_at,
-            u.full_name AS created_by_name,
+            u.full_name AS created_by_name, assigned.full_name as assigned_coder_name,
 COALESCE((SELECT SUM(COALESCE(ie.total_hours, 0))
                        FROM work_order_items woi
                        JOIN item_estimations ie ON ie.work_order_item_id = woi.id
                        WHERE woi.work_order_id = wo.id), 0) AS total_estimated_hours
      FROM work_orders wo
      LEFT JOIN users u ON u.id = wo.created_by
+     left join users assigned on assigned.id = wo.assigned_coder_id
      WHERE wo.id = $1`,
     [id]
   );
@@ -654,27 +655,41 @@ const countCoderReviewRemainingByWorkOrderId = async (workOrderId) => {
   return result.rows[0]?.cnt || 0;
 };
 
-const assignCoderIfUnassigned = async (workOrderId, coderId) => {
+const assignCoder = async (workOrderId, coderId) => {
   const result = await pool.query(
     `UPDATE work_orders
      SET assigned_coder_id = $2, updated_at = NOW()
-     WHERE id = $1 AND assigned_coder_id IS NULL
+     WHERE id = $1
      RETURNING *`,
     [workOrderId, coderId]
   );
-  if (result.rows[0]) return result.rows[0];
-  const cur = await pool.query(`SELECT * FROM work_orders WHERE id = $1`, [workOrderId]);
-  return cur.rows[0] || null;
+  return result.rows[0] || null;
 };
 
 const updateStatus = async (id, status, fromStatus) => {
   const result = await pool.query(
     `UPDATE work_orders SET status = $2, updated_at = NOW()
      WHERE id = $1 AND ($3::text IS NULL OR status = $3)
-     RETURNING *`,
+     RETURNING id`,
     [id, status, fromStatus || null]
   );
-  return result.rows[0] || null;
+  if (result.rowCount === 0) return null;
+  return findById(id);
+};
+
+const updateStatusDirect = async (id, newStatus, expectedOldStatus = null) => {
+  const params = [newStatus, id];
+  let where = 'WHERE id = $2';
+  if (expectedOldStatus) {
+    params.push(expectedOldStatus);
+    where += ` AND status = $${params.length}`;
+  }
+  const result = await pool.query(
+    `UPDATE work_orders SET status = $1, updated_at = NOW() ${where} RETURNING id`,
+    params
+  );
+  if (result.rowCount === 0) return null;
+  return findById(id);
 };
 
 // ---------- Work Order Comments ----------
@@ -752,8 +767,9 @@ module.exports = {
   deleteItem,
   countItemsByWorkOrderId,
   countCoderReviewRemainingByWorkOrderId,
-  assignCoderIfUnassigned,
+  assignCoder,
   updateStatus,
+  updateStatusDirect,
   findCommentsByWorkOrderId,
   createComment,
   deleteComment,
