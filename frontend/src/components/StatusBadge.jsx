@@ -20,13 +20,13 @@ export default function StatusBadge({ status, stale }) {
     NON_FIRMWARE: { label: 'Non-Firmware', cls: 'badge-muted' },
     CODER_REVIEW: { label: 'Pending Review', cls: 'badge-warning' },
     PENDING: { label: 'Pending', cls: 'badge-info' },
-    DRAFT: { label: 'Draft', cls: 'badge-muted' },
-    ANALYZED: { label: 'Analyzed', cls: 'badge-info' },
-    FINALIZED: { label: 'Finalize', cls: 'badge-info' },
-    PRODUCTION: { label: 'Production', cls: 'badge-production' },
-    COMPLETED: { label: 'Completed', cls: 'badge-success' },
-    ON_GOING: {label: 'On-Going', cls:'badge-warning'},
-    CLOSE: {label:'Close', cls:'badge-info'}
+    DRAFT: { label: 'Open', cls: 'badge-danger' },
+    ANALYZED: { label: 'Open', cls: 'badge-danger' },
+    FINALIZED: { label: 'On-going', cls: 'badge-warning' },
+    PRODUCTION: { label: 'On-Going', cls: 'badge-warning' },
+    COMPLETED: { label: 'Completed', cls: 'badge-info' },
+    READY_TO_CLOSE: {label: 'Close', cls: 'badge-success'}
+    
   };
   const item = map[status] || { label: status || 'Unknown', cls: 'badge-muted' };
   return (

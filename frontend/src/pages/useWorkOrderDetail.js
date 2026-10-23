@@ -20,8 +20,9 @@ export default function useWorkOrderDetail() {
   const [finalizing, setFinalizing] = useState(false);
   const [startingProduction, setStartingProduction] = useState(false);
   const [completing, setCompleting] = useState(false);
-  const [changingStatus, setChangingStatus] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState(null);
+  const [closing, setClose] = useState(false);
+  const [reopening, setReopen] = useState(false); 
+  const [status, setStatus] = useState(false);
   const [itemForm, setItemForm] = useState(emptyItemForm);
   const [editingItemId, setEditingItemId] = useState(null);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
@@ -31,6 +32,7 @@ export default function useWorkOrderDetail() {
   const [correctionConfirmOpen, setCorrectionConfirmOpen] = useState(false);
   const [coders, setCoders] = useState([]);
   const [assigning, setAssigning] = useState(false);
+  const [changeStatus, setChangeStatus] = useState(false);
 
   useEffect(() => {
     if (!hasRole('CODER')) return;
@@ -313,22 +315,50 @@ export default function useWorkOrderDetail() {
     }
   };
 
-  const handleAdminStatusChange = async (newStatus) => {
-    if (!isAdmin || !wo || !newStatus || newStatus === wo.status || changingStatus) return;
+  const handleCloseWO = async () => {
+    setError(''); setMessage(''); setClose(true);
+    try { 
+      await api.post(`/work-orders/${id}/close`);
+      setMessage('Work Order Closed'); await load();
+    } catch(err){
+      const msg = err.response?.data?.message || 'Failed to close work order';
+    }
+    finally {setClose(false);
+    }
+  };
+
+  const handleReopenWO = async() => {
+    setError('');
+    setMessage('');
+    setReopen(true);
+    try {
+      await api.post(`/work-orders/${id}/reopen`);
+      setMessage('Work Order Reopen by Admin');
+      await load();
+    } catch(err) {
+      const msg= err.response.data.message || 'Failed to reopen work order';
+    }
+    finally {
+      setReopen(false);
+    }
+  };
+
+   const handleChangeStatus = async (newStatus) => {
+    if (!wo || !newStatus || newStatus === wo.status) return;
     setError('');
     setMessage('');
     setChangingStatus(true);
     try {
-      await api.put(`/work-orders/${id}/admin-status`, { status: newStatus });
-      setMessage(`Work order status changed to ${newStatus}`);
+      await api.put(`/work-orders/${id}/status`, { status: newStatus });
+      setMessage('Status updated');
       await load();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to change work order status');
+      setError(err.response?.data?.message || 'Failed to update status');
+      await load();
     } finally {
       setChangingStatus(false);
     }
   };
-
 
   return {
     wo,
@@ -391,10 +421,11 @@ export default function useWorkOrderDetail() {
     handleFinalize,
     handleStartProduction,
     handleCompleteProduction,
-    changingStatus,
-    pendingStatus,
-    setPendingStatus,
-    handleAdminStatusChange,
+    closing, 
+    reopening,
+    handleCloseWO,
+    handleReopenWO,
+    changeStatus,
     finalizeConfirm,
     startConfirm,
     completeConfirm,  

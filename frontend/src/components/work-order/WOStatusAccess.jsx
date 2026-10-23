@@ -1,6 +1,6 @@
 import { Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import StatusBadge, { statusBadgeMeta } from '../StatusBadge';
+import StatusBadge from '../StatusBadge';
 
 export default function WOStatusAccess({ 
   wo, 
@@ -10,7 +10,8 @@ export default function WOStatusAccess({
   finalizing, 
   startingProduction, 
   completing,
-  changingStatus,
+  closing,
+  reopening, 
   openFinalizeConfirm, 
   openStartConfirm, 
   openCompleteConfirm, 
@@ -27,43 +28,39 @@ export default function WOStatusAccess({
   accessBusy,
   handleGrantAccess,
   handleRevokeAccess,
-  onRequestRevoke,
   isAdmin,
-  isOwner,
   coders,
   assigning,
   handleAssignCoder,
   blockedByAssignment,
-  onRequestStatusChange,
-  canStartProduction,
+  handleCloseWO,
+  handleReopenWO,
+  changeStatus,
+  handleChangeStatus
 }) {
-  const hasProductionTasks = (wo.production_tasks || []).length > 0;
-  const canAdminReopen = ['READY_TO_CLOSE', 'COMPLETED'].includes(wo.status);
-  const adminStatusOptions = wo.status === 'READY_TO_CLOSE'
-    ? ['READY_TO_CLOSE', 'ANALYZED', ...(hasProductionTasks ? ['FINALIZED', 'PRODUCTION'] : []), 'COMPLETED']
-    : ['COMPLETED', 'ANALYZED', ...(hasProductionTasks ? ['FINALIZED', 'PRODUCTION'] : [])];
-
   return (
     <>
       <div className="flex justify-between align-center mb-16">
         <h1>{wo.wo_number}</h1>
         {(
-          (canEdit && !['FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'].includes(wo.status)) ||
-          ((isAdmin || isOwner) && wo.status === 'ANALYZED') || canStartProduction ||
-          (isCoder && !blockedByAssignment && wo.status === 'PRODUCTION')
+          (canEdit && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED') ||
+          (isAdmin && wo.status === 'ANALYZED') ||
+          (isCoder && !blockedByAssignment && wo.status === 'FINALIZED') ||
+          (isCoder && !blockedByAssignment && wo.status === 'PRODUCTION') ||
+          (isAdmin && wo.status === 'READY_TO_CLOSE')
         ) && (
           <div className="flex gap-8">
-            {canEdit && !['FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'].includes(wo.status) && (
+            {canEdit && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED' && (
               <Link className="icon-btn" to={`/work-orders/${wo.id}/edit`} title="Edit Work Order" aria-label="Edit Work Order"><Pencil size={16} strokeWidth={1.5} /></Link>
             )}
-            {(isAdmin || isOwner) && wo.status === 'ANALYZED' && (
+            {isAdmin && wo.status === 'ANALYZED' && (
               <button className="btn" onClick={openFinalizeConfirm} disabled={finalizing || countOpenItem > 0} title={countOpenItem > 0 ? `${countOpenItem} item(s) awaiting coder review` : undefined}>
                 {finalizing
                   ? (allNonFirmware ? 'Completing...' : 'Finalizing...')
                   : reviewedItems}
               </button>
             )}
-            {canStartProduction && wo.status === 'FINALIZED' && (
+            {isCoder && !blockedByAssignment && wo.status === 'FINALIZED' && (
               <button className="btn" onClick={openStartConfirm} disabled={startingProduction}>
                 {startingProduction ? 'Starting...' : 'Start Production'}
               </button>
@@ -73,6 +70,16 @@ export default function WOStatusAccess({
                 {completing ? 'Completing...' : completeAllLabel}
               </button>
             )}
+            {isAdmin && wo.status === 'READY_TO_CLOSE' && (
+              <>
+                <button className='btn btn-secondary' onClick={handleReopenWO} disabled={reopening || closing}>
+                  {reopening? 'Reopening...' : 'Reopen to Production'}
+                </button>
+                <button className='btn' onClick={handleCloseWO} disabled={closing || reopening}>
+                  {closing? 'Closing...' : 'Close Work Order'}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -80,30 +87,45 @@ export default function WOStatusAccess({
       <div className="panel mb-16">
         <h3>Work Order Details</h3>
         <div className="form-grid">
-          <div>
-            <span className="text-muted">Status: {''}</span>
-            {isAdmin && canAdminReopen ? (
+          {/* <div><span className="text-muted">Status:</span> <StatusBadge status={wo.status} /> */}
+            <div>
+            <span className="text-muted">Status:</span>{' '}
+            {isAdmin ? (
               <select
-                className={`wo-input-text status-select ${statusBadgeMeta(wo.status).cls}`}
-                style={{ marginTop: 4}}
+                className="wo-input-text"
+                style={{ marginLeft: 8, width: 'auto' }}
                 value={wo.status}
                 disabled={changingStatus}
-                aria-label="Change work order status"
-                onChange={(event) => {
-                  const nextStatus = event.target.value;
-                  if (!nextStatus || nextStatus === wo.status) return;
-                  onRequestStatusChange(nextStatus);
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val || val === wo.status) return;
+                  const ok = window.confirm(`Change status from ${wo.status} to ${val}?`);
+                  if (!ok) {
+                    e.target.value = wo.status;
+                    return;
+                  }
+                  handleChangeStatus(val);
                 }}
               >
-                {adminStatusOptions.map((status) => (
-                  <option key={status} value={status}> {statusBadgeMeta(status || '').label}</option>
+                {['DRAFT','ANALYZED','FINALIZED','PRODUCTION','READY_TO_CLOSE','COMPLETED'].map((s) => (
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             ) : (
               <StatusBadge status={wo.status} />
             )}
+            {staleVerdicts && canEdit && (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ marginLeft: 8 }}
+                onClick={handleAnalyze}
+                disabled={analyzing}
+                title="Item text changed after the last analysis"
+              >
+                {analyzing ? 'Analyzing...' : 'Re-analyze'}
+              </button>
+            )}
           </div>
-          
           <div><span className="text-muted">Customer:</span> {wo.customer || '-'}</div>
           <div><span className="text-muted">Created By:</span> {wo.created_by_name || '-'}</div>
           <div><span className="text-muted">Created At:</span> {new Date(wo.created_at).toLocaleString()}</div>
@@ -112,14 +134,14 @@ export default function WOStatusAccess({
               {isAdmin && (
                 <select
                   className="wo-input-text"
-                  style={{ marginTop:4}}
+                  style={{ marginTop:8 }}
                   value={wo.assigned_coder_id || ''}
                   disabled={assigning}
                   onChange={(e) => handleAssignCoder(e.target.value)}
                 >
                   <option value="">Select User</option>
                   {coders.map((c) => (
-                    <option key={c.id} value={c.id}>{c.full_name} </option>
+                    <option key={c.id} value={c.id}>{c.full_name || c.username} ({c.username})</option>
                   ))}
                 </select>
               )}
@@ -171,8 +193,8 @@ export default function WOStatusAccess({
                   <tr key={a.user_id}>
                     <td>{a.full_name || a.username} ({a.username})</td>
                     <td>
-                      <button className="btn btn-danger btn-sm" disabled={accessBusy === a.user_id} onClick={() => onRequestRevoke(a)}>
-                        {accessBusy === a.user_id ? 'Removing...' : 'Remove'}
+                      <button className="btn btn-danger btn-sm" disabled={accessBusy === a.user_id} onClick={() => handleRevokeAccess(a.user_id)}>
+                        {accessBusy === a.user_id ? 'Removing...' : 'Revoke'}
                       </button>
                     </td>
                   </tr>

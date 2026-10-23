@@ -14,7 +14,11 @@ const auditService = require('../auditService');
 const notificationService = require('../notificationService');
 const { ApiError } = require('../../middleware/errorHandler');
 const { deriveReviewReason, pickPrimaryBlockedReason } = require('../semanticAssist');
+<<<<<<< HEAD
 const { assertCanEditWorkOrder, verifyAssignedCoder } = require('./guards');
+=======
+const { assertCanEditWorkOrder, assertCoderAssignment } = require('./guards');
+>>>>>>> 092ec77 (status dropdown admin)
 
 const notifyWorkOrderRecipients = async ({ work_order_id, owner_id, status, message }) => {
   const granteeIds = await workOrderAccessRepository.findUserIdsByWorkOrderId(work_order_id);
@@ -359,8 +363,13 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
     throw new ApiError(404, 'Work order not found');
   }
   const userRoles = roles || [];
+<<<<<<< HEAD
   if (!userRoles.includes('ADMIN') && !userRoles.includes('PM')) {
     throw new ApiError(403, 'only admin or PM can finalize work order');
+=======
+  if(!userRoles.includes('ADMIN')) {
+    throw new ApiError(403, 'only admin can finalize work order');
+>>>>>>> 092ec77 (status dropdown admin)
   }
   await assertCanEditWorkOrder(wo, user_id, roles);
   if (wo.status === 'FINALIZED') {
@@ -464,7 +473,11 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
 const startProduction = async (id, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) throw new ApiError(404, 'Work order not found');
+<<<<<<< HEAD
   await verifyAssignedCoder(wo, user_id, roles || []);
+=======
+  await assertCoderAssignment(wo, user_id, roles || []);
+>>>>>>> 092ec77 (status dropdown admin)
   if (wo.status !== 'FINALIZED') throw new ApiError(400, 'Work order must be FINALIZED to start production');
   const updated = await workOrderRepository.updateStatus(id, 'PRODUCTION', 'FINALIZED');
   if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
@@ -540,6 +553,7 @@ const reopenWorkOrder = async (id, { user_id, roles, ip_address }) => {
   return updated;
 };
 
+<<<<<<< HEAD
 const adminChangeWorkOrderStatus = async (id, newStatus, { user_id, roles, ip_address } = {}) => {
   if (!(roles || []).includes('ADMIN')) {
     throw new ApiError(403, 'Only administrators can change a closed work order status');
@@ -603,12 +617,18 @@ const adminChangeWorkOrderStatus = async (id, newStatus, { user_id, roles, ip_ad
   return updated;
 };
 
+=======
+>>>>>>> 092ec77 (status dropdown admin)
 const completeProductionTask = async (taskId, { completed, user_id, roles, ip_address }) => {
   const task = await workOrderRepository.findProductionTaskById(taskId);
   if (!task) throw new ApiError(404, 'Production task not found');
   const wo = await workOrderRepository.findById(task.work_order_id);
   if (!wo) throw new ApiError(404, 'Work order not found');
+<<<<<<< HEAD
   await verifyAssignedCoder(wo, user_id, roles || []);
+=======
+  await assertCoderAssignment(wo, user_id, roles || []);
+>>>>>>> 092ec77 (status dropdown admin)
   if (wo.status !== 'PRODUCTION') {
     throw new ApiError(400, 'Work order must be in production to update tasks');
   }
@@ -635,7 +655,11 @@ const completeProductionTask = async (taskId, { completed, user_id, roles, ip_ad
 const completeProduction = async (id, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) throw new ApiError(404, 'Work order not found');
+<<<<<<< HEAD
   await verifyAssignedCoder(wo, user_id, roles || []);
+=======
+  await assertCoderAssignment(wo, user_id, roles || []);
+>>>>>>> 092ec77 (status dropdown admin)
   if (wo.status !== 'PRODUCTION') throw new ApiError(400, 'Work order must be in PRODUCTION to complete');
   const { total, open } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
   if (open > 0) {
@@ -656,7 +680,11 @@ const completeProduction = async (id, { user_id, roles, ip_address }) => {
     work_order_id: id,
     owner_id: wo.created_by,
     status: 'WO_READY_TO_CLOSE',
+<<<<<<< HEAD
     message: `${wo.wo_number} production is complete and is awaiting admin closure`,
+=======
+    message: `${wo.wo_number} has been completed`,
+>>>>>>> 092ec77 (status dropdown admin)
   });
   return updated;
 };
@@ -668,6 +696,9 @@ module.exports = {
   completeProduction,
   closeWorkOrder,
   reopenWorkOrder,
+<<<<<<< HEAD
   adminChangeWorkOrderStatus,
+=======
+>>>>>>> 092ec77 (status dropdown admin)
   completeProductionTask,
 };

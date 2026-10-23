@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import usePmDashboard from './usePmDashboard';
 import FilterSearch from './FilterSearch';
-import {statusBadgeMeta} from '../components/StatusBadge';
-import WoDashboardList, { DASHBOARD_WO_COLUMNS } from './WoDashboardList';
-import useDashboardWoList from './useDashboardWoList';
+import StatusBadge from '../components/StatusBadge';
+import WoDashboardList from './WoDashboardList';
 
 const STATUS_COLORS = {
   DRAFT: 'var(--text-muted)',
@@ -58,6 +57,45 @@ export default function PMDashboard() {
   useValueToast(error);
   const navigate = useNavigate();
   const showInProgress = () => navigate('/work-orders');
+  const workOrderColumns = [
+    {
+      key: 'work-order',
+      label: 'WO Number',
+      render: (workOrder) => (
+        <Link to={`/work-orders/${workOrder.id}`}><strong>{workOrder.wo_number}</strong></Link>
+      ),
+    },
+    { key: 'model', label: 'Model', className: 'meta text-muted', render: (workOrder) => workOrder.group_summary || '-' },
+    { key: 'customer', label: 'Customer', className: 'meta text-muted', render: (workOrder) => workOrder.customer || '-' },
+    { key: 'items', label: 'Items', className: 'num', render: (workOrder) => workOrder.item_count },
+    { key: 'status', label: 'Status', render: (workOrder) => <StatusBadge status={workOrder.status} /> },
+    {
+      key: 'hours',
+      label: 'Hours',
+      className: 'num',
+      render: (workOrder) => Number(workOrder.total_estimated_hours) > 0 ? `${workOrder.total_estimated_hours}h` : '-',
+    },
+    {
+      key: 'progress',
+      label: 'Progress',
+      render: (workOrder) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 140 }}>
+          <div className="progress-track">
+            <div style={{ width: `${workOrder.progress}%`, height: '100%', background: workOrder.progress === 100 ? 'var(--success)' : 'var(--info)', borderRadius: 3 }} />
+          </div>
+          <span className="progress-pct">{workOrder.progress}%</span>
+        </div>
+      ),
+    },
+    {
+      key: 'updated',
+      label: 'Last Update',
+      className: 'meta text-muted',
+      render: (workOrder) => <RelativeTime date={workOrder.last_activity || workOrder.updated_at} />,
+    },
+  ];
+
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
@@ -101,13 +139,14 @@ export default function PMDashboard() {
 
       {/* 2. Work Queue */}
       <WoDashboardList
-        rows={workOrders.rows}
-        total={workOrders.total}
-        page={workOrders.page}
-        totalPages={workOrders.totalPages}
-        onPageChange={workOrders.setPage}
-        columns={DASHBOARD_WO_COLUMNS}
-        hasActiveFilters={workOrders.hasActiveFilters}
+        title="Work Queue"
+        rows={visibleQueue}
+        total={matchingCount}
+        page={queuePage}
+        totalPages={queueTotalPages}
+        onPageChange={setQueuePage}
+        columns={workOrderColumns}
+        hasActiveFilters={hasActiveFilters}
         filterControls={
           <FilterSearch
             filters={filters}
@@ -117,6 +156,7 @@ export default function PMDashboard() {
             clearFilters={clearFilters}
             hasActiveFilters={hasActiveFilters}
             uniqueModels={uniqueModels}
+            uniqueVersions={uniqueVersions}
             uniqueComplexities={uniqueComplexities}
           />
         }

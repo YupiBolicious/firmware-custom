@@ -29,7 +29,7 @@ module.exports = {
   completeProduction: lifecycle.completeProduction,
   closeWO: lifecycle.closeWorkOrder,
   reopenWO: lifecycle.reopenWorkOrder,
-  adminChangeWorkOrderStatus: lifecycle.adminChangeWorkOrderStatus,
+  updateWorkOrderStatus: core.updateWorkOrderStatus,
   completeProductionTask: lifecycle.completeProductionTask,
   listWorkOrderAccess: access.listWorkOrderAccess,
   grantWorkOrderAccess: access.grantWorkOrderAccess,

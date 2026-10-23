@@ -5,8 +5,7 @@ import RelativeTime from '../components/RelativeTime';
 import useCoderDashboard from './useCoderDashboard';
 import FilterSearch from './FilterSearch';
 import StatusBadge from '../components/StatusBadge';
-import WoDashboardList, { DASHBOARD_WO_COLUMNS } from './WoDashboardList';
-import useDashboardWoList from './useDashboardWoList';
+import WoDashboardList from './WoDashboardList';
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -51,6 +50,40 @@ export default function CoderDashboard() {
   const showCompleted= () =>{
     navigate('/work-orders');
   };
+
+  const woColumns = [
+  {
+    key: 'work-order',
+    label: 'Work Order',
+    render: (w) => (
+      <Link to={`/work-orders/${w.id}`}>
+        <strong>{w.wo_number}</strong>
+      </Link>
+    ),
+  },
+  { key: 'customer', label: 'Customer', className: 'text-muted',
+    render: (w) => w.customer || '-' },
+  { key: 'status', label: 'Status',
+    render: (w) => <StatusBadge status={w.status} /> },
+  {
+    key: 'open-items',
+    label: 'Open Items',
+    render: (w) => w.open_count > 0
+      ? <span className="badge badge-warning">{w.open_count} of {w.item_count}</span>
+      : <span className="text-muted">{w.done_count}/{w.item_count}</span>,
+  },
+  {
+    key: 'hours',
+    label: 'Hours',
+    render: (w) => w.total_hours > 0 ? `${Number(w.total_hours).toFixed(1)}h` : '-',
+  },
+  {
+    key: 'updated',
+    label: 'Updated',
+    className: 'text-muted',
+    render: (w) => w.last_activity ? <RelativeTime date={w.last_activity} /> : '-',
+  },
+];
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
@@ -155,13 +188,13 @@ export default function CoderDashboard() {
         )}
       </div>
       <WoDashboardList
-        rows={workOrders.rows}
-        total={workOrders.total}
-        page={workOrders.page}
-        totalPages={workOrders.totalPages}
-        onPageChange={workOrders.setPage}
-        columns={DASHBOARD_WO_COLUMNS}
-        hasActiveFilters={workOrders.hasActiveFilters}
+        rows={workOrderQueue}
+        total={workOrderQueueTotal}
+        page={workOrderPage}
+        totalPages={workOrderQueueTotalPages}
+        onPageChange={setWorkOrderPage}
+        columns={woColumns}
+        hasActiveFilters={hasActiveFilters}
         filterControls={
           <FilterSearch
             filters={filters}
@@ -171,7 +204,7 @@ export default function CoderDashboard() {
             clearFilters={clearFilters}
             hasActiveFilters={hasActiveFilters}
             uniqueComplexities={uniqueComplexities}
-            uniqueModels={uniqueModels}
+            classificationLabels={CLASSIFICATION_STATUS_LABELS}
           />
         }
       />

@@ -21,6 +21,14 @@ function rangeFromPreset(days) {
   return { from: formatLocalDate(from), to: formatLocalDate(to) };
 }
 
+const initialFilters = {
+  search: '',
+  complexityFilter: 'ALL',
+  classificationStatusFilter: 'ALL',
+  statusFilter: 'ALL',
+  dateFrom: '',
+  dateTo: '',
+};
 export default function useAdminDashboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -29,6 +37,12 @@ export default function useAdminDashboard() {
   const [trendRefreshing, setTrendRefreshing] = useState(false);
   const [trendError, setTrendError] = useState('');
   const firstRender = useRef(true);
+  const [filters, setFilters] = useState(initialFilters);
+
+  const workOrderQueue = data?.work_order_queue?.items || [];
+  const workOrderQueueTotal = data?.work_order_queue?.total || 0;
+  const workOrderQueueTotalPages = Math.max(1, Math.ceil(workOrderQueueTotal / 10));
+
 
 
   useEffect(() => {

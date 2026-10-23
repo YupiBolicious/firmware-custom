@@ -711,43 +711,6 @@ const updateStatusDirect = async (id, newStatus, expectedOldStatus = null) => {
   return findById(id);
 };
 
-const transitionAdminStatus = async ({ id, fromStatus, toStatus, clearProductionTasks = false }) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const currentResult = await client.query(
-      'SELECT id, status FROM work_orders WHERE id = $1 FOR UPDATE',
-      [id]
-    );
-    const current = currentResult.rows[0];
-    if (!current || current.status !== fromStatus) {
-      await client.query('ROLLBACK');
-      return null;
-    }
-
-    if (clearProductionTasks) {
-      await client.query('DELETE FROM production_tasks WHERE work_order_id = $1', [id]);
-    }
-
-    const result = await client.query(
-      `UPDATE work_orders SET status = $2, updated_at = NOW()
-       WHERE id = $1 AND status = $3 RETURNING id`,
-      [id, toStatus, fromStatus]
-    );
-    if (result.rowCount === 0) {
-      await client.query('ROLLBACK');
-      return null;
-    }
-    await client.query('COMMIT');
-    return findById(id);
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
-};
-
 // ---------- Work Order Comments ----------
 const findCommentsByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
@@ -826,7 +789,6 @@ module.exports = {
   assignCoder,
   updateStatus,
   updateStatusDirect,
-  transitionAdminStatus,
   findCommentsByWorkOrderId,
   createComment,
   deleteComment,
