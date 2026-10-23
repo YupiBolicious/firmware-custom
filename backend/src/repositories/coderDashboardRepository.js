@@ -98,11 +98,12 @@ const findWorkQueue = async (userId, scope = 'my') => {
   return result.rows;
 };
 
-const buildWorkOrderConds = ({ search, woStatus, complexity, classification, dateFrom, dateTo, coderId, scope } = {}) => {
+// General view: every work order counts, not only the ones assigned to the viewer.
+const WOList = ({ search, woStatus, complexity, classification, dateFrom, dateTo, assignedCoderId } = {}) => {
   const conds = [];
   const params = [];
-  if (scope !== 'all' && coderId != null) {
-    params.push(coderId);
+  if (assignedCoderId != null) {
+    params.push(assignedCoderId);
     conds.push(`wo.assigned_coder_id = $${params.length}`);
   }
   if (search) {
@@ -115,11 +116,14 @@ const buildWorkOrderConds = ({ search, woStatus, complexity, classification, dat
   }
   if (complexity && complexity !== 'ALL') {
     params.push(complexity);
-    conds.push(`EXISTS (SELECT 1 FROM work_order_items wci JOIN classifications cci ON cci.work_order_item_id = wci.id JOIN complexity_levels clci ON clci.id = cci.complexity_level_id WHERE wci.work_order_id = wo.id AND clci.code = $${params.length})`);
+    conds.push(`EXISTS (SELECT 1 FROM work_order_items wci JOIN classifications cci ON cci.work_order_item_id = wci.id 
+      JOIN complexity_levels clci ON clci.id = cci.complexity_level_id 
+      WHERE wci.work_order_id = wo.id AND clci.code = $${params.length})`);
   }
   if (classification && classification !== 'ALL') {
     params.push(classification);
-    conds.push(`EXISTS (SELECT 1 FROM work_order_items wcc JOIN classifications ccc ON ccc.work_order_item_id = wcc.id WHERE wcc.work_order_id = wo.id AND ccc.status = $${params.length})`);
+    conds.push(`EXISTS (SELECT 1 FROM work_order_items wcc JOIN classifications ccc ON ccc.work_order_item_id = wcc.id 
+      WHERE wcc.work_order_id = wo.id AND ccc.status = $${params.length})`);
   }
   if (dateFrom) {
     params.push(dateFrom);
@@ -132,15 +136,15 @@ const buildWorkOrderConds = ({ search, woStatus, complexity, classification, dat
   return { conds, params };
 };
 
-const countWorkOrderQueue = async (opts = {}) => {
-  const { conds, params } = buildWorkOrderConds(opts);
+const countWoQueue = async (opts = {}) => {
+  const { conds, params } = WOList(opts);
   const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
   const result = await pool.query(`SELECT COUNT(*)::int AS count FROM work_orders wo ${where}`, params);
   return result.rows[0].count;
 };
 
-const findWorkOrderQueue = async ({ page = 1, limit = 10, ...filters } = {}) => {
-  const { conds, params } = buildWorkOrderConds(filters);
+const findWoQueue = async ({ page = 1, limit = 10, ...filters } = {}) => {
+  const { conds, params } = WOList(filters);
   const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
   params.push(limit);
   const limitPh = `$${params.length}`;
@@ -219,7 +223,8 @@ module.exports = {
   findKpis,
   findReviewQueue,
   findWorkQueue,
-  findWorkOrderQueue,
-  countWorkOrderQueue,
+  findWoQueue,
+  countWoQueue,
+  WOList,
   findWeeklyTrend,
 };

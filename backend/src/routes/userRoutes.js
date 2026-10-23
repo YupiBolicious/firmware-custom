@@ -9,6 +9,7 @@ router.use(authenticate);
 
 router.get('/', authorize('ADMIN'), userController.list);
 router.get('/pm', authorize('PM', 'ADMIN'), userController.listPmUsers);
+router.get('/coder', authorize('ADMIN'), userController.listCoderUsers);
 router.post('/', authorize('ADMIN'), userController.create);
 router.put('/:id', authorize('ADMIN'), requireIntegerParams('id'), userController.update);
 router.post('/:id/reset-password', authorize('ADMIN'), requireIntegerParams('id'), userController.resetPassword);

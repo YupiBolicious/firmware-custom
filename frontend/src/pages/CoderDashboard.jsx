@@ -5,6 +5,7 @@ import RelativeTime from '../components/RelativeTime';
 import useCoderDashboard from './useCoderDashboard';
 import FilterSearch from './FilterSearch';
 import StatusBadge from '../components/StatusBadge';
+import WoDashboardList from './WoDashboardList';
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -44,6 +45,40 @@ export default function CoderDashboard() {
     navigate('/work-orders');
   };
 
+  const woColumns = [
+  {
+    key: 'work-order',
+    label: 'Work Order',
+    render: (w) => (
+      <Link to={`/work-orders/${w.id}`}>
+        <strong>{w.wo_number}</strong>
+      </Link>
+    ),
+  },
+  { key: 'customer', label: 'Customer', className: 'text-muted',
+    render: (w) => w.customer || '-' },
+  { key: 'status', label: 'Status',
+    render: (w) => <StatusBadge status={w.status} /> },
+  {
+    key: 'open-items',
+    label: 'Open Items',
+    render: (w) => w.open_count > 0
+      ? <span className="badge badge-warning">{w.open_count} of {w.item_count}</span>
+      : <span className="text-muted">{w.done_count}/{w.item_count}</span>,
+  },
+  {
+    key: 'hours',
+    label: 'Hours',
+    render: (w) => w.total_hours > 0 ? `${Number(w.total_hours).toFixed(1)}h` : '-',
+  },
+  {
+    key: 'updated',
+    label: 'Updated',
+    className: 'text-muted',
+    render: (w) => w.last_activity ? <RelativeTime date={w.last_activity} /> : '-',
+  },
+];
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
@@ -51,6 +86,7 @@ export default function CoderDashboard() {
   const allQueue = data?.work_queue || [];
   const globalDone = allQueue.filter((r) => ['CLASSIFIED', 'NON_FIRMWARE'].includes(r.classification_status)).length;
   const globalOpen = allQueue.filter((r) => r.classification_status === 'CODER_REVIEW').length;
+  const myWorkOrders = data.my_work_orders || [];
   return (
     <div className='dashboard coder-dashboard'>
       <div className="flex gap-8 mb-16" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -115,31 +151,20 @@ export default function CoderDashboard() {
           </div>
       </div>
 
-      {/* 4. Work Orders */}
+      {/* Work orders assigned to the logged-in coder */}
       <div className="panel mb-16">
         <h3 className="mb-16">
-          Work Orders
-          {workOrderQueueTotal > 0 && (
+          Assigned to Me
+          {myWorkOrders.length > 0 && (
             <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
-              {workOrderQueueTotal} total
+              {myWorkOrders.length} assigned
             </span>
           )}
         </h3>
-        <FilterSearch
-          filters={filters}
-          setFilter={setFilter}
-          showAdvanced={showAdvanced}
-          setShowAdvanced={setShowAdvanced}
-          clearFilters={clearFilters}
-          hasActiveFilters={hasActiveFilters}
-          uniqueComplexities={uniqueComplexities}
-          classificationLabels={CLASSIFICATION_STATUS_LABELS}
-        />
-        {workOrderQueue.length === 0 ? (
-          <div className="text-muted">{hasActiveFilters ? 'No work orders match the current filters.' : 'No work orders yet.'}</div>
+        {myWorkOrders.length === 0 ? (
+          <div className="text-muted">No work orders assigned to you.</div>
         ) : (
-          <>
-            <div className="table-scroll">
+          <div className="table-scroll">
             <table>
               <thead>
                 <tr>
@@ -152,7 +177,7 @@ export default function CoderDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {workOrderQueue.map((w) => (
+                {myWorkOrders.map((w) => (
                   <tr key={w.id}>
                     <td><Link to={`/work-orders/${w.id}`}><strong>{w.wo_number}</strong></Link></td>
                     <td className="text-muted">{w.customer || '-'}</td>
@@ -170,34 +195,30 @@ export default function CoderDashboard() {
                 ))}
               </tbody>
             </table>
-            </div>
-            {workOrderQueueTotalPages > 1 && (
-              <div className="flex justify-between align-center" style={{ marginTop: 12 }}>
-                <span className="text-muted" style={{ fontSize: 13 }}>
-                  Page {workOrderPage} of {workOrderQueueTotalPages}
-                </span>
-                <div className="flex gap-8">
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setWorkOrderPage(workOrderPage - 1)}
-                    disabled={workOrderPage <= 1}
-                  >
-                    Prev
-                  </button>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setWorkOrderPage(workOrderPage + 1)}
-                    disabled={workOrderPage >= workOrderQueueTotalPages}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
-
+      <WoDashboardList
+        rows={workOrderQueue}
+        total={workOrderQueueTotal}
+        page={workOrderPage}
+        totalPages={workOrderQueueTotalPages}
+        onPageChange={setWorkOrderPage}
+        columns={woColumns}
+        hasActiveFilters={hasActiveFilters}
+        filterControls={
+          <FilterSearch
+            filters={filters}
+            setFilter={setFilter}
+            showAdvanced={showAdvanced}
+            setShowAdvanced={setShowAdvanced}
+            clearFilters={clearFilters}
+            hasActiveFilters={hasActiveFilters}
+            uniqueComplexities={uniqueComplexities}
+            classificationLabels={CLASSIFICATION_STATUS_LABELS}
+          />
+        }
+      />
       {/* 5. Review Queue */}
       <div className="panel mb-16">
         <div className="flex justify-between align-center mb-16">

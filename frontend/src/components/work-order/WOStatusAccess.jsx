@@ -9,7 +9,9 @@ export default function WOStatusAccess({
   isCoder, 
   finalizing, 
   startingProduction, 
-  completing, 
+  completing,
+  closing,
+  reopening, 
   openFinalizeConfirm, 
   openStartConfirm, 
   openCompleteConfirm, 
@@ -25,40 +27,93 @@ export default function WOStatusAccess({
   access,
   accessBusy,
   handleGrantAccess,
-  handleRevokeAccess
+  handleRevokeAccess,
+  isAdmin,
+  coders,
+  assigning,
+  handleAssignCoder,
+  blockedByAssignment,
+  handleCloseWO,
+  handleReopenWO,
+  changeStatus,
+  handleChangeStatus
 }) {
   return (
     <>
       <div className="flex justify-between align-center mb-16">
         <h1>{wo.wo_number}</h1>
-        <div className="flex gap-8">
-          {canEdit && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED' && (
-            <Link className="icon-btn" to={`/work-orders/${wo.id}/edit`} title="Edit Work Order" aria-label="Edit Work Order"><Pencil size={16} strokeWidth={1.5} /></Link>
-          )}
-          {canEdit && wo.status === 'ANALYZED' && (
-            <button className="btn" onClick={openFinalizeConfirm} disabled={finalizing || countOpenItem > 0} title={countOpenItem > 0 ? `${countOpenItem} item(s) awaiting coder review` : undefined}>
-              {finalizing
-                ? (allNonFirmware ? 'Completing...' : 'Finalizing...')
-                : reviewedItems}
-            </button>
-          )}
-          {isCoder && wo.status === 'FINALIZED' && (
-            <button className="btn" onClick={openStartConfirm} disabled={startingProduction}>
-              {startingProduction ? 'Starting...' : 'Start Production'}
-            </button>
-          )}
-          {isCoder && wo.status === 'PRODUCTION' && (
-            <button className="btn" onClick={openCompleteConfirm} disabled={completing || openTaskCount > 0}>
-              {completing ? 'Completing...' : completeAllLabel}
-            </button>
-          )}
-        </div>
+        {(
+          (canEdit && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED') ||
+          (isAdmin && wo.status === 'ANALYZED') ||
+          (isCoder && !blockedByAssignment && wo.status === 'FINALIZED') ||
+          (isCoder && !blockedByAssignment && wo.status === 'PRODUCTION') ||
+          (isAdmin && wo.status === 'READY_TO_CLOSE')
+        ) && (
+          <div className="flex gap-8">
+            {canEdit && wo.status !== 'FINALIZED' && wo.status !== 'PRODUCTION' && wo.status !== 'COMPLETED' && (
+              <Link className="icon-btn" to={`/work-orders/${wo.id}/edit`} title="Edit Work Order" aria-label="Edit Work Order"><Pencil size={16} strokeWidth={1.5} /></Link>
+            )}
+            {isAdmin && wo.status === 'ANALYZED' && (
+              <button className="btn" onClick={openFinalizeConfirm} disabled={finalizing || countOpenItem > 0} title={countOpenItem > 0 ? `${countOpenItem} item(s) awaiting coder review` : undefined}>
+                {finalizing
+                  ? (allNonFirmware ? 'Completing...' : 'Finalizing...')
+                  : reviewedItems}
+              </button>
+            )}
+            {isCoder && !blockedByAssignment && wo.status === 'FINALIZED' && (
+              <button className="btn" onClick={openStartConfirm} disabled={startingProduction}>
+                {startingProduction ? 'Starting...' : 'Start Production'}
+              </button>
+            )}
+            {isCoder && !blockedByAssignment && wo.status === 'PRODUCTION' && (
+              <button className="btn" onClick={openCompleteConfirm} disabled={completing || openTaskCount > 0}>
+                {completing ? 'Completing...' : completeAllLabel}
+              </button>
+            )}
+            {isAdmin && wo.status === 'READY_TO_CLOSE' && (
+              <>
+                <button className='btn btn-secondary' onClick={handleReopenWO} disabled={reopening || closing}>
+                  {reopening? 'Reopening...' : 'Reopen to Production'}
+                </button>
+                <button className='btn' onClick={handleCloseWO} disabled={closing || reopening}>
+                  {closing? 'Closing...' : 'Close Work Order'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="panel mb-16">
         <h3>Work Order Details</h3>
         <div className="form-grid">
-          <div><span className="text-muted">Status:</span> <StatusBadge status={wo.status} />
+          {/* <div><span className="text-muted">Status:</span> <StatusBadge status={wo.status} /> */}
+            <div>
+            <span className="text-muted">Status:</span>{' '}
+            {isAdmin ? (
+              <select
+                className="wo-input-text"
+                style={{ marginLeft: 8, width: 'auto' }}
+                value={wo.status}
+                disabled={changingStatus}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val || val === wo.status) return;
+                  const ok = window.confirm(`Change status from ${wo.status} to ${val}?`);
+                  if (!ok) {
+                    e.target.value = wo.status;
+                    return;
+                  }
+                  handleChangeStatus(val);
+                }}
+              >
+                {['DRAFT','ANALYZED','FINALIZED','PRODUCTION','READY_TO_CLOSE','COMPLETED'].map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            ) : (
+              <StatusBadge status={wo.status} />
+            )}
             {staleVerdicts && canEdit && (
               <button
                 className="btn btn-secondary btn-sm"
@@ -74,6 +129,23 @@ export default function WOStatusAccess({
           <div><span className="text-muted">Customer:</span> {wo.customer || '-'}</div>
           <div><span className="text-muted">Created By:</span> {wo.created_by_name || '-'}</div>
           <div><span className="text-muted">Created At:</span> {new Date(wo.created_at).toLocaleString()}</div>
+          <div>
+              <span className="text-muted">Assigned Engineer:</span> {wo.assigned_coder_name || 'Unassigned'}
+              {isAdmin && (
+                <select
+                  className="wo-input-text"
+                  style={{ marginTop:8 }}
+                  value={wo.assigned_coder_id || ''}
+                  disabled={assigning}
+                  onChange={(e) => handleAssignCoder(e.target.value)}
+                >
+                  <option value="">Select User</option>
+                  {coders.map((c) => (
+                    <option key={c.id} value={c.id}>{c.full_name || c.username} ({c.username})</option>
+                  ))}
+                </select>
+              )}
+            </div>
         </div>
       </div>
 

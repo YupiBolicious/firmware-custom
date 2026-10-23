@@ -7,7 +7,7 @@ const linkify = (text) =>
 
 export default function WOProductionNotes({
   wo,
-  isCoder,
+  canAct,
   productionTasks,
   handleCompleteTask,
   savingTaskId,
@@ -34,7 +34,7 @@ export default function WOProductionNotes({
                 <th>Task Code</th>
                 <th>Title</th>
                 <th>Status</th>
-                {isCoder && wo.status === 'PRODUCTION' && <th></th>}
+                {canAct && wo.status === 'PRODUCTION' && <th></th>}
               </tr>
             </thead>
             <tbody>
@@ -47,7 +47,7 @@ export default function WOProductionNotes({
                       ? <span className="badge badge-success">Done</span>
                       : <span className="badge badge-muted">Open</span>}
                   </td>
-                  {isCoder && wo.status === 'PRODUCTION' && (
+                  {canAct && wo.status === 'PRODUCTION' && (
                     <td>
                       <button
                         className={`btn btn-sm ${task.completed ? 'btn-secondary' : ''}`}
@@ -68,7 +68,7 @@ export default function WOProductionNotes({
       {(wo.status === 'PRODUCTION' || wo.status === 'COMPLETED') && (
         <div className="panel table-scroll">
           <h3 className="mb-16">Notes (Optional)</h3>
-          {isCoder ? (
+          {canAct ? (
             editing ? (
               <>
                 <textarea

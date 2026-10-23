@@ -1,5 +1,6 @@
 const workOrderRepository = require('../../repositories/workOrderRepository');
 const workOrderResetRepository = require('../../repositories/workOrderResetRepository');
+const userRepository = require('../../repositories/userRepository');
 const auditService = require('../auditService');
 const notificationRepository = require('../../repositories/notificationRepository');
 const classificationService = require('../classificationService');
@@ -7,6 +8,7 @@ const kbRepository = require('../../repositories/kbRepository');
 const { ApiError } = require('../../middleware/errorHandler');
 const { validatePagination, paginatedPayload } = require('../../utils/pagination');
 const { resolveGroupTargets, assertCanEditWorkOrder, assertCoderAssignment } = require('./guards');
+// const { notifyWorkOrderRecipients } = require('../notificationHelper');
 
 const listWorkOrders = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
   const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
@@ -198,11 +200,12 @@ const updateWorkOrder = async (id, { title, customer, status, user_id, roles, ip
   return wo;
 };
 
-const updateWorkOrderNotes = async (id, { notes, user_id, ip_address }) => {
+const updateWorkOrderNotes = async (id, { notes, user_id, roles, ip_address }) => {
   const existing = await workOrderRepository.findById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order not found');
   }
+  await assertCoderAssignment(existing, user_id, roles || []);
   const wo = await workOrderRepository.update(id, { notes });
   await auditService.log({
     user_id,
@@ -216,6 +219,35 @@ const updateWorkOrderNotes = async (id, { notes, user_id, ip_address }) => {
   return wo;
 };
 
+
+const assignWorkOrderCoder = async (id, { coder_id, user_id, ip_address }) => {
+  const existing = await workOrderRepository.findById(id);
+  if (!existing) {
+    throw new ApiError(404, 'Work order not found');
+  }
+  const coderId = coder_id == null || coder_id === '' ? null : Number(coder_id);
+  if (coderId != null && !Number.isInteger(coderId)) {
+    throw new ApiError(422, 'coder_id must be an integer or null', ['coder_id']);
+  }
+  if (coderId != null) {
+    const coder = await userRepository.findUserWithRolesById(coderId);
+    if (!coder) throw new ApiError(404, 'Coder not found');
+    if (!coder.is_active) throw new ApiError(400, 'User is deactivated');
+    if (!(coder.roles || []).includes('CODER')) throw new ApiError(400, 'User does not have the CODER role');
+  }
+  const wo = await workOrderRepository.assignCoder(id, coderId);
+  await auditService.log({
+    user_id,
+    action: coderId == null ? 'WORK_ORDER_UNASSIGNED' : 'WORK_ORDER_ASSIGNED',
+    entity_type: 'WORK_ORDER',
+    entity_id: wo.id,
+    work_order_id: wo.id,
+    details: { wo_number: wo.wo_number, from: existing.assigned_coder_id, to: coderId },
+    ip_address,
+  });
+  return wo;
+};
+
 module.exports = {
   listWorkOrders,
   listCoderReviewQueue,
@@ -224,4 +256,5 @@ module.exports = {
   createWorkOrder,
   updateWorkOrder,
   updateWorkOrderNotes,
+  assignWorkOrderCoder,
 };

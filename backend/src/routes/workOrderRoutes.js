@@ -66,6 +66,7 @@ router.post('/upload', authorize('PM'), uploadPdf.single('file'), workOrderContr
 router.post('/upload/confirm', authorize('PM'), workOrderController.confirmUploadWorkOrder);
 router.get('/:id', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.getById);
 router.put('/:id', authorize('PM'), requireIntegerParams('id'), validateWorkOrderUpdate, workOrderController.update);
+router.put('/:id/assign', authorize('ADMIN'), requireIntegerParams('id'), workOrderController.assignCoder);
 
 router.post('/:id/groups', authorize('PM'), requireIntegerParams('id'), validateGroupCreate, workOrderController.addGroup);
 router.put('/:id/groups/:groupId', authorize('PM'), requireIntegerParams('id', 'groupId'), validateGroupUpdate, workOrderController.updateGroup);
@@ -74,7 +75,7 @@ router.delete('/:id/groups/:groupId', authorize('PM'), requireIntegerParams('id'
 router.post('/:id/items', authorize('PM'), requireIntegerParams('id'), validateItemCreate, workOrderController.addItem);
 
 router.post('/:id/analyze', authorize('PM'), requireIntegerParams('id'), workOrderController.analyze);
-router.post('/:id/finalize', authorize('PM'), requireIntegerParams('id'), workOrderController.finalize);
+router.post('/:id/finalize', authorize('ADMIN'), requireIntegerParams('id'), workOrderController.finalize);
 router.get('/:id/access', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.listAccess);
 router.post('/:id/access', authorize('PM'), requireIntegerParams('id'), validateAccessGrant, workOrderController.grantAccess);
 router.delete('/:id/access/:userId', authorize('PM'), requireIntegerParams('id', 'userId'), workOrderController.revokeAccess);
@@ -82,7 +83,11 @@ router.post('/:id/production', authorize('CODER'), requireIntegerParams('id'), w
 router.put('/:id/production/tasks/:taskId', authorize('CODER'), requireIntegerParams('id', 'taskId'), validateProductionTaskUpdate, workOrderController.completeProductionTask);
 router.post('/:id/production/complete', authorize('CODER'), requireIntegerParams('id'), workOrderController.completeProduction);
 
+router.post('/:id/close', authorize('ADMIN'), requireIntegerParams('id'), workOrderController.closeWO);
+router.post('/:id/reopen', authorize('ADMIN'), requireIntegerParams('id'), workOrderController.reopenWO);
+
 router.put('/:id/notes', authorize('CODER'), requireIntegerParams('id'), validateWorkOrderNotes, workOrderController.updateNotes);
+// router.put('/:id/status', authorize('ADMIN'), requireIntegerParams('id'), validateWorkOrderNotes, workOrderController.updateStatus);
 
 router.get('/:id/comments', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.listComments);
 router.post('/:id/comments', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.createComment);
