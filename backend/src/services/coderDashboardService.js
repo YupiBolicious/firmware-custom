@@ -14,15 +14,16 @@ const mapWorkOrder = (r) => ({
   last_activity: r.last_activity,
 });
 
-const getCoderDashboard = async (userId, { workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL', complexity = 'ALL', classificationStatus = 'ALL', dateFrom = '', dateTo = '' } = {}) => {
-  const [kpis, reviewQueue, workQueue, workOrderQueue, workOrderQueueTotal, myWorkOrders, trend] = await Promise.all([
+const getCoderDashboard = async (userId, { workOrderPage = 1, workOrderSearch = '', workOrderStatus = 'ALL', complexity = 'ALL', classificationStatus = 'ALL', machineModelCode = '', dateFrom = '', dateTo = '' } = {}) => {
+  const [kpis, reviewQueue, workQueue, workOrderQueue, workOrderQueueTotal, myWorkOrders, trend, machineModels] = await Promise.all([
     coderDashboardRepository.findKpis(),
     coderDashboardRepository.findReviewQueue(),
     coderDashboardRepository.findWorkQueue(),
-    coderDashboardRepository.findWoQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo }),
-    coderDashboardRepository.countWoQueue({ search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, dateFrom, dateTo }),
+    coderDashboardRepository.findWoQueue({ page: workOrderPage, limit: WORK_ORDER_LIMIT, search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, machineModelCode, dateFrom, dateTo }),
+    coderDashboardRepository.countWoQueue({ search: workOrderSearch, woStatus: workOrderStatus, complexity, classification: classificationStatus, machineModelCode, dateFrom, dateTo }),
     coderDashboardRepository.findWoQueue({ assignedCoderId: userId, limit: WORK_ORDER_LIMIT }),
     coderDashboardRepository.findWeeklyTrend(13),
+    coderDashboardRepository.findMachineModels(),
   ]);
 
   return {
@@ -66,7 +67,6 @@ const getCoderDashboard = async (userId, { workOrderPage = 1, workOrderSearch = 
       complexity_name: r.complexity_name || null,
       classification_status: r.classification_status,
       machine_model_code: r.machine_model_code || null,
-      machine_model_version: r.machine_model_version || null,
       serial_number: r.serial_number || null,
       // confidence_score: r.confidence_score != null ? Number(r.confidence_score) : null,
       estimated_hours: Number(r.estimated_hours) || 0,
@@ -79,6 +79,7 @@ const getCoderDashboard = async (userId, { workOrderPage = 1, workOrderSearch = 
       total: Number(workOrderQueueTotal) || 0,
     },
     my_work_orders: myWorkOrders.map(mapWorkOrder),
+    options: { models: machineModels },
     workload: {
       queued_hours: Number(kpis.pending_hours) || 0,
       in_progress_hours: workQueue

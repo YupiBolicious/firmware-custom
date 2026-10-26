@@ -213,7 +213,7 @@ const correctReviewedClassification = async ({ work_order_item_id, reviewed_by, 
       await client.query('ROLLBACK');
       return { error: 'NOT_FOUND' };
     }
-    if (['PRODUCTION', 'COMPLETED'].includes(item.work_order_status)) {
+    if (['PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'].includes(item.work_order_status)) {
       await client.query('ROLLBACK');
       return { error: 'LOCKED' };
     }

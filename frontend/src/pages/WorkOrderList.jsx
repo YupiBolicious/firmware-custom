@@ -7,7 +7,7 @@ import StatusBadge from '../components/StatusBadge';
 import UploadPreviewModal from '../components/work-order/UploadPreviewModal';
 import ConfirmModal from '../components/ConfirmModal';
 
-const STATUS_OPTIONS = ['DRAFT', 'ANALYZED', 'FINALIZED', 'PRODUCTION', 'COMPLETED'];
+const STATUS_OPTIONS = ['DRAFT', 'ANALYZED', 'FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'];
 
 export default function WorkOrderList() {
   const { hasRole } = useAuth();

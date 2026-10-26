@@ -34,6 +34,17 @@ const notifyWorkOrderRecipients = async ({ work_order_id, owner_id, status, mess
   }
 };
 
+const WORK_ORDER_STATUS_LABELS = {
+  DRAFT: 'Draft',
+  ANALYZED: 'Open - Analyze',
+  FINALIZED: 'Open - Ready',
+  PRODUCTION: 'On-Going',
+  READY_TO_CLOSE: 'Final',
+  COMPLETED: 'Close',
+};
+
+const workOrderStatusLabel = (status) => WORK_ORDER_STATUS_LABELS[status] || status || 'Unknown';
+
 const notifyCodersOfReview = async ({ work_order_id, message }) => {
   const [admins, coders] = await Promise.all([
     userRepository.findAllByRole('ADMIN'),
@@ -349,8 +360,8 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
     throw new ApiError(404, 'Work order not found');
   }
   const userRoles = roles || [];
-  if(!userRoles.includes('ADMIN')) {
-    throw new ApiError(403, 'only admin can finalize work order');
+  if (!userRoles.includes('ADMIN') && !userRoles.includes('PM')) {
+    throw new ApiError(403, 'only admin or PM can finalize work order');
   }
   await assertCanEditWorkOrder(wo, user_id, roles);
   if (wo.status === 'FINALIZED') {
@@ -530,6 +541,69 @@ const reopenWorkOrder = async (id, { user_id, roles, ip_address }) => {
   return updated;
 };
 
+const adminChangeWorkOrderStatus = async (id, newStatus, { user_id, roles, ip_address } = {}) => {
+  if (!(roles || []).includes('ADMIN')) {
+    throw new ApiError(403, 'Only administrators can change a closed work order status');
+  }
+  const wo = await workOrderRepository.findById(id);
+  if (!wo) throw new ApiError(404, 'Work order not found');
+  if (!['READY_TO_CLOSE', 'COMPLETED'].includes(wo.status)) {
+    throw new ApiError(400, 'Admin status changes are only available for work orders ready to close or already closed');
+  }
+
+  const allowedTargets = wo.status === 'READY_TO_CLOSE'
+    ? ['ANALYZED', 'FINALIZED', 'PRODUCTION', 'COMPLETED']
+    : ['ANALYZED', 'FINALIZED', 'PRODUCTION'];
+  if (!allowedTargets.includes(newStatus)) {
+    throw new ApiError(400, `Cannot change ${wo.status} to ${newStatus}`);
+  }
+
+  if (newStatus === 'COMPLETED') {
+    return closeWorkOrder(id, { user_id, roles, ip_address });
+  }
+
+  if (newStatus === 'FINALIZED' || newStatus === 'PRODUCTION') {
+    const { total } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
+    if (total === 0) {
+      throw new ApiError(400, `Cannot move this work order to ${newStatus}: it has no production tasks`);
+    }
+  }
+
+  const updated = await workOrderRepository.transitionAdminStatus({
+    id,
+    fromStatus: wo.status,
+    toStatus: newStatus,
+    clearProductionTasks: newStatus === 'ANALYZED',
+  });
+  if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
+
+  await auditService.log({
+    user_id,
+    action: 'WORK_ORDER_ADMIN_STATUS_CHANGED',
+    entity_type: 'WORK_ORDER',
+    entity_id: id,
+    work_order_id: id,
+    details: {
+      wo_number: wo.wo_number,
+      from_status: wo.status,
+      to_status: newStatus,
+      production_tasks_cleared: newStatus === 'ANALYZED',
+    },
+    ip_address,
+  });
+  try {
+    await notifyWorkOrderRecipients({
+      work_order_id: id,
+      owner_id: wo.created_by,
+      status: `WO_${newStatus}`,
+      message: `${wo.wo_number} status changed from ${workOrderStatusLabel(wo.status)} to ${workOrderStatusLabel(newStatus)} by an administrator`,
+    });
+  } catch (_) {
+    // Notifications are best-effort; the transition is already committed.
+  }
+  return updated;
+};
+
 const completeProductionTask = async (taskId, { completed, user_id, roles, ip_address }) => {
   const task = await workOrderRepository.findProductionTaskById(taskId);
   if (!task) throw new ApiError(404, 'Production task not found');
@@ -565,9 +639,6 @@ const completeProduction = async (id, { user_id, roles, ip_address }) => {
   await assertCoderAssignment(wo, user_id, roles || []);
   if (wo.status !== 'PRODUCTION') throw new ApiError(400, 'Work order must be in PRODUCTION to complete');
   const { total, open } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
-  // ponytail: count-check + status flip are not atomic; a task toggle committed between them
-  // can leave a COMPLETED WO with an open task. Microsecond window, needs a single tx with
-  // SELECT ... FOR UPDATE on the work_orders row to close, upgrade if it ever bites.
   if (open > 0) {
     throw new ApiError(400, `All production items must be completed first (${open} of ${total} still open)`);
   }
@@ -586,7 +657,7 @@ const completeProduction = async (id, { user_id, roles, ip_address }) => {
     work_order_id: id,
     owner_id: wo.created_by,
     status: 'WO_READY_TO_CLOSE',
-    message: `${wo.wo_number} has been completed`,
+    message: `${wo.wo_number} production is complete and is awaiting admin closure`,
   });
   return updated;
 };
@@ -598,5 +669,6 @@ module.exports = {
   completeProduction,
   closeWorkOrder,
   reopenWorkOrder,
+  adminChangeWorkOrderStatus,
   completeProductionTask,
 };

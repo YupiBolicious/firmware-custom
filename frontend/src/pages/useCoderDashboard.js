@@ -9,6 +9,8 @@ const CLASSIFICATION_STATUS_LABELS = {
 };
 
 const KPI_FIELDS = ['pending_review', 'pending_hours', 'completed', 'completed_hours', 'overdue'];
+const matchesMachineModel = (row, selectedCode) => selectedCode === 'ALL'
+  || (row.machine_model_code || '').split('; ').includes(selectedCode);
 const isNumericValue = (value) => (
   (typeof value === 'number' && Number.isFinite(value))
   || (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)))
@@ -19,6 +21,7 @@ const initialFilters = {
   search: '',
   complexityFilter: 'ALL',
   classificationStatusFilter: 'ALL',
+  modelFilter: 'ALL',
   statusFilter: 'ALL',
   dateFrom: '',
   dateTo: '',
@@ -50,7 +53,7 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
 
   useEffect(() => {
     setWorkOrderPage(1);
-  }, [filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
+  }, [filters.search, filters.statusFilter, filters.complexityFilter, filters.modelFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
   const [all, setAll]=useState('my');
   useEffect(() => {
@@ -65,6 +68,7 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
             work_order_status: filters.statusFilter,
             complexity: filters.complexityFilter,
             classification_status: filters.classificationStatusFilter,
+            machine_model_code: filters.modelFilter === 'ALL' ? '' : filters.modelFilter,
             date_from: filters.dateFrom,
             date_to: filters.dateTo,
             scope: all,
@@ -82,7 +86,11 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
       }
     };
     load();
+<<<<<<< HEAD
   }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo, all]);
+=======
+  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.modelFilter, filters.dateFrom, filters.dateTo]);
+>>>>>>> 0b499aa (same wo list on 3 users)
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => {
@@ -126,6 +134,7 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
         if (!matchSearch) return false;
       }
       if (filters.complexityFilter !== 'ALL' && r.complexity_code !== filters.complexityFilter) return false;
+      if (!matchesMachineModel(r, filters.modelFilter)) return false;
       if (filters.confidenceMin && (r.confidence_score == null || r.confidence_score < Number(filters.confidenceMin))) return false;
       if (filters.confidenceMax && (r.confidence_score == null || r.confidence_score > Number(filters.confidenceMax))) return false;
       if (filters.dateFrom && new Date(r.created_at) < new Date(filters.dateFrom)) return false;
@@ -145,7 +154,7 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
         if (!matchSearch) return false;
       }
       if (filters.complexityFilter !== 'ALL' && r.complexity_code !== filters.complexityFilter) return false;
-      if (filters.classificationStatusFilter !== 'ALL' && r.classification_status !== filters.classificationStatusFilter) return false;
+      if (!matchesMachineModel(r, filters.modelFilter)) return false;
       if (filters.statusFilter !== 'ALL' && r.work_order_status !== filters.statusFilter) return false;
       if (filters.dateFrom && new Date(r.created_at) < new Date(filters.dateFrom)) return false;
       if (filters.dateTo && new Date(r.created_at) > new Date(filters.dateTo + 'T23:59:59')) return false;
@@ -157,7 +166,7 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
   const totalCount = reviewQueue.length + workQueue.length;
   const hasActiveFilters = filters.search || filters.complexityFilter !== 'ALL'
     || filters.confidenceMin || filters.confidenceMax
-    || filters.classificationStatusFilter !== 'ALL' || filters.statusFilter !== 'ALL'
+    || filters.modelFilter !== 'ALL' || filters.statusFilter !== 'ALL'
     || filters.dateFrom || filters.dateTo;
 
   const dashboardKpis = useMemo(() => Object.fromEntries(
@@ -239,6 +248,7 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
     totalCount,
     hasActiveFilters,
     uniqueComplexities,
+    uniqueModels: data?.options?.models || [],
     workOrderQueue,
     workOrderQueueTotal,
     workOrderQueueTotalPages,

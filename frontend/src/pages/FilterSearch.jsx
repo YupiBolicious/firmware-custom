@@ -3,6 +3,7 @@ const WORK_ORDER_STATUS_LABELS = {
   ANALYZED: 'Analyzed',
   FINALIZED: 'Finalized',
   PRODUCTION: 'Production',
+  READY_TO_CLOSE: 'Ready to Close',
   COMPLETED: 'Completed',
 };
 
@@ -81,7 +82,7 @@ export default function FilterSearch({
                 >
                   <option value="ALL">All</option>
                   {uniqueModels.map((m) => (
-                    <option key={m.id} value={m.id}>{m.code}</option>
+                    <option key={m.id} value={m.code}>{m.code}</option>
                   ))}
                 </select>
               </div>
