@@ -30,7 +30,7 @@ export default function WOComments({ woId, canComment }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {comments.map((c) => {
-              const isAuthor = Number(c.user_id) === Number(user?.id);
+              const isAuthor = user.username;
               const author = c.full_name || c.username || `User ${c.user_id}`;
               return (
                 <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.9rem' }}>

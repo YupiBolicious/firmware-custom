@@ -84,7 +84,7 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
       }
     };
     load();
-  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
+  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.modelFilter, filters.dateFrom, filters.dateTo]);
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => {

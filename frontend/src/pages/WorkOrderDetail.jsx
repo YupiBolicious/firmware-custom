@@ -25,11 +25,12 @@ export default function WorkOrderDetail() {
     
     itemForm, editingItemId,
     handleStartProduction, handleCompleteProduction, handleCompleteTask,
-    closing, reopening, handleCloseWO, handleReopenWO, changeStatus, handleChangeStatus,
+    changingStatus, handleAdminStatusChange,
     groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
     deleteGroupConfirm, deletingGroup, openDeleteGroupConfirm, closeDeleteGroupConfirm,
     access, accessBusy, users, canEdit, canManageAccess, isAdmin,
+    pendingStatus, setPendingStatus,
     coders, assigning, handleAssignCoder,
     notes, setNotes, savingNotes, editing, setEditing, handleSaveNotes,
     handleGrantAccess, handleRevokeAccess,
@@ -82,8 +83,7 @@ export default function WorkOrderDetail() {
         finalizing={finalizing}
         startingProduction={startingProduction}
         completing={completing}
-        closing={closing}
-        reopening={reopening}
+        changingStatus={changingStatus}
         openFinalizeConfirm={openFinalizeConfirm}
         openStartConfirm={openStartConfirm}
         openCompleteConfirm={openCompleteConfirm}
@@ -100,15 +100,14 @@ export default function WorkOrderDetail() {
         accessBusy={accessBusy}
         handleGrantAccess={handleGrantAccess}
         handleRevokeAccess={handleRevokeAccess}
+        onRequestRevoke={setPendingRevoke}
         isAdmin={hasRole('ADMIN')}
+        isPM={hasRole('PM')}
         coders={coders}
         assigning={assigning}
         handleAssignCoder={handleAssignCoder}
         blockedByAssignment={blockedByAssignment}
-        handleCloseWO={handleCloseWO}
-        handleReopenWO={handleReopenWO}
-        changeStatus = {changeStatus}
-        handleChangeStatus={handleChangeStatus}
+        onRequestStatusChange={setPendingStatus}
       />
 
       <WOModelSerial 
