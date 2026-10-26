@@ -107,23 +107,19 @@ export default function ReviewQueue() {
                         {/* Decision */}
                         <div style={{display:'flex', justifyContent: 'flex-end'}} className='gap-8'>
                           <button
-                            className={`btn btn-secondary badge-info ${
-                              decided === 'ACCEPTED' ? 'btn-secondary' : ''
-                            }`}
+                            className={`btn btn-sm ${decided === 'ACCEPTED' ? '' : 'btn-secondary'}`}
                             onClick={() => acceptAssist(item)}
                             disabled={reviewing === item.item_id}
                           >
-                            Accept
+                            ✔
                           </button>
 
                           <button
-                            className={`btn btn-secondary ${
-                              decided === 'IGNORED' ? 'btn-secondary' : ''
-                            }`}
+                            className={`btn btn-sm ${decided === 'IGNORED' ? 'btn-danger' : 'btn-secondary'}`}
                             onClick={() => ignoreAssist(item)}
                             disabled={reviewing === item.item_id}
                           >
-                            Decline
+                            X
                           </button>
                         </div>
                       </div>

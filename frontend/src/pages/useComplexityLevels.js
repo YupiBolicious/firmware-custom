@@ -21,6 +21,8 @@ export default function useComplexityLevels() {
   const [showForm, setShowForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [saveConfirm, setSaveConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -35,9 +37,20 @@ export default function useComplexityLevels() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleSave = useCallback(async (e) => {
+  const handleSave = useCallback((e) => {
     e.preventDefault();
     setError('');
+    setSaveConfirm(true);
+  }, []);
+
+  const closeSaveConfirm = useCallback(() => {
+    if (saving) return;
+    setSaveConfirm(false);
+  }, [saving]);
+
+  const confirmSave = useCallback(async () => {
+    setError('');
+    setSaving(true);
     try {
       if (editingId) {
         await api.put(`/complexity-levels/${editingId}`, form);
@@ -46,9 +59,12 @@ export default function useComplexityLevels() {
       }
       setForm(emptyForm);
       setEditingId(null);
+      setSaveConfirm(false);
       await load();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save complexity level');
+    } finally {
+      setSaving(false);
     }
   }, [editingId, form, load]);
 
@@ -107,6 +123,10 @@ export default function useComplexityLevels() {
     setForm,
     toggleShowForm: () => setShowForm((v) => !v),
     handleSave,
+    closeSaveConfirm,
+    confirmSave,
+    saveConfirm,
+    saving,
     openDeleteConfirm,
     closeDeleteConfirm,
     confirmDelete,

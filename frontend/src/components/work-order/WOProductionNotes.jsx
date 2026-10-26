@@ -20,7 +20,7 @@ export default function WOProductionNotes({
 }) {
   return (
     <>
-      {productionTasks.length > 0 && ['FINALIZED', 'PRODUCTION', 'COMPLETED'].includes(wo.status) && (
+      {productionTasks.length > 0 && ['FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'].includes(wo.status) && (
         <div className="panel table-scroll mb-16">
           <h3 className="mb-16">
             Production Tasks

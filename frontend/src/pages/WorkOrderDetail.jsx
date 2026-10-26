@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useValueToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import useWorkOrderDetail from './useWorkOrderDetail';
@@ -7,6 +8,7 @@ import WOEstimationPreview from '../components/work-order/WOEstimationPreview';
 import WOProductionNotes from '../components/work-order/WOProductionNotes';
 import WOComments from '../components/work-order/WOComments';
 import ConfirmModal from '../components/ConfirmModal';
+import StatusBadge, {statusBadgeMeta} from '../components/StatusBadge';
 
 export default function WorkOrderDetail() {
   const { hasRole, user } = useAuth();
@@ -23,14 +25,16 @@ export default function WorkOrderDetail() {
     
     itemForm, editingItemId,
     handleStartProduction, handleCompleteProduction, handleCompleteTask,
-    closing, reopening, handleCloseWO, handleReopenWO, changeStatus, handleChangeStatus,
+    changingStatus, handleAdminStatusChange,
     groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup,
     deleteGroupConfirm, deletingGroup, openDeleteGroupConfirm, closeDeleteGroupConfirm,
     access, accessBusy, users, canEdit, canManageAccess, isAdmin,
+    pendingStatus, setPendingStatus,
     coders, assigning, handleAssignCoder,
     notes, setNotes, savingNotes, editing, setEditing, handleSaveNotes,
     handleGrantAccess, handleRevokeAccess,
+    pendingRevoke, setPendingRevoke,
     deleteItemConfirm, openDeleteItemConfirm, closeDeleteItemConfirm,
   } = useWorkOrderDetail();
 
@@ -47,13 +51,13 @@ export default function WorkOrderDetail() {
     && ['CLASSIFIED', 'NON_FIRMWARE'].includes(item.classification_status));
   const reviewedItems = countOpenItem > 0
     ? `Waiting for (${countOpenItem} left)`
-    : allNonFirmware ? 'Complete Work Order' : 'Finalize Work Order';
+    : allNonFirmware ? 'Complete Work Order' : 'Request Work Order';
   
   const productionTasks = wo.production_tasks || [];
   const openTaskCount = productionTasks.filter((t) => !t.completed).length;
   const completeAllLabel = openTaskCount > 0
-    ? `Complete (${openTaskCount} item${openTaskCount === 1 ? '' : 's'} left)`
-    : 'Complete Production';
+    ? `Finalize (${openTaskCount} item${openTaskCount === 1 ? '' : 's'} left)`
+    : 'Finalize';
 
   const groups = wo.groups || [];
   const groupsEditable = wo.status === 'DRAFT' || wo.status === 'ANALYZED';
@@ -76,8 +80,7 @@ export default function WorkOrderDetail() {
         finalizing={finalizing}
         startingProduction={startingProduction}
         completing={completing}
-        closing={closing}
-        reopening={reopening}
+        changingStatus={changingStatus}
         openFinalizeConfirm={openFinalizeConfirm}
         openStartConfirm={openStartConfirm}
         openCompleteConfirm={openCompleteConfirm}
@@ -94,15 +97,14 @@ export default function WorkOrderDetail() {
         accessBusy={accessBusy}
         handleGrantAccess={handleGrantAccess}
         handleRevokeAccess={handleRevokeAccess}
+        onRequestRevoke={setPendingRevoke}
         isAdmin={hasRole('ADMIN')}
+        isPM={hasRole('PM')}
         coders={coders}
         assigning={assigning}
         handleAssignCoder={handleAssignCoder}
         blockedByAssignment={blockedByAssignment}
-        handleCloseWO={handleCloseWO}
-        handleReopenWO={handleReopenWO}
-        changeStatus = {changeStatus}
-        handleChangeStatus={handleChangeStatus}
+        onRequestStatusChange={setPendingStatus}
       />
 
       <WOModelSerial 
@@ -131,7 +133,7 @@ export default function WorkOrderDetail() {
         groups={groups}
         canEdit={canEdit}
         itemsEditable={itemsEditable}
-        canCorrectDecisions={isCoder && !blockedByAssignment && !['PRODUCTION', 'COMPLETED'].includes(wo.status)}
+        canCorrectDecisions={isCoder && !blockedByAssignment && !['PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'].includes(wo.status)}
         correctionLevels={correctionLevels}
         correctionForm={correctionForm}
         correctingItemId={correctingItemId}
@@ -177,11 +179,11 @@ export default function WorkOrderDetail() {
         isOpen={finalizeConfirm}
         onClose={closeFinalizeConfirm}
         onConfirm={handleFinalize}
-        title={allNonFirmware ? 'Complete Work Order?' : 'Finalize Work Order?'}
+        title={allNonFirmware ? 'Complete Work Order?' : 'Request Work Order?'}
         message={allNonFirmware
-          ? 'This work order has no firmware-related items. Confirming will complete it directly without starting production. This action cannot be undone.'
-          : 'Are you sure you want to finalize this work order? This action cannot be undone.'}
-        confirmLabel={allNonFirmware ? 'Complete Work Order' : 'Finalize'}
+          ? 'This work order has no firmware-related items. Confirming will complete it directly without any obligation with Firmware Engineer. This action is irreversible.'
+          : 'Are you sure you want to request this work order? This action cannot be undone.'}
+        confirmLabel={allNonFirmware ? 'Complete Work Order' : 'Request'}
         loading={finalizing}
         confirmVariant="primary"
       />
@@ -198,9 +200,9 @@ export default function WorkOrderDetail() {
         isOpen={completeConfirm}
         onClose={closeCompleteConfirm}
         onConfirm={handleCompleteProduction}
-        title="Complete Work Order?"
-        message="Are you sure you want to complete this work order?"
-        confirmLabel="Complete"
+        title="Finalize Work Order?"
+        message="Are you sure you want to finalize this work order?"
+        confirmLabel="Finalize"
         loading={completing}
       />
       <ConfirmModal
@@ -232,6 +234,37 @@ export default function WorkOrderDetail() {
         cancelLabel="Cancel"
         confirmVariant="danger"
         loading={deletingGroup}
+      />
+      <ConfirmModal
+        isOpen={!!pendingStatus}
+        onClose={() => setPendingStatus(null)}
+        onConfirm={() => {
+          const next = pendingStatus;
+          setPendingStatus(null);
+          handleAdminStatusChange(next);
+        }}
+        title="Change status?"
+        message={pendingStatus
+          ? `Change work order status from ${statusBadgeMeta(wo.status).label} to ${statusBadgeMeta(pendingStatus).label}?`
+          : ''}
+        confirmLabel="Change"
+        loading={changingStatus}
+      />
+      <ConfirmModal
+        isOpen={!!pendingRevoke}
+        onClose={() => setPendingRevoke(null)}
+        onConfirm={() => {
+          const target = pendingRevoke;
+          setPendingRevoke(null);
+          if (target) handleRevokeAccess(target.user_id);
+        }}
+        title="Remove access?"
+        message={pendingRevoke
+          ? `Remove access for ${pendingRevoke.full_name || pendingRevoke.username} to this work order?`
+          : ''}
+        confirmLabel="Remove"
+        confirmVariant="danger"
+        loading={!!pendingRevoke && accessBusy === pendingRevoke.user_id}
       />
     </div>
   );

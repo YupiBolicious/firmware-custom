@@ -2,7 +2,7 @@ const workOrderAccessRepository = require('../../repositories/workOrderAccessRep
 const machineModelRepository = require('../../repositories/machineModelRepository');
 const { ApiError } = require('../../middleware/errorHandler');
 
-const LOCKED_STATUSES = ['FINALIZED', 'PRODUCTION', 'COMPLETED'];
+const LOCKED_STATUSES = ['FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'];
 
 const resolveGroupTargets = async (machine_model_id) => {
   let modelId;

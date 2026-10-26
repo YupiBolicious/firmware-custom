@@ -25,6 +25,10 @@ export default function ComplexityLevels() {
     setForm,
     toggleShowForm,
     handleSave,
+    closeSaveConfirm,
+    confirmSave,
+    saveConfirm,
+    saving,
     deleteTarget,
     openDeleteConfirm,
     closeDeleteConfirm,
@@ -135,6 +139,18 @@ export default function ComplexityLevels() {
           </table>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={saveConfirm}
+        onClose={closeSaveConfirm}
+        onConfirm={confirmSave}
+        title={editingId ? 'Update Complexity Level?' : 'Add Complexity Level?'}
+        message={editingId
+          ? `Save changes to ${form.code} — ${form.name}?`
+          : `Add complexity level ${form.code} — ${form.name}?`}
+        confirmLabel={editingId ? 'Update' : 'Add'}
+        loading={saving}
+      />
 
       <ConfirmModal
         isOpen={!!deleteTarget}

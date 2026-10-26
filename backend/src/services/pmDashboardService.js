@@ -1,11 +1,7 @@
 const pmDashboardRepository = require('../repositories/pmDashboardRepository');
 const { validatePagination, paginatedPayload } = require('../utils/pagination');
 const { assertOptionalDate } = require('../utils/validation');
-
-// Rolling ~3-month operational window: applied as the default created_at floor
-// for every filtered PM panel (KPIs, queue, attention, status, options, trend)
-// when the user sets neither From nor To. Older records stay queryable via an
-// explicit date range; setting either bound disables the floor.
+// 3 months trend reset
 const DEFAULT_TREND_DAYS = 90;
 
 const rollingDefaultFrom = () => {
@@ -96,10 +92,10 @@ const getPMDashboard = async (query = {}) => {
   assertOptionalDate('date_to', filters.date_to);
   const { page, limit } = validatePagination(query.page, query.limit ?? 10);
 
-  const [kpis, workQueue, attention, statusDistribution, dailyTrend, options] = await Promise.all([
+  const [kpis, workQueue, statusDistribution, dailyTrend, options] = await Promise.all([
     pmDashboardRepository.findKpis(filters),
     pmDashboardRepository.findWorkQueue({ page, limit, filters }),
-    pmDashboardRepository.findAttentionItems(filters),
+    // pmDashboardRepository.findAttentionItems(filters),
     pmDashboardRepository.findStatusDistribution(filters),
     pmDashboardRepository.findWeeklyTrend(filters, 'day'),
     pmDashboardRepository.findOptions(filters),
@@ -115,6 +111,8 @@ const getPMDashboard = async (query = {}) => {
     item_count: r.item_count,
     total_estimated_hours: Number(r.total_estimated_hours) || 0,
     items_classified: r.items_classified,
+    open_count: Number(r.open_count) || 0,
+    done_count: Number(r.done_count) || 0,
     progress: r.item_count > 0 ? Math.round((r.items_classified / r.item_count) * 100) : 0,
     group_summary: r.group_summary || '',
     groups: r.groups || [],
@@ -140,19 +138,19 @@ const getPMDashboard = async (query = {}) => {
       overdue: Number(kpis.overdue) || 0,
     },
     work_queue: paginatedPayload(workQueueItems, workQueue.total, page, limit),
-    attention: attention.map((r) => ({
-      wo_number: r.wo_number,
-      title: r.title,
-      work_order_id: r.work_order_id,
-      kind: r.kind,
-      priority: r.priority,
-      message: r.message,
-      affected_count: Number(r.affected_count) || 0,
-      age_hours: r.age_hours != null ? Math.floor(Number(r.age_hours)) : null,
-      sample_item: r.sample_item || null,
-      sample_title: r.sample_title || null,
-      next_action: r.next_action,
-    })),
+    // attention: attention.map((r) => ({
+    //   wo_number: r.wo_number,
+    //   title: r.title,
+    //   work_order_id: r.work_order_id,
+    //   kind: r.kind,
+    //   priority: r.priority,
+    //   message: r.message,
+    //   affected_count: Number(r.affected_count) || 0,
+    //   age_hours: r.age_hours != null ? Math.floor(Number(r.age_hours)) : null,
+    //   sample_item: r.sample_item || null,
+    //   sample_title: r.sample_title || null,
+    //   next_action: r.next_action,
+    // })),
     status_distribution: statusDistribution.map((r) => ({
       status: r.status,
       count: r.count,
@@ -167,7 +165,6 @@ const getPMDashboard = async (query = {}) => {
     trend_window: trendData.window,
     options: {
       models: options.models || [],
-      versions: options.versions || [],
       complexities: options.complexities || [],
     },
   };

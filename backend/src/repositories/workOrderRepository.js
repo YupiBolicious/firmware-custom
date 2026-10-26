@@ -43,6 +43,25 @@ const findAll = async ({ page = 1, limit = 15, search = '', status = '', from = 
             u.full_name AS created_by_name,
             COUNT(woi.id)::int AS item_count,
             COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0) AS total_estimated_hours,
+            (SELECT COUNT(*)::int
+             FROM work_order_items woi2
+             JOIN classifications c2 ON c2.work_order_item_id = woi2.id
+             WHERE woi2.work_order_id = wo.id AND c2.status = 'CODER_REVIEW'
+            ) AS open_count,
+            (SELECT COUNT(*)::int
+             FROM work_order_items woi2
+             JOIN classifications c2 ON c2.work_order_item_id = woi2.id
+             WHERE woi2.work_order_id = wo.id AND c2.status IN ('CLASSIFIED', 'NON_FIRMWARE')
+            ) AS done_count,
+            GREATEST(
+              wo.updated_at,
+              (SELECT MAX(woi2.updated_at) FROM work_order_items woi2 WHERE woi2.work_order_id = wo.id),
+              (SELECT MAX(c2.updated_at)
+               FROM classifications c2
+               JOIN work_order_items woi2 ON woi2.id = c2.work_order_item_id
+               WHERE woi2.work_order_id = wo.id),
+              (SELECT MAX(pt.updated_at) FROM production_tasks pt WHERE pt.work_order_id = wo.id)
+            ) AS last_activity,
             (SELECT string_agg(g.label, '; ')
              FROM (
                SELECT DISTINCT CONCAT_WS(' ', mm.model_code) AS label
@@ -369,7 +388,7 @@ const reviseWithGroups = async ({ id, customer, groups, items, revision }) => {
         }
       );
     }
-    const LOCKED_WO_STATUSES = ['FINALIZED', 'PRODUCTION', 'COMPLETED'];
+    const LOCKED_WO_STATUSES = ['FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'];
     if (LOCKED_WO_STATUSES.includes(current.status)) {
       const { ApiError } = require('../middleware/errorHandler');
       throw new ApiError(409, `Work order ${current.wo_number} is ${current.status} and can no longer be revised`);
@@ -692,6 +711,43 @@ const updateStatusDirect = async (id, newStatus, expectedOldStatus = null) => {
   return findById(id);
 };
 
+const transitionAdminStatus = async ({ id, fromStatus, toStatus, clearProductionTasks = false }) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const currentResult = await client.query(
+      'SELECT id, status FROM work_orders WHERE id = $1 FOR UPDATE',
+      [id]
+    );
+    const current = currentResult.rows[0];
+    if (!current || current.status !== fromStatus) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    if (clearProductionTasks) {
+      await client.query('DELETE FROM production_tasks WHERE work_order_id = $1', [id]);
+    }
+
+    const result = await client.query(
+      `UPDATE work_orders SET status = $2, updated_at = NOW()
+       WHERE id = $1 AND status = $3 RETURNING id`,
+      [id, toStatus, fromStatus]
+    );
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+    await client.query('COMMIT');
+    return findById(id);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
 // ---------- Work Order Comments ----------
 const findCommentsByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
@@ -770,6 +826,7 @@ module.exports = {
   assignCoder,
   updateStatus,
   updateStatusDirect,
+  transitionAdminStatus,
   findCommentsByWorkOrderId,
   createComment,
   deleteComment,

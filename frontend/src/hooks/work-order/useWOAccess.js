@@ -6,6 +6,7 @@ export default function useWOAccess(id, setMessage, setError) {
   const { hasRole } = useAuth();
   const [access, setAccess] = useState([]);
   const [accessBusy, setAccessBusy] = useState(null);
+  const [pendingRevoke, setPendingRevoke] = useState(null);
   const [users, setUsers] = useState([]);
 
   const loadAccess = useCallback(async () => {
@@ -50,19 +51,20 @@ export default function useWOAccess(id, setMessage, setError) {
   };
 
   const handleRevokeAccess = async (targetUserId) => {
-    if (!window.confirm('Revoke access for this user?')) return;
+    const targetId = parseInt(targetUserId, 10);
+    if (!Number.isInteger(targetId) || targetId < 1) return;
     setError('');
-    setAccessBusy(targetUserId);
+    setAccessBusy(targetId);
     try {
-      await api.delete(`/work-orders/${id}/access/${targetUserId}`);
-      setMessage('Access revoked');
+      await api.delete(`/work-orders/${id}/access/${targetId}`);
+      setMessage('Access removed');
       await loadAccess();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to revoke access');
+      setError(err.response?.data?.message || 'Failed to remove access');
     } finally {
       setAccessBusy(null);
     }
   };
 
-  return { access, accessBusy, users, handleGrantAccess, handleRevokeAccess };
+  return { access, accessBusy, users, handleGrantAccess, handleRevokeAccess, pendingRevoke, setPendingRevoke };
 }

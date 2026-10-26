@@ -94,7 +94,7 @@ const findWorkQueue = async () => {
 };
 
 // General view: every work order counts, not only the ones assigned to the viewer.
-const WOList = ({ search, woStatus, complexity, classification, dateFrom, dateTo, assignedCoderId } = {}) => {
+const WOList = ({ search, woStatus, complexity, classification, machineModelCode, dateFrom, dateTo, assignedCoderId } = {}) => {
   const conds = [];
   const params = [];
   if (assignedCoderId != null) {
@@ -120,6 +120,15 @@ const WOList = ({ search, woStatus, complexity, classification, dateFrom, dateTo
     conds.push(`EXISTS (SELECT 1 FROM work_order_items wcc JOIN classifications ccc ON ccc.work_order_item_id = wcc.id 
       WHERE wcc.work_order_id = wo.id AND ccc.status = $${params.length})`);
   }
+  if (machineModelCode && machineModelCode !== 'ALL') {
+    params.push(machineModelCode);
+    conds.push(`EXISTS (
+      SELECT 1
+      FROM work_order_groups wmg
+      JOIN machine_model mmg ON mmg.id = wmg.machine_model_id
+      WHERE wmg.work_order_id = wo.id AND mmg.model_code = $${params.length}
+    )`);
+  }
   if (dateFrom) {
     params.push(dateFrom);
     conds.push(`wo.created_at >= $${params.length}::date`);
@@ -136,6 +145,16 @@ const countWoQueue = async (opts = {}) => {
   const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
   const result = await pool.query(`SELECT COUNT(*)::int AS count FROM work_orders wo ${where}`, params);
   return result.rows[0].count;
+};
+
+const findMachineModels = async () => {
+  const result = await pool.query(`
+    SELECT id, model_code AS code
+    FROM machine_model
+    WHERE is_active = TRUE
+    ORDER BY model_code
+  `);
+  return result.rows;
 };
 
 const findWoQueue = async ({ page = 1, limit = 10, ...filters } = {}) => {
@@ -218,6 +237,7 @@ module.exports = {
   findWorkQueue,
   findWoQueue,
   countWoQueue,
+  findMachineModels,
   WOList,
   findWeeklyTrend,
 };

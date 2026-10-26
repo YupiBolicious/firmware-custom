@@ -17,6 +17,7 @@ const getCoderDashboard = async (req, res, next) => {
       workOrderStatus: typeof req.query.work_order_status === 'string' && req.query.work_order_status ? req.query.work_order_status : 'ALL',
       complexity: typeof req.query.complexity === 'string' && req.query.complexity ? req.query.complexity : 'ALL',
       classificationStatus: typeof req.query.classification_status === 'string' && req.query.classification_status ? req.query.classification_status : 'ALL',
+      machineModelCode: typeof req.query.machine_model_code === 'string' ? req.query.machine_model_code.trim() : '',
       dateFrom,
       dateTo,
     });

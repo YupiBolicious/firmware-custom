@@ -128,18 +128,19 @@ const updateNotes = async (req, res, next) => {
   }
 };
 
-// const updateStatus = () => {
-//   try {
-//     const data = await workOrderService.updateWorkOrderStatus(req.params.id, {
-//       status: req.body.status,
-//       user_id: req.user.id,
-//       roles: req.user.roles,
-//       ip_address: req.ip
-//     });
-//     res.json({success: true, message: 'Work order status updated',})
-//   } catch(err) { next(err);
-//   }
-// };
+const adminChangeStatus = async (req, res, next) => {
+  try {
+    const data = await workOrderService.adminChangeWorkOrderStatus(req.params.id, req.body?.status, {
+      user_id: req.user.id,
+      roles: req.user.roles,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Work order status updated', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 const addItem = async (req, res, next) => {
   try {
@@ -275,7 +276,7 @@ const completeProduction = async (req, res, next) => {
       roles: req.user.roles,
       ip_address: req.ip,
     });
-    res.json({ success: true, message: 'Work order completed', data });
+    res.json({ success: true, message: 'Work order submitted for admin closure', data });
   } catch (err) {
     next(err);
   }
@@ -469,7 +470,7 @@ const revokeAccess = async (req, res, next) => {
       target_user_id: req.params.userId,
       ip_address: req.ip,
     });
-    res.json({ success: true, message: 'Access revoked', data });
+    res.json({ success: true, message: 'Access removed', data });
   } catch (err) {
     next(err);
   }
@@ -527,6 +528,7 @@ module.exports = {
   confirmUploadWorkOrder,
   update,
   updateNotes,
+  adminChangeStatus,
   addGroup,
   updateGroup,
   deleteGroup,

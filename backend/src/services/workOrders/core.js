@@ -210,7 +210,6 @@ const updateWorkOrderNotes = async (id, { notes, user_id, roles, ip_address }) =
   return wo;
 };
 
-
 const assignWorkOrderCoder = async (id, { coder_id, user_id, ip_address }) => {
   const existing = await workOrderRepository.findById(id);
   if (!existing) {

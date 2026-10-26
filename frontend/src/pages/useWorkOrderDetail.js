@@ -20,9 +20,8 @@ export default function useWorkOrderDetail() {
   const [finalizing, setFinalizing] = useState(false);
   const [startingProduction, setStartingProduction] = useState(false);
   const [completing, setCompleting] = useState(false);
-  const [closing, setClose] = useState(false);
-  const [reopening, setReopen] = useState(false); 
-  const [status, setStatus] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState(null);
   const [itemForm, setItemForm] = useState(emptyItemForm);
   const [editingItemId, setEditingItemId] = useState(null);
   const [showAddItemForm, setShowAddItemForm] = useState(false);
@@ -32,7 +31,6 @@ export default function useWorkOrderDetail() {
   const [correctionConfirmOpen, setCorrectionConfirmOpen] = useState(false);
   const [coders, setCoders] = useState([]);
   const [assigning, setAssigning] = useState(false);
-  const [changeStatus, setChangeStatus] = useState(false);
 
   useEffect(() => {
     if (!hasRole('CODER')) return;
@@ -54,7 +52,7 @@ export default function useWorkOrderDetail() {
   }, [id]);
 
   const { analyzing, setAnalysis, handleAnalyze } = useWOAnalysis(id, load, setMessage, setError);
-  const { access, accessBusy, users, handleGrantAccess, handleRevokeAccess } = useWOAccess(id, setMessage, setError);
+  const { access, accessBusy, users, handleGrantAccess, handleRevokeAccess, pendingRevoke, setPendingRevoke } = useWOAccess(id, setMessage, setError);
   const {
     groupForm, editingGroupId, showAddGroup, handleGroupFormChange, openAddGroup, openEditGroup,
     cancelGroupForm, handleSubmitGroup, handleDeleteGroup, deleteGroupConfirm, deletingGroup,
@@ -299,7 +297,7 @@ export default function useWorkOrderDetail() {
     setCompleting(true);
     try {
       await api.post(`/work-orders/${id}/production/complete`);
-      setMessage('Work order completed');
+      setMessage('Work order submitted for admin closure');
       await load();
       setCompleteConfirm(false);
     } catch (err) {
@@ -315,50 +313,22 @@ export default function useWorkOrderDetail() {
     }
   };
 
-  const handleCloseWO = async () => {
-    setError(''); setMessage(''); setClose(true);
-    try { 
-      await api.post(`/work-orders/${id}/close`);
-      setMessage('Work Order Closed'); await load();
-    } catch(err){
-      const msg = err.response?.data?.message || 'Failed to close work order';
-    }
-    finally {setClose(false);
-    }
-  };
-
-  const handleReopenWO = async() => {
-    setError('');
-    setMessage('');
-    setReopen(true);
-    try {
-      await api.post(`/work-orders/${id}/reopen`);
-      setMessage('Work Order Reopen by Admin');
-      await load();
-    } catch(err) {
-      const msg= err.response.data.message || 'Failed to reopen work order';
-    }
-    finally {
-      setReopen(false);
-    }
-  };
-
-   const handleChangeStatus = async (newStatus) => {
-    if (!wo || !newStatus || newStatus === wo.status) return;
+  const handleAdminStatusChange = async (newStatus) => {
+    if (!isAdmin || !wo || !newStatus || newStatus === wo.status || changingStatus) return;
     setError('');
     setMessage('');
     setChangingStatus(true);
     try {
-      await api.put(`/work-orders/${id}/status`, { status: newStatus });
-      setMessage('Status updated');
+      await api.put(`/work-orders/${id}/admin-status`, { status: newStatus });
+      setMessage(`Work order status changed to ${newStatus}`);
       await load();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update status');
-      await load();
+      setError(err.response?.data?.message || 'Failed to change work order status');
     } finally {
       setChangingStatus(false);
     }
   };
+
 
   return {
     wo,
@@ -421,14 +391,13 @@ export default function useWorkOrderDetail() {
     handleFinalize,
     handleStartProduction,
     handleCompleteProduction,
-    closing, 
-    reopening,
-    handleCloseWO,
-    handleReopenWO,
-    changeStatus,
+    changingStatus,
+    pendingStatus,
+    setPendingStatus,
+    handleAdminStatusChange,
     finalizeConfirm,
     startConfirm,
-    completeConfirm,
+    completeConfirm,  
     openFinalizeConfirm,
     closeFinalizeConfirm,
     openStartConfirm,
@@ -438,8 +407,11 @@ export default function useWorkOrderDetail() {
     handleCompleteTask: (taskId, completed) => handleCompleteTask(taskId, completed, load),
     handleGrantAccess,
     handleRevokeAccess,
+    pendingRevoke,
+    setPendingRevoke,
     deleteItemConfirm,
     openDeleteItemConfirm,
     closeDeleteItemConfirm,
+    isAdmin: hasRole('ADMIN'),
   };
 }
