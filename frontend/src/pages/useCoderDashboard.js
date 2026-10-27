@@ -86,11 +86,7 @@ export default function useCoderDashboard(endpoint = '/coder-dashboard') {
       }
     };
     load();
-<<<<<<< HEAD
-  }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo, all]);
-=======
   }, [workOrderPage, filters.search, filters.statusFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.modelFilter, filters.dateFrom, filters.dateTo]);
->>>>>>> 0b499aa (same wo list on 3 users)
 
   const setFilter = useCallback((key, value) => {
     setFilters((prev) => {
