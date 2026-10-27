@@ -10,7 +10,7 @@ const notificationService = require('../services/notificationService');
 const workOrderAccessRepository = require('../repositories/workOrderAccessRepository');
 const { ApiError } = require('../middleware/errorHandler');
 const { buildKeywords } = require('../utils/tokenPolicy');
-const { assertCoderAssignment } = require('./workOrders/guards');
+const { verifyAssignedCoder } = require('./workOrders/guards');
 
 const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semantic_assist_response, user_id, roles, ip_address }) => {
   const item = await workOrderRepository.findItemWithWorkOrder(itemId);
@@ -42,7 +42,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
     ? `Coder review: ${notes.trim()}`
     : `Coder review confirmed ${level.code} (${level.name})`;
   const wo = await workOrderRepository.findById(item.work_order_id);
-  await assertCoderAssignment(wo, user_id, roles || []);
+  await verifyAssignedCoder(wo, user_id, roles || []);
 
   const saved = await classificationRepository.reviewClassification({
     work_order_item_id: itemId,
@@ -140,7 +140,7 @@ const correctReviewedItem = async (itemId, { complexity_level_id, reason, user_i
   const item = await workOrderRepository.findItemWithWorkOrder(itemId);
   if (item) {
     const wo = await workOrderRepository.findById(item.work_order_id);
-    await assertCoderAssignment(wo, user_id, roles || []);
+    await verifyAssignedCoder(wo, user_id, roles || []);
   }
   const correction = await classificationRepository.correctReviewedClassification({
     work_order_item_id: itemId,
