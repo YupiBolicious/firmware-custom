@@ -7,8 +7,7 @@ const classificationService = require('../classificationService');
 const kbRepository = require('../../repositories/kbRepository');
 const { ApiError } = require('../../middleware/errorHandler');
 const { validatePagination, paginatedPayload } = require('../../utils/pagination');
-const { resolveGroupTargets, assertCanEditWorkOrder, assertCoderAssignment } = require('./guards');
-// const { notifyWorkOrderRecipients } = require('../notificationHelper');
+const { resolveGroupTargets, assertCanEditWorkOrder, verifyAssignedCoder } = require('./guards');
 
 const listWorkOrders = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
   const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
@@ -196,7 +195,7 @@ const updateWorkOrderNotes = async (id, { notes, user_id, roles, ip_address }) =
   if (!existing) {
     throw new ApiError(404, 'Work order not found');
   }
-  await assertCoderAssignment(existing, user_id, roles || []);
+  await verifyAssignedCoder(existing, user_id, roles || []);
   const wo = await workOrderRepository.update(id, { notes });
   await auditService.log({
     user_id,

@@ -63,13 +63,16 @@ export default function WorkOrderDetail() {
   const groupsEditable = wo.status === 'DRAFT' || wo.status === 'ANALYZED';
   const itemsEditable = groupsEditable;
   const staleVerdicts = wo.status === 'DRAFT' && items.some((i) => i.verdict_stale === true);
-  const isOwner = Number(wo.created_by) === Number((useAuth().user?.id));
+  const isOwner = Number(wo.created_by) === Number(user?.id);
   const isGranted = access.some((a) => Number(a.user_id) === Number((useAuth().user?.id)));
   const canComment = hasRole('ADMIN') || hasRole('CODER') || (hasRole('PM') && (isOwner || isGranted));
   const assignedCoderId = wo.assigned_coder_id;
   const isAssignedToMe = hasRole('CODER') && assignedCoderId != null && user && Number(assignedCoderId) === Number(user.id);
   const blockedByAssignment = hasRole('CODER') && !hasRole('ADMIN') && assignedCoderId != null && !isAssignedToMe;
-  
+  const canStartProduction = Boolean(
+    isCoder && assignedCoderId != null && user && Number(assignedCoderId) === Number(user.id)
+  );
+
   return (
     <div className="glass-page">
       <WOStatusAccess 
@@ -99,12 +102,13 @@ export default function WorkOrderDetail() {
         handleRevokeAccess={handleRevokeAccess}
         onRequestRevoke={setPendingRevoke}
         isAdmin={hasRole('ADMIN')}
-        isPM={hasRole('PM')}
+        isOwner={isOwner}
         coders={coders}
         assigning={assigning}
         handleAssignCoder={handleAssignCoder}
         blockedByAssignment={blockedByAssignment}
         onRequestStatusChange={setPendingStatus}
+        canStartProduction={canStartProduction}
       />
 
       <WOModelSerial 
