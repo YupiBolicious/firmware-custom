@@ -102,12 +102,13 @@ export default function WorkOrderDetail() {
         handleRevokeAccess={handleRevokeAccess}
         onRequestRevoke={setPendingRevoke}
         isAdmin={hasRole('ADMIN')}
-        isPM={hasRole('PM')}
+        isOwner={isOwner}
         coders={coders}
         assigning={assigning}
         handleAssignCoder={handleAssignCoder}
         blockedByAssignment={blockedByAssignment}
         onRequestStatusChange={setPendingStatus}
+        canStartProduction={canStartProduction}
       />
 
       <WOModelSerial 

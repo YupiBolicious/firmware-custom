@@ -29,12 +29,13 @@ export default function WOStatusAccess({
   handleRevokeAccess,
   onRequestRevoke,
   isAdmin,
-  isPM,
+  isOwner,
   coders,
   assigning,
   handleAssignCoder,
   blockedByAssignment,
-  onRequestStatusChange
+  onRequestStatusChange,
+  canStartProduction,
 }) {
   const hasProductionTasks = (wo.production_tasks || []).length > 0;
   const canAdminReopen = ['READY_TO_CLOSE', 'COMPLETED'].includes(wo.status);
@@ -48,14 +49,14 @@ export default function WOStatusAccess({
         <h1>{wo.wo_number}</h1>
         {(
           (canEdit && !['FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'].includes(wo.status)) ||
-          ((isAdmin || isPM) && wo.status === 'ANALYZED') ||          (isCoder && !blockedByAssignment && wo.status === 'FINALIZED') ||
+          ((isAdmin || isOwner) && wo.status === 'ANALYZED') || canStartProduction ||
           (isCoder && !blockedByAssignment && wo.status === 'PRODUCTION')
         ) && (
           <div className="flex gap-8">
             {canEdit && !['FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'].includes(wo.status) && (
               <Link className="icon-btn" to={`/work-orders/${wo.id}/edit`} title="Edit Work Order" aria-label="Edit Work Order"><Pencil size={16} strokeWidth={1.5} /></Link>
             )}
-            {(isAdmin || isPM) && wo.status === 'ANALYZED' && (
+            {(isAdmin || isOwner) && wo.status === 'ANALYZED' && (
               <button className="btn" onClick={openFinalizeConfirm} disabled={finalizing || countOpenItem > 0} title={countOpenItem > 0 ? `${countOpenItem} item(s) awaiting coder review` : undefined}>
                 {finalizing
                   ? (allNonFirmware ? 'Completing...' : 'Finalizing...')
