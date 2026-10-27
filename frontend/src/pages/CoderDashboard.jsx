@@ -31,12 +31,6 @@ export default function CoderDashboard() {
     uniqueComplexities, uniqueModels, CLASSIFICATION_STATUS_LABELS,
     workOrderQueue, workOrderQueueTotal, workOrderQueueTotalPages,
     workOrderPage, setWorkOrderPage,
-<<<<<<< HEAD
-    CLASSIFICATION_STATUS_LABELS,
-    all,
-    setAll,
-=======
->>>>>>> 0b499aa (same wo list on 3 users)
   } = useCoderDashboard();
   useValueToast(error);
   const workOrders = useDashboardWoList({
