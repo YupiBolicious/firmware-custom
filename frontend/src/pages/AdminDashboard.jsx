@@ -4,8 +4,14 @@ import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, X
 import useAdminDashboard, { RANGE_PRESETS } from './useAdminDashboard';
 import WoDashboardList, { DASHBOARD_WO_COLUMNS } from './WoDashboardList';
 import useDashboardWoList from './useDashboardWoList';
+import FilterSearch from './FilterSearch';
 
-const WORK_ORDER_STATUSES = ['DRAFT', 'ANALYZED', 'FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'];
+const CLASSIFICATION_STATUS_LABELS = {
+  CLASSIFIED: 'Classified',
+  NON_FIRMWARE: 'Non-Firmware',
+  CODER_REVIEW: 'Coder Review',
+  PENDING: 'Pending',
+};
 
 function formatBucketLabel(date, granularity) {
   const [y, m, d] = date.split('-');
@@ -174,38 +180,18 @@ export default function AdminDashboard() {
         columns={DASHBOARD_WO_COLUMNS}
         hasActiveFilters={workOrders.hasActiveFilters}
         filterControls={
-          <div className="toolbar mb-8">
-            <input
-              className="filter-input"
-              type="search"
-              placeholder="Search work orders..."
-              value={workOrders.searchInput}
-              onChange={(event) => workOrders.setSearchInput(event.target.value)}
-            />
-            <select
-              className="filter-input"
-              value={workOrders.status}
-              onChange={(event) => workOrders.setStatus(event.target.value)}
-              aria-label="Filter work orders by status"
-            >
-              <option value="ALL">All statuses</option>
-              {WORK_ORDER_STATUSES.map((status) => (
-                <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>
-              ))}
-            </select>
-            {workOrders.hasActiveFilters && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  workOrders.setSearchInput('');
-                  workOrders.setStatus('ALL');
-                }}
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
+          <FilterSearch
+            filters={workOrders.filters}
+            setFilter={workOrders.setFilter}
+            showAdvanced={workOrders.showAdvanced}
+            setShowAdvanced={workOrders.setShowAdvanced}
+            clearFilters={workOrders.clearFilters}
+            hasActiveFilters={workOrders.hasActiveFilters}
+            uniqueModels={workOrders.uniqueModels}
+            uniqueComplexities={workOrders.uniqueComplexities}
+            classificationLabels={CLASSIFICATION_STATUS_LABELS}
+            modelValueField="code"
+          />
         }
         emptyMessage={workOrders.loading ? 'Loading work orders...' : 'No work orders yet.'}
       />

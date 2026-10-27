@@ -7,15 +7,23 @@ const classificationService = require('../classificationService');
 const kbRepository = require('../../repositories/kbRepository');
 const { ApiError } = require('../../middleware/errorHandler');
 const { validatePagination, paginatedPayload } = require('../../utils/pagination');
+const { assertOptionalDate } = require('../../utils/validation');
 const { resolveGroupTargets, assertCanEditWorkOrder, verifyAssignedCoder } = require('./guards');
 
-const listWorkOrders = async ({ page = 1, limit = 15, search = '', status = '' } = {}) => {
+const listWorkOrders = async ({ page = 1, limit = 15, search = '', status = '', machineModelCode = '', complexity = '', classificationStatus = '', from = '', to = '' } = {}) => {
   const { page: parsedPage, limit: parsedLimit } = validatePagination(page, limit);
+  assertOptionalDate('from', from);
+  assertOptionalDate('to', to);
   const res = await workOrderRepository.findAll({
     page: parsedPage,
     limit: parsedLimit,
     search: typeof search === 'string' ? search.slice(0, 100) : '',
     status: typeof status === 'string' ? status : '',
+    machineModelCode: typeof machineModelCode === 'string' ? machineModelCode.trim() : '',
+    complexity: typeof complexity === 'string' ? complexity : '',
+    classificationStatus: typeof classificationStatus === 'string' ? classificationStatus : '',
+    from: typeof from === 'string' ? from : '',
+    to: typeof to === 'string' ? to : '',
   });
   return paginatedPayload(res.items.map(({ total, ...rest }) => rest), res.total, parsedPage, parsedLimit);
 };

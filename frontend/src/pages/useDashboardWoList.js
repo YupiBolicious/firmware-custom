@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react';
 import api from '../api/client';
 
 const PAGE_SIZE = 10;
+const EMPTY_FILTERS = {
+  search: '',
+  statusFilter: 'ALL',
+  modelFilter: 'ALL',
+  complexityFilter: 'ALL',
+  classificationStatusFilter: 'ALL',
+  dateFrom: '',
+  dateTo: '',
+};
 
 export default function useDashboardWoList({
   rows: suppliedRows,
@@ -15,20 +24,35 @@ export default function useDashboardWoList({
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('ALL');
+  const [models, setModels] = useState([]);
+  const [complexities, setComplexities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (isControlled) return undefined;
     const timer = setTimeout(() => {
-      setSearch(searchInput.trim());
+      setSearch(filters.search.trim());
       setPage(1);
     }, 300);
     return () => clearTimeout(timer);
-  }, [isControlled, searchInput]);
+  }, [isControlled, filters.search]);
+
+  useEffect(() => {
+    if (isControlled) return undefined;
+    let cancelled = false;
+    Promise.allSettled([api.get('/machine-models'), api.get('/complexity-levels')]).then(([modelsResult, complexitiesResult]) => {
+      if (cancelled) return;
+      if (modelsResult.status === 'fulfilled') setModels(modelsResult.value.data?.data || []);
+      if (complexitiesResult.status === 'fulfilled') {
+        setComplexities((complexitiesResult.value.data?.data || []).map((level) => level.code));
+      }
+    });
+    return () => { cancelled = true; };
+  }, [isControlled]);
 
   useEffect(() => {
     if (isControlled) return undefined;
@@ -38,7 +62,17 @@ export default function useDashboardWoList({
       setError('');
       try {
         const res = await api.get('/work-orders', {
-          params: { page, limit: PAGE_SIZE, search, status },
+          params: {
+            page,
+            limit: PAGE_SIZE,
+            search,
+            status: filters.statusFilter,
+            machine_model_code: filters.modelFilter === 'ALL' ? '' : filters.modelFilter,
+            complexity: filters.complexityFilter,
+            classification_status: filters.classificationStatusFilter,
+            from: filters.dateFrom,
+            to: filters.dateTo,
+          },
         });
         const result = res.data?.data;
         if (!Array.isArray(result?.items)) throw new Error('Invalid work-order list response');
@@ -54,12 +88,25 @@ export default function useDashboardWoList({
     };
     load();
     return () => { cancelled = true; };
-  }, [isControlled, page, search, status]);
+  }, [isControlled, page, search, filters.statusFilter, filters.modelFilter, filters.complexityFilter, filters.classificationStatusFilter, filters.dateFrom, filters.dateTo]);
 
-  const changeStatus = (value) => {
-    setStatus(value);
+  const setFilter = (key, value) => {
+    setFilters((previous) => ({ ...previous, [key]: value }));
     setPage(1);
   };
+
+  const clearFilters = () => {
+    setFilters(EMPTY_FILTERS);
+    setSearch('');
+    setPage(1);
+  };
+
+  const hasLocalFilters = Boolean(filters.search.trim()
+    || filters.statusFilter !== 'ALL'
+    || filters.modelFilter !== 'ALL'
+    || filters.complexityFilter !== 'ALL'
+    || filters.classificationStatusFilter !== 'ALL'
+    || filters.dateFrom || filters.dateTo);
 
   const currentPage = isControlled ? suppliedPage : page;
   const currentTotal = isControlled ? suppliedTotal : total;
@@ -73,14 +120,17 @@ export default function useDashboardWoList({
       ? (suppliedTotalPages || Math.max(1, Math.ceil((currentTotal || 0) / PAGE_SIZE)))
       : Math.max(1, Math.ceil(total / PAGE_SIZE)),
     setPage: isControlled ? suppliedSetPage : setPage,
-    searchInput,
-    setSearchInput,
-    status,
-    setStatus: changeStatus,
+    filters,
+    setFilter,
+    clearFilters,
+    showAdvanced,
+    setShowAdvanced,
+    uniqueModels: models,
+    uniqueComplexities: complexities,
     loading: isControlled ? false : loading,
     error: isControlled ? '' : error,
     hasActiveFilters: isControlled
       ? Boolean(suppliedHasActiveFilters)
-      : Boolean(search || status !== 'ALL'),
+      : hasLocalFilters,
   };
 }

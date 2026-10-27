@@ -18,6 +18,7 @@ export default function FilterSearch({
   uniqueVersions,
   uniqueComplexities,
   classificationLabels,
+  modelValueField = 'id',
 }) {
   return (
     <div>
@@ -82,7 +83,7 @@ export default function FilterSearch({
                 >
                   <option value="ALL">All</option>
                   {uniqueModels.map((m) => (
-                    <option key={m.id} value={m.code}>{m.code}</option>
+                    <option key={m.id} value={m[modelValueField]}>{m.code}</option>
                   ))}
                 </select>
               </div>

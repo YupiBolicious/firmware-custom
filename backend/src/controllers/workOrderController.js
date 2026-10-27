@@ -4,7 +4,17 @@ const { ApiError } = require('../middleware/errorHandler');
 
 const list = async (req, res, next) => {
   try {
-    const data = await workOrderService.listWorkOrders({ page: req.query.page, limit: req.query.limit, search: req.query.search, status: req.query.status });
+    const data = await workOrderService.listWorkOrders({
+      page: req.query.page,
+      limit: req.query.limit,
+      search: req.query.search,
+      status: req.query.status,
+      machineModelCode: req.query.machine_model_code,
+      complexity: req.query.complexity,
+      classificationStatus: req.query.classification_status,
+      from: req.query.from,
+      to: req.query.to,
+    });
     res.json({ success: true, message: 'Work orders retrieved', data });
   } catch (err) {
     next(err);

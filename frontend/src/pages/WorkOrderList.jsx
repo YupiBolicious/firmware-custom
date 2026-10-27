@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import StatusBadge from '../components/StatusBadge';
+import StatusBadge, {statusBadgeMeta} from '../components/StatusBadge';
 import UploadPreviewModal from '../components/work-order/UploadPreviewModal';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -195,8 +195,8 @@ export default function WorkOrderList() {
         />
         <select className="filter-input" value={status} onChange={(e) => handleStatusChange(e.target.value)}>
           <option value="ALL">All Statuses</option>
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>{s}</option>
+          {STATUS_OPTIONS.map((statusOption) => (
+            <option key={statusOption} value={statusOption}>{statusBadgeMeta(statusOption).label}</option>
           ))}
         </select>
       </div>

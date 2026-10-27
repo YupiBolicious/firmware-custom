@@ -171,6 +171,7 @@ export default function CoderDashboard() {
             hasActiveFilters={hasActiveFilters}
             uniqueComplexities={uniqueComplexities}
             uniqueModels={uniqueModels}
+            modelValueField="code"
           />
         }
       />

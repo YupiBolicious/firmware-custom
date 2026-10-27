@@ -1,13 +1,38 @@
 ﻿const pool = require('../config/db');
 
 //work orders
-const findAll = async ({ page = 1, limit = 15, search = '', status = '', from = '', to = '' } = {}) => {
+const findAll = async ({ page = 1, limit = 15, search = '', status = '', machineModelCode = '', complexity = '', classificationStatus = '', from = '', to = '' } = {}) => {
   const params = [];
   const conditions = [];
 
   if (status && status !== 'ALL') {
     params.push(status);
     conditions.push(`wo.status = $${params.length}`);
+  }
+  if (machineModelCode && machineModelCode !== 'ALL') {
+    params.push(machineModelCode);
+    conditions.push(`EXISTS (
+      SELECT 1 FROM work_order_groups wmg
+      JOIN machine_model mmg ON mmg.id = wmg.machine_model_id
+      WHERE wmg.work_order_id = wo.id AND mmg.model_code = $${params.length}
+    )`);
+  }
+  if (complexity && complexity !== 'ALL') {
+    params.push(complexity);
+    conditions.push(`EXISTS (
+      SELECT 1 FROM work_order_items wci
+      JOIN classifications cci ON cci.work_order_item_id = wci.id
+      JOIN complexity_levels clci ON clci.id = cci.complexity_level_id
+      WHERE wci.work_order_id = wo.id AND clci.code = $${params.length}
+    )`);
+  }
+  if (classificationStatus && classificationStatus !== 'ALL') {
+    params.push(classificationStatus);
+    conditions.push(`EXISTS (
+      SELECT 1 FROM work_order_items wci
+      JOIN classifications cci ON cci.work_order_item_id = wci.id
+      WHERE wci.work_order_id = wo.id AND cci.status = $${params.length}
+    )`);
   }
   if (from) {
     params.push(from);
