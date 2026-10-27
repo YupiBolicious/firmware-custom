@@ -189,8 +189,7 @@ export default function AdminDashboard() {
             hasActiveFilters={workOrders.hasActiveFilters}
             uniqueModels={workOrders.uniqueModels}
             uniqueComplexities={workOrders.uniqueComplexities}
-            classificationLabels={CLASSIFICATION_STATUS_LABELS}
-            modelValueField="code"
+            modelValueField='id'
           />
         }
         emptyMessage={workOrders.loading ? 'Loading work orders...' : 'No work orders yet.'}

@@ -1,3 +1,4 @@
+import StatusBadge, {statusBadgeMeta} from "../components/StatusBadge";
 const WORK_ORDER_STATUS_LABELS = {
   DRAFT: 'Draft',
   ANALYZED: 'Analyzed',
@@ -54,7 +55,7 @@ export default function FilterSearch({
               >
                 <option value="ALL">All</option>
                 {Object.entries(WORK_ORDER_STATUS_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                   <option key={value} value={value}>{statusBadgeMeta(value).label}</option>
                 ))}
               </select>
             </div>
