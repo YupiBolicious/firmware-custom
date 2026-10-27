@@ -31,7 +31,6 @@ export default function CoderDashboard() {
     uniqueComplexities, uniqueModels, CLASSIFICATION_STATUS_LABELS,
     workOrderQueue, workOrderQueueTotal, workOrderQueueTotalPages,
     workOrderPage, setWorkOrderPage,
-    CLASSIFICATION_STATUS_LABELS,
     all,
     setAll,
   } = useCoderDashboard();
