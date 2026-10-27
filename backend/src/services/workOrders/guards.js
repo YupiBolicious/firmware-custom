@@ -31,13 +31,14 @@ const assertCanManageAccess = async (wo, user_id, roles) => {
   throw new ApiError(403, 'Only the owner or an administrator can manage access');
 };
 
-// change to assignment granted by task manager/admin
-const assertCoderAssignment = async (wo, user_id, roles) => {
-  const userRoles = roles || [];
-  if (userRoles.includes('ADMIN')) return wo;
-  if (!userRoles.includes('CODER')) return wo;
-  // Unassigned work orders stay open to any coder; only an admin assigns the owner.
-  if (wo.assigned_coder_id == null) return wo;
+const verifyAssignedCoder = (wo, user_id, roles = []) => {
+  if (!roles.includes('CODER')) {
+    throw new ApiError(403, 'Only assigned firmware engineer can start the production');
+  }
+  if (wo.assigned_coder_id == null) {
+    throw new ApiError(403, 'A firmware engineer should be assigned to the work order');
+  }
+
   if (Number(wo.assigned_coder_id) !== Number(user_id)) {
     throw new ApiError(403, 'Only assigned firmware engineer can start the production');
   }

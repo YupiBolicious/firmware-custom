@@ -14,7 +14,7 @@ const auditService = require('../auditService');
 const notificationService = require('../notificationService');
 const { ApiError } = require('../../middleware/errorHandler');
 const { deriveReviewReason, pickPrimaryBlockedReason } = require('../semanticAssist');
-const { assertCanEditWorkOrder, assertCoderAssignment } = require('./guards');
+const { assertCanEditWorkOrder, verifyAssignedCoder } = require('./guards');
 
 const notifyWorkOrderRecipients = async ({ work_order_id, owner_id, status, message }) => {
   const granteeIds = await workOrderAccessRepository.findUserIdsByWorkOrderId(work_order_id);
@@ -464,7 +464,7 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
 const startProduction = async (id, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) throw new ApiError(404, 'Work order not found');
-  await assertCoderAssignment(wo, user_id, roles || []);
+  await verifyAssignedCoder(wo, user_id, roles || []);
   if (wo.status !== 'FINALIZED') throw new ApiError(400, 'Work order must be FINALIZED to start production');
   const updated = await workOrderRepository.updateStatus(id, 'PRODUCTION', 'FINALIZED');
   if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
@@ -545,7 +545,7 @@ const completeProductionTask = async (taskId, { completed, user_id, roles, ip_ad
   if (!task) throw new ApiError(404, 'Production task not found');
   const wo = await workOrderRepository.findById(task.work_order_id);
   if (!wo) throw new ApiError(404, 'Work order not found');
-  await assertCoderAssignment(wo, user_id, roles || []);
+  await verifyAssignedCoder(wo, user_id, roles || []);
   if (wo.status !== 'PRODUCTION') {
     throw new ApiError(400, 'Work order must be in production to update tasks');
   }
@@ -572,7 +572,7 @@ const completeProductionTask = async (taskId, { completed, user_id, roles, ip_ad
 const completeProduction = async (id, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(id);
   if (!wo) throw new ApiError(404, 'Work order not found');
-  await assertCoderAssignment(wo, user_id, roles || []);
+  await verifyAssignedCoder(wo, user_id, roles || []);
   if (wo.status !== 'PRODUCTION') throw new ApiError(400, 'Work order must be in PRODUCTION to complete');
   const { total, open } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
   if (open > 0) {
