@@ -4,7 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import RelativeTime from '../components/RelativeTime';
 import useCoderDashboard from './useCoderDashboard';
 import FilterSearch from './FilterSearch';
-import StatusBadge from '../components/StatusBadge';
+import StatusBadge, {statusBadgeMeta} from '../components/StatusBadge';
 import WoDashboardList, { DASHBOARD_WO_COLUMNS } from './WoDashboardList';
 import useDashboardWoList from './useDashboardWoList';
 
