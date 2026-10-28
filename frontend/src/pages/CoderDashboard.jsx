@@ -25,22 +25,12 @@ function CustomTooltip({ active, payload, label }) {
 export default function CoderDashboard() {
   const {
     data, error, loading,
-    filters, showAdvanced, setShowAdvanced, setFilter, clearFilters,
-    filteredReviewQueue, filteredWorkQueue, dashboardKpis, filteredWorkload, filteredTrend,
-    matchingCount, totalCount, hasActiveFilters,
-    uniqueComplexities, uniqueModels, CLASSIFICATION_STATUS_LABELS,
-    workOrderQueue, workOrderQueueTotal, workOrderQueueTotalPages,
-    workOrderPage, setWorkOrderPage,
+    filteredReviewQueue, dashboardKpis, filteredWorkload, filteredTrend,
+    hasActiveFilters,
   } = useCoderDashboard();
   useValueToast(error);
-  const workOrders = useDashboardWoList({
-    rows: workOrderQueue,
-    total: workOrderQueueTotal,
-    page: workOrderPage,
-    setPage: setWorkOrderPage,
-    totalPages: workOrderQueueTotalPages,
-    hasActiveFilters,
-  });
+  const workOrders = useDashboardWoList();
+  useValueToast(workOrders.error);
 
   const navigate = useNavigate();
 
@@ -70,7 +60,7 @@ export default function CoderDashboard() {
           <div className='value'>{dashboardKpis.pending_review}</div>
         </button>
 
-        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${globalDone}`}
+        <button type='button' className='stat' onClick={showCompleted} aria-label={`View ${globalDone}`}
         style={{cursor:'pointer', textAlign:'left', font:'inherit', color: globalDone> 0 ? 'var(--success)' : undefined, width:'100%'}}
         >
           <div className='label'>Items Completed</div>
@@ -163,17 +153,17 @@ export default function CoderDashboard() {
         hasActiveFilters={workOrders.hasActiveFilters}
         filterControls={
           <FilterSearch
-            filters={filters}
-            setFilter={setFilter}
-            showAdvanced={showAdvanced}
-            setShowAdvanced={setShowAdvanced}
-            clearFilters={clearFilters}
-            hasActiveFilters={hasActiveFilters}
-            uniqueComplexities={uniqueComplexities}
-            uniqueModels={uniqueModels}
+            filters={workOrders.filters}
+            setFilter={workOrders.setFilter}
+            showAdvanced={workOrders.showAdvanced}
+            setShowAdvanced={workOrders.setShowAdvanced}
+            clearFilters={workOrders.clearFilters}
+            hasActiveFilters={workOrders.hasActiveFilters}
+            uniqueComplexities={workOrders.uniqueComplexities}
             modelValueField='id'
           />
         }
+        emptyMessage={workOrders.loading ? 'Loading work orders...' : 'No work orders yet.'}
       />
       {/* 5. Review Queue */}
       <div className="panel mb-16">

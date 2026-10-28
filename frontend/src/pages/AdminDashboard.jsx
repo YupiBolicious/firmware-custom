@@ -61,7 +61,7 @@ function TrendTooltip({ active, payload, label }) {
 
 export default function AdminDashboard() {
   const { data, error, loading, preset, changePreset, 
-    trendRefreshing, trendError, workload,
+    trendRefreshing, trendError, workload, uniqueModels,
 } = useAdminDashboard();
   const workOrders = useDashboardWoList();
   useValueToast(error);
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
             setShowAdvanced={workOrders.setShowAdvanced}
             clearFilters={workOrders.clearFilters}
             hasActiveFilters={workOrders.hasActiveFilters}
-            uniqueModels={workOrders.uniqueModels}
+            // uniqueModels={workOrders.uniqueModels}
             uniqueComplexities={workOrders.uniqueComplexities}
             modelValueField='id'
           />

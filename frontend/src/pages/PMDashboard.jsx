@@ -41,21 +41,11 @@ function formatAttentionAge(hours, kind) {
 export default function PMDashboard() {
   const {
     data, error, loading,
-    filters, showAdvanced, setShowAdvanced, setFilter, clearFilters,
-    visibleQueue, matchingCount, queueTotalPages, hasActiveFilters,
-    workOrderPage, setWorkOrderPage,  
-    uniqueModels, uniqueComplexities,
-    filteredKpis, filteredStatusDistribution, filteredWorkload, filteredTrend, trendUnit, trendWindow, filteredAttention,
+    filteredKpis, filteredStatusDistribution, filteredWorkload, filteredTrend, trendWindow,
   } = usePmDashboard();
-  const workOrders = useDashboardWoList({
-    rows: visibleQueue,
-    total: matchingCount,
-    page: workOrderPage,
-    setPage: setWorkOrderPage,
-    totalPages: queueTotalPages,
-    hasActiveFilters,
-  });
+  const workOrders = useDashboardWoList();
   useValueToast(error);
+  useValueToast(workOrders.error);
   const navigate = useNavigate();
   const showInProgress = () => navigate('/work-orders');
   if (loading) return <div>Loading...</div>;
@@ -110,16 +100,16 @@ export default function PMDashboard() {
         hasActiveFilters={workOrders.hasActiveFilters}
         filterControls={
           <FilterSearch
-            filters={filters}
-            setFilter={setFilter}
-            showAdvanced={showAdvanced}
-            setShowAdvanced={setShowAdvanced}
-            clearFilters={clearFilters}
-            hasActiveFilters={hasActiveFilters}
-            uniqueModels={uniqueModels}
-            uniqueComplexities={uniqueComplexities}
+            filters={workOrders.filters}
+            setFilter={workOrders.setFilter}
+            showAdvanced={workOrders.showAdvanced}
+            setShowAdvanced={workOrders.setShowAdvanced}
+            clearFilters={workOrders.clearFilters}
+            hasActiveFilters={workOrders.hasActiveFilters}
+            uniqueComplexities={workOrders.uniqueComplexities}
           />
         }
+        emptyMessage={workOrders.loading ? 'Loading work orders...' : 'No work orders yet.'}
       />
       <div className="split-2">
       {/* 3. Progress Overview */}
