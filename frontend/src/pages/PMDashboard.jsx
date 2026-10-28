@@ -1,5 +1,5 @@
 import { useValueToast } from '../components/Toast';
-import { useNavigate } from 'react-router-dom';
+import { NavigationType, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import usePmDashboard from './usePmDashboard';
 import FilterSearch from './FilterSearch';
@@ -48,6 +48,8 @@ export default function PMDashboard() {
   useValueToast(workOrders.error);
   const navigate = useNavigate();
   const showInProgress = () => navigate('/work-orders');
+  const showItem = () => navigate('/pending-review'); 
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-muted">Dashboard unavailable.</div>;
   if (!data) return null;
@@ -64,7 +66,7 @@ export default function PMDashboard() {
           <div className='value'>{filteredKpis.completed}</div>
         </button>
 
-        <button type='button' className='stat' onClick={showInProgress} aria-label={`View ${filteredKpis.pending_review}`}
+        <button type='button' className='stat' onClick={showItem} aria-label={`View ${filteredKpis.pending_review}`}
         style={{cursor:'pointer', textAlign:'left', font:'inherit', color:filteredKpis.pending_review> 0 ? 'var(--warning)' : undefined, width:'100%', border:0}}
         >
           <div className='label'>Waiting for Review</div>

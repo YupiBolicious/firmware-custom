@@ -1097,6 +1097,31 @@ textarea {
   color: var(--text-muted);
 }
 
+.change-pass-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.change-pass-field input {
+  width: 100%;
+  padding-right: 2.5rem; /* space for button */
+}
+
+.change-pass {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .login-box {
     animation: none;

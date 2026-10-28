@@ -192,7 +192,7 @@ const updateWorkOrder = async (id, { title, customer, status, user_id, roles, ip
     entity_type: 'WORK_ORDER',
     entity_id: wo.id,
     work_order_id: wo.id,
-    details: { wo_number: wo.wo_number, changes: { title, description, customer, status } },
+    details: { wo_number: wo.wo_number, changes: { title, customer, status } },
     ip_address,
   });
   return wo;

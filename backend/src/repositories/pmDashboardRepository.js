@@ -33,7 +33,7 @@ const WORK_QUEUE_SQL = `
             GROUP BY cl.code ORDER BY COUNT(*) DESC LIMIT 1) AS complexity_code,
            BOOL_AND(COALESCE(c.fw_related, FALSE)) AS all_fw_related,
            BOOL_OR(c.status = 'CODER_REVIEW') AS has_pending_review,
-           BOOL_OR(c.status = 'CODER_REVIEW' AND c.created_at <= NOW() - INTERVAL '48 hours') AS has_overdue,
+           BOOL_OR(c.status = 'CODER_REVIEW' AND c.created_at <= NOW() - INTERVAL '120 hours') AS has_overdue,
            ARRAY_AGG(DISTINCT woi.title) FILTER (WHERE woi.title IS NOT NULL) AS item_titles,
            GREATEST(
              wo.updated_at,

@@ -35,7 +35,7 @@ const findKpis = async () => {
         JOIN work_orders wo ON wo.id = woi.work_order_id
         WHERE c.status = 'CODER_REVIEW'
           AND wo.status != 'FINALIZED'
-              AND c.created_at < NOW() - INTERVAL '48 hours'
+              AND c.created_at < NOW() - INTERVAL '120 hours'
        ) AS overdue_count`
   );
   return result.rows[0];

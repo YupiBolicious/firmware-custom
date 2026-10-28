@@ -3,11 +3,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function ChangePassword() {
   const { user, updateUser, logout } = useAuth();
   const navigate = useNavigate();
 
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [original, setOriginal] = useState({ full_name: user?.full_name || '', email: user?.email || '' });
@@ -116,16 +120,53 @@ export default function ChangePassword() {
           <h3 style={{ margin: '0 0 12px' }}>Update Password</h3>
           <form onSubmit={handlePasswordSubmit}>
             <div className="form-row">
-              <label>Current Password</label>
-              <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+              <label htmlFor="current-password">Current Password
+              </label>
+              <div className="change-pass-field">
+                <input id="current-password" type={showCurrentPassword ? 'text' : 'password'} autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+                <button
+                  type="button"
+                  className='change-pass'
+                  onClick={() => setShowCurrentPassword((v) => !v)}
+                  aria-label={showCurrentPassword ? 'Hide current password' : 'Show current password'}
+                  aria-pressed={showCurrentPassword}
+                  title={showCurrentPassword ? 'Hide current password' : 'Show current password'}
+                >
+                  {showCurrentPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
+                </button> 
+              </div>
             </div>
             <div className="form-row">
-              <label>New Password</label>
-              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} required />
+              <label htmlFor="new-password">New Password</label>
+              <div className="change-pass-field">
+                <input id="new-password" type={showNewPassword ? 'text' : 'password'} autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="At least 8 characters" minLength={8} required />
+                <button
+                  type="button"
+                  className="change-pass"
+                  onClick={() => setShowNewPassword((v) => !v)}
+                  aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
+                  aria-pressed={showNewPassword}
+                  title={showNewPassword ? 'Hide new password' : 'Show new password'}
+                >
+                  {showNewPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
+                </button>
+              </div>
             </div>
             <div className="form-row">
-              <label>Confirm New Password</label>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} required />
+              <label htmlFor="confirm-new-password">Confirm New Password</label>
+              <div className="change-pass-field">
+                <input id="confirm-new-password" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={8} required />
+                <button
+                  type="button"
+                  className="change-pass"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}
+                  aria-pressed={showConfirmPassword}
+                  title={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
+                </button>
+              </div>
             </div>
             <div className="flex justify-end gap-8 mt-3">
               <button className="btn" type="submit" disabled={loading}>
