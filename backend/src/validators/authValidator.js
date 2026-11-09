@@ -1,6 +1,7 @@
 const { ApiError } = require('../middleware/errorHandler');
 
 const MIN_PASSWORD_LENGTH = 8;
+const email_input = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const validateChangePassword = (body) => {
   const errors = [];
@@ -33,4 +34,21 @@ const validateLogin = (req, res, next) => {
   next();
 };
 
-module.exports = { validateChangePassword, validateLogin };
+const validateForgotPassword = (body) => {
+  const email = body && body.email;
+  if (typeof email !== 'string' || !email_input.test(email.trim())) {
+    throw new ApiError(400, 'A valid email is required');
+  }
+};
+
+const validateResetPassword = (body) => {
+  const errors = [];
+  if(!body.new_password || typeof body.new_password !== 'string' || body.new_password.length < MIN_PASSWORD_LENGTH){
+    errors.push(`new password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+  }
+  if(errors.length) {
+    throw new ApiError(400, 'validation failed', errors);
+  }
+};
+
+module.exports = { validateChangePassword, validateLogin, validateForgotPassword, validateResetPassword };

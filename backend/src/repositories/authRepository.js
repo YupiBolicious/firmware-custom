@@ -14,7 +14,7 @@ const findByIdentifier = async (identifier) => {
 
 const findByIdWithPassword = async (id) => {
   const result = await pool.query(
-    `SELECT u.id, u.email, u.password_hash, u.full_name, u.is_active
+    `SELECT u.id, u.username, u.email, u.password_hash, u.full_name, u.is_active
      FROM users u
      WHERE u.id = $1`,
     [id]
@@ -30,4 +30,12 @@ const updatePasswordHash = async (userId, hash) => {
   return result.rows[0] || null;
 };
 
-module.exports = { findByIdentifier, findByIdWithPassword, updatePasswordHash };
+const findEmailWithPassword = async(email) => {
+  const result= await pool.query(
+  `select u.id, u.username, u.email, u.password_hash, u.is_active
+  from users u
+  where u.email = $1`, [email]);
+  return result.rows[0] || null;
+}
+
+module.exports = { findByIdentifier, findByIdWithPassword, updatePasswordHash, findEmailWithPassword };

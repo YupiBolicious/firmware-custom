@@ -13,5 +13,6 @@ router.get('/coder', authorize('ADMIN'), userController.listCoderUsers);
 router.post('/', authorize('ADMIN'), userController.create);
 router.put('/:id', authorize('ADMIN'), requireIntegerParams('id'), userController.update);
 router.post('/:id/reset-password', authorize('ADMIN'), requireIntegerParams('id'), userController.resetPassword);
+router.post('/:id/send-account-email', authorize('ADMIN'), requireIntegerParams('id'), userController.sendAccountEmail);
 
 module.exports = router;

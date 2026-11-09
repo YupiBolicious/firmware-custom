@@ -42,4 +42,29 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
-module.exports = { login, me, changePassword, updateProfile };
+const forgotPassword = async(req, res, next) => {
+  try {
+    const data = await authService.forgotPassword({
+      email: req.body && req.body.email,
+      ip_address: req.ip, 
+    });
+    res.json({ success: true, message: data.message, data: null});
+  } catch(err) {
+    next(err);
+  }
+};
+
+const resetPassword = async(req, res, next) => {
+  try{
+    const data = await authService.resetPasswordByToken({
+      token: req.body && req.body.token,
+      new_password: req.body && req.body.new_password,
+      ip_address: req.ip,
+    });
+    res.json({ success: true, message: 'Password Updated', data });
+  } catch (err){
+    next (err);
+  }
+};
+
+module.exports = { login, me, changePassword, updateProfile, forgotPassword, resetPassword };

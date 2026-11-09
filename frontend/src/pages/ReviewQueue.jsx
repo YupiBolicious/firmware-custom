@@ -39,11 +39,12 @@ export default function ReviewQueue() {
           </thead>
           <tbody>
             {items.map((item) => {
-              const isAdmin = hasRole('ADMIN');
-              const isCoder = hasRole('CODER');
-              const assigned = item.assigned_coder_id != null;
-              const isAssignedToMe = assigned && user && Number(item.assigned_coder_id) === Number(user.id);
-              const blockedByAssignment = isCoder && !isAdmin && assigned && !isAssignedToMe;
+              const decided = assistResponses[item.item_id] || item.assist_response;
+              const suggestedLevel = levels.find(
+                (level) => String(level.id) === String(item.assist_complexity_level_id)
+              );
+              const score = Math.round((Number(item.assist_match_score) || 0) * 100);
+
               return (
               <tr key={item.item_id}>
                 <td><Link to={`/work-orders/${item.work_order_id}`}>{item.wo_number}</Link></td>
@@ -57,16 +58,7 @@ export default function ReviewQueue() {
                   ) : null}
                 </td>
                 <td>
-                  {item.assist_kb_code && !blockedByAssignment ? (() => {
-                    const decided = assistResponses[item.item_id] || item.assist_response;
-                    const level = levels.find(
-                      (l) => String(l.id) === String(item.assist_complexity_level_id)
-                    );
-
-                    const score = Math.round((Number(item.assist_match_score) || 0) * 100);
-                    const margin = (Number(item.assist_semantic_margin) || 0) * 100;
-
-                    return (
+                  {item.assist_kb_code ? (
                       <div
                         style={{
                           display: 'flex',
@@ -96,9 +88,9 @@ export default function ReviewQueue() {
 
                         {/* Suggested classification */}
                         <div className="flex gap-8 align-center" style={{ fontSize: 10 }}>
-                          {level && (
+                          {suggestedLevel && (
                             <span className="badge badge-muted">
-                              Suggested {level.code}
+                              Suggested {suggestedLevel.code}
                             </span>
                           )}
                           <span className='badge badge-info'>{score}% match</span>
@@ -123,32 +115,23 @@ export default function ReviewQueue() {
                           </button>
                         </div>
                       </div>
-                    );
-                  })() : (
+                  ) : (
                     <span className="text-muted">No assistance</span>
                   )}
                 </td>
                 <td>
-                  {blockedByAssignment ? (
-                    <span className="text-muted" style={{ fontSize: 12 }}>Assigned to {item.assigned_coder_name || 'another coder'}</span>
-                  ) : (
-                    <select
-                      value={selections[item.item_id] || ''}
-                      onChange={(event) => setSelections({ ...selections, [item.item_id]: event.target.value })}
-                    >
-                      <option value="">Select L0-L5</option>
-                      {levels.map((level) => <option key={level.id} value={level.id}>{level.code} - {level.name}</option>)}
-                    </select>
-                  )}
+                  <select
+                    value={selections[item.item_id] || ''}
+                    onChange={(event) => setSelections({ ...selections, [item.item_id]: event.target.value })}
+                  >
+                    <option value="">Select L0-L5</option>
+                    {levels.map((level) => <option key={level.id} value={level.id}>{level.code} - {level.name}</option>)}
+                  </select>
                 </td>
                 <td>
-                  {blockedByAssignment ? (
-                    <span className="text-muted" style={{ fontSize: 12 }}>-</span>
-                  ) : (
-                    <button className="btn btn-sm" onClick={() => review(item)} disabled={!canConfirm(item) || reviewing === item.item_id}>
-                      {reviewing === item.item_id ? 'Saving...' : '✔'}
-                    </button>
-                  )}
+                  <button className="btn btn-sm" onClick={() => review(item)} disabled={!canConfirm(item) || reviewing === item.item_id}>
+                    {reviewing === item.item_id ? 'Saving...' : '✔'}
+                  </button>
                 </td>
               </tr>
               );

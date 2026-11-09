@@ -34,7 +34,13 @@ const create = async (req, res, next) => {
       body: req.body,
       ip_address: req.ip,
     });
-    res.status(201).json({ success: true, message: 'User created', data });
+    res.status(201).json({
+      success: true,
+      message: data.notification && !data.notification.sent
+        ? 'User created; account email could not be delivered'
+        : 'User created',
+      data,
+    });
   } catch (err) {
     next(err);
   }
@@ -68,4 +74,22 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
-module.exports = { list, listPmUsers, listCoderUsers, create, update, resetPassword };
+const sendAccountEmail = async (req, res, next) => {
+  try {
+    const data = await userService.sendAccountEmail({
+      actorId: req.user.id,
+      id: req.params.id,
+      body: req.body,
+      ip_address: req.ip,
+    });
+    res.json({
+      success: true,
+      message: data.sent ? 'Account email sent' : 'Account email could not be delivered',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { list, listPmUsers, listCoderUsers, create, update, resetPassword, sendAccountEmail };

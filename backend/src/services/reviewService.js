@@ -42,7 +42,6 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
     ? `Coder review: ${notes.trim()}`
     : `Coder review confirmed ${level.code} (${level.name})`;
   const wo = await workOrderRepository.findById(item.work_order_id);
-  // await verifyAssignedCoder(wo, user_id, roles || []);
 
   const saved = await classificationRepository.reviewClassification({
     work_order_item_id: itemId,

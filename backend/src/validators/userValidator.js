@@ -12,6 +12,27 @@ const validateEmail = (email) => {
   return typeof email === 'string' && EMAIL_RE.test(email.trim());
 };
 
+// Empty/unset ALLOWED_EMAIL_DOMAINS means no domain restriction.
+const allowedEmailDomains = () =>
+  String(process.env.ALLOWED_EMAIL_DOMAINS || '')
+    .split(',')
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+
+const emailDomainError = (email) => {
+  const allowed = allowedEmailDomains();
+  if (!allowed.length) return null;
+  const domain = String(email).trim().toLowerCase().split('@')[1];
+  if (allowed.includes(domain)) return null;
+  return `Email must be on an approved company domain (${allowed.join(', ')})`;
+};
+
+// Syntax error first, then the domain allowlist.
+const emailError = (email) => {
+  if (!validateEmail(email)) return 'A valid email is required';
+  return emailDomainError(email);
+};
+
 const validateUsername = (username) => {
   return typeof username === 'string' && USERNAME_RE.test(username.trim());
 };
@@ -30,8 +51,9 @@ const fail = (errors) => {
 
 const validateUserCreate = (body) => {
   const errors = [];
-  if (!validateEmail(body.email)) {
-    errors.push('A valid email is required');
+  const emailErr = emailError(body.email);
+  if (emailErr) {
+    errors.push(emailErr);
   }
   if (!validateUsername(body.username)) {
     errors.push('Username is required (3-100 characters, stored lowercase: letters, digits, @ . _ -)');
@@ -53,8 +75,9 @@ const validateUserUpdate = (body) => {
   if (body.username !== undefined) {
     errors.push('Username cannot be changed after creation (immutable)');
   }
-  if (body.email !== undefined && !validateEmail(body.email)) {
-    errors.push('A valid email is required');
+  if (body.email !== undefined) {
+    const emailErr = emailError(body.email);
+    if (emailErr) errors.push(emailErr);
   }
   if (body.full_name !== undefined && String(body.full_name).trim() === '') {
     errors.push('Full name cannot be empty');
@@ -78,8 +101,9 @@ const validatePasswordReset = (body) => {
 
 const validateProfile = (body) => {
   const errors = [];
-  if (!validateEmail(body.email)) {
-    errors.push('A valid email is required');
+  const emailErr = emailError(body.email);
+  if (emailErr) {
+    errors.push(emailErr);
   }
   if (!body.full_name || String(body.full_name).trim() === '') {
     errors.push('Full name is required');

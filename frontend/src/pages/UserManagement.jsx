@@ -9,6 +9,8 @@ const ROLE_OPTIONS = [
   { code: 'ADMIN', label: 'Administrator' },
 ];
 
+const INITIAL_PASSWORD = 'password123';
+
 export default function UserManagement() {
   const {
     users,
@@ -41,6 +43,10 @@ export default function UserManagement() {
     openResetConfirm,
     closeResetConfirm,
     confirmResetPassword,
+    notifyFailure,
+    resendBusy,
+    resendAccountEmail,
+    dismissNotifyFailure,
   } = useUserManagement();
   useValueToast(error);
 
@@ -105,7 +111,12 @@ export default function UserManagement() {
             {!editingId && (
               <div className="form-row">
                 <label>Default Password</label>
-                <input type="password" value={form.default_password} onChange={(e) => setForm({ ...form, default_password: e.target.value })} placeholder="At least 8 characters" minLength={8} required />
+                <div className="flex gap-8">
+                  <input type="password" value={form.default_password} onChange={(e) => setForm({ ...form, default_password: e.target.value })} placeholder="At least 8 characters" minLength={8} required style={{ flex: 1 }} />
+                  <button type="button" className="btn btn-secondary" onClick={() => setForm({ ...form, default_password: INITIAL_PASSWORD })}>
+                    Use default password
+                  </button>
+                </div>
               </div>
             )}
             <div className="flex justify-end gap-8">
@@ -121,6 +132,23 @@ export default function UserManagement() {
           <button className="btn" type="button" onClick={toggleShowForm}>
             <Plus size={16} /> Add User
           </button>
+        </div>
+      )}
+
+      {notifyFailure && (
+        <div className="alert alert-warning mb-16" role="alert">
+          <div className="alert-title">Account created, but the email to {notifyFailure.user.email} failed</div>
+          <div className="alert-description">
+            {notifyFailure.error} The account exists and can be used. Share the credentials manually, or resend the email.
+          </div>
+          <div className="flex gap-8" style={{ marginTop: 8 }}>
+            <button className="btn btn-sm" type="button" disabled={resendBusy} onClick={resendAccountEmail}>
+              {resendBusy ? 'Resending...' : 'Resend email'}
+            </button>
+            <button className="btn btn-secondary btn-sm" type="button" disabled={resendBusy} onClick={dismissNotifyFailure}>
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 

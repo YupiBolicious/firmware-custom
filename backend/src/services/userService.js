@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/userRepository');
 const auditService = require('./auditService');
+const mailService = require('./mailService');
 // const lockoutStore = require('./lockoutStore');
 const userValidator = require('../validators/userValidator');
 const { ApiError } = require('../middleware/errorHandler');
@@ -51,16 +52,31 @@ const createUser = async ({ actorId, body, ip_address }) => {
     roleCodes: body.roles,
   });
 
+  // The account is saved first: an SMTP failure must never roll it back.
+  const notification = await mailService.sendAccountCreated({
+    to: created.email,
+    username: created.username,
+    roles: created.roles,
+    initialPassword: body.default_password,
+  });
+
   await auditService.log({
     user_id: actorId,
     action: 'USER_CREATED',
     entity_type: 'USER',
     entity_id: String(created.id),
-    details: { username, email, full_name: created.full_name, roles: created.roles },
+    details: {
+      username,
+      email,
+      full_name: created.full_name,
+      roles: created.roles,
+      notification: notification.sent ? 'sent' : 'failed',
+      notification_error: notification.error || undefined,
+    },
     ip_address,
   });
 
-  return created;
+  return { ...created, notification };
 };
 
 const updateUser = async ({ actorId, id, body, ip_address }) => {
@@ -146,4 +162,35 @@ const resetPassword = async ({ actorId, id, body, ip_address }) => {
   return { id: existing.id, email: existing.email };
 };
 
-module.exports = { listUsers, listPmUsers, listCoderUsers, createUser, updateUser, resetPassword };
+// Resend only: sends the credentials the admin already chose. Nothing is stored
+// server-side, so the caller must supply the initial password again.
+const sendAccountEmail = async ({ actorId, id, body, ip_address }) => {
+  if (typeof body.initial_password !== 'string' || body.initial_password.length < 8) {
+    throw new ApiError(400, 'Password must be at least 8 characters');
+  }
+
+  const existing = await userRepository.findUserWithRolesById(id);
+  if (!existing) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  const notification = await mailService.sendAccountCreated({
+    to: existing.email,
+    username: existing.username,
+    roles: existing.roles,
+    initialPassword: body.initial_password,
+  });
+
+  await auditService.log({
+    user_id: actorId,
+    action: 'USER_ACCOUNT_EMAIL_SENT',
+    entity_type: 'USER',
+    entity_id: String(id),
+    details: { email: existing.email, sent: notification.sent, error: notification.error || undefined },
+    ip_address,
+  });
+
+  return notification;
+};
+
+module.exports = { listUsers, listPmUsers, listCoderUsers, createUser, updateUser, resetPassword, sendAccountEmail };

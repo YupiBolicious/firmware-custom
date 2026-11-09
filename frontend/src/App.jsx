@@ -4,6 +4,8 @@ import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleRoute from './components/RoleRoute';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import CoderDashboard from './pages/CoderDashboard';
 import PMDashboard from './pages/PMDashboard';
@@ -24,6 +26,7 @@ import UserManagement from './pages/UserManagement';
 import ChangePassword from './pages/ChangePassword';
 import { ToastProvider } from './components/Toast';
 
+
 export default function App() {
   const { user, hasRole } = useAuth();
 
@@ -36,6 +39,8 @@ export default function App() {
     <ToastProvider>
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route
         element={

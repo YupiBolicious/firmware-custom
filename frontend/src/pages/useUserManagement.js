@@ -22,6 +22,8 @@ export default function useUserManagement() {
   const [toggleTarget, setToggleTarget] = useState(null);
   const [resetTarget, setResetTarget] = useState(null);
   const [resetDone, setResetDone] = useState(false);
+  const [notifyFailure, setNotifyFailure] = useState(null);
+  const [resendBusy, setResendBusy] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [activeAdmins, setActiveAdmins] = useState(null);
@@ -66,7 +68,16 @@ export default function useUserManagement() {
           roles: form.roles,
         });
       } else {
-        await api.post('/users', form);
+        const res = await api.post('/users', form);
+        const created = res.data.data;
+        if (created && created.notification && created.notification.sent === false) {
+          // Password stays in memory only, for the Resend button; never persisted.
+          setNotifyFailure({
+            user: created,
+            password: form.default_password,
+            error: created.notification.error || 'The notification could not be delivered.',
+          });
+        }
       }
       setForm(emptyForm);
       setEditingId(null);
@@ -160,6 +171,38 @@ export default function useUserManagement() {
     }
   }, [resetTarget, resetDone]);
 
+  const dismissNotifyFailure = useCallback(() => {
+    setNotifyFailure(null);
+  }, []);
+
+  const resendAccountEmail = useCallback(async () => {
+    if (!notifyFailure) return;
+    setError('');
+    setResendBusy(true);
+    try {
+      const res = await api.post(`/users/${notifyFailure.user.id}/send-account-email`, {
+        initial_password: notifyFailure.password,
+      });
+      if (res.data.data?.sent) {
+        setNotifyFailure(null);
+      } else {
+        setNotifyFailure((current) => current && {
+          ...current,
+          error: res.data.data?.error || 'Could not deliver the account email',
+        });
+      }
+    } catch (err) {
+      const errors = err.response?.data?.errors;
+      setError(
+        Array.isArray(errors) && errors.length
+          ? errors.join('; ')
+          : err.response?.data?.message || 'Failed to resend account email'
+      );
+    } finally {
+      setResendBusy(false);
+    }
+  }, [notifyFailure]);
+
   return {
     users,
     activeAdmins,
@@ -191,5 +234,9 @@ export default function useUserManagement() {
     openResetConfirm,
     closeResetConfirm,
     confirmResetPassword,
+    notifyFailure,
+    resendBusy,
+    resendAccountEmail,
+    dismissNotifyFailure,
   };
 }

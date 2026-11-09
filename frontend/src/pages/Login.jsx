@@ -1,6 +1,6 @@
 import { useValueToast } from '../components/Toast';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import {Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -76,8 +76,7 @@ export default function Login() {
         <div className="login-brand">
           <div className="login-mark" aria-hidden="true">FC</div>
           <div>
-            <h1>Firmware Custom Request</h1>
-            <div className="subtitle">Item Classification & Estimation</div>
+            <h1>Firmware Customization Request</h1>
           </div>
         </div>
         
@@ -86,20 +85,19 @@ export default function Login() {
             <div className="alert alert-error" role="alert">
               <div className="alert-title">Login temporarily locked</div>
               <div className="alert-description">
-                Too many failed login attempts. Try again in {fmtRemaining(lockedRemaining)}, or contact an
-                admin to reset your password.
+                Too many failed login attempts. Try again in {fmtRemaining(lockedRemaining)}. Use forgot password or contact admin to reset your password.
               </div>
             </div>
           )}
           <div className="form-row">
-            <label htmlFor="login-identifier">Email or Username</label>
+            <label htmlFor="login-identifier">Username</label>
             <input
               id="login-identifier"
               type="text"
               autoComplete="username"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="you@company.com or username"
+              placeholder="Your username"
               disabled={isLocked}
               required
             />
@@ -133,7 +131,11 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <div className="login-foot">Authorized use only</div>
+          <div className="login-foot">
+          <Link to="/forgot-password">Forgot password?</Link>
+          <span aria-hidden="true"> · </span>
+          Authorized use only
+        </div>
       </div>
     </div>
   );
