@@ -4,11 +4,6 @@ const { ApiError } = require('../middleware/errorHandler');
 const { resolveQuantity } = require('../utils/qtyParser');
 
 const NOISE_LINE = /^(work\s*order\s*form|page\s+\d+\s+of\s+\d+|platform\s+naming|raised\s*by\s*:|saved\s*by\s*:|designer\s*:|checked\s*by\s*csis\s*manager\s*:|document\s*number\s*:|revision\s*:|revised\s*by\s*:|path\s*:)/i;
-
-// ponytail: magic column x + the Model Code / Work Order Number Y-window are tuned to this
-// form's template image; revisit if the layout is redrawn.
-// Left "custom items" column ends ~x16.2 and the right "amendment" column starts ~x23,
-// so 20 keeps wrapped fragments ("...14644-", "...Back") while dropping the right column.
 const CUSTOM_ITEM_MAX_X = 20;
 const CUSTOMER_VALUE_MAX_X = 16;
 
@@ -31,8 +26,6 @@ const parsePdfBuffer = (buffer) => new Promise((resolve, reject) => {
 });
 
 // ponytail: real forms split a label across glyph runs ("Wo" + "rk Order Number")
-// with no visual gap; merge runs whose gap is below this so labels/values read whole.
-// Tuned to the form's text scale (page width ~60 units); revisit if column spacing changes.
 const MERGE_GAP_X = 1.5;
 
 const mergeAdjacentCells = (cells) => {
@@ -108,10 +101,10 @@ const findLabelLine = (lines, labelRe) => lines.find(
 // cells (value column, x<CUSTOMER_VALUE_MAX_X) and skip headings/right-hand Rev Date.
 const grabCustomer = (lines) => {
   const idx = lines.findIndex(
-    (line) => line.cells && line.cells.some((cell) => /^NAME$/.test(normalize(cell.text)))
+    (line) => line.cells && line.cells.some((cell) => /^(NAME|COMPANY)$/i.test(normalize(cell.text)))
   );
   if (idx === -1) return null;
-  const labelCell = lines[idx].cells.find((cell) => /^NAME$/.test(normalize(cell.text)));
+  const labelCell = lines[idx].cells.find((cell) => /^(NAME|COMPANY)$/i.test(normalize(cell.text)));
   const parts = [];
   for (let i = idx - 1; i <= idx + 1; i += 1) {
     const line = lines[i];
@@ -121,7 +114,7 @@ const grabCustomer = (lines) => {
     if (i !== idx && line.cells.some((cell) => Math.abs(cell.x - labelCell.x) < 0.5)) continue;
     for (const cell of line.cells) {
       if (cell.x <= labelCell.x + 2 || cell.x >= CUSTOMER_VALUE_MAX_X) continue;
-      if (/^NAME$/.test(normalize(cell.text)) || classifyHeading(cell.text)) continue;
+      if (/^(NAME|COMPANY)$/.test(normalize(cell.text)) || classifyHeading(cell.text)) continue;
       parts.push(cell.text);
     }
   }
@@ -180,34 +173,67 @@ const extractCustomizeWith = (lines, modelLabelLine, woLabelLine) => {
   return items.map((item) => item.replace(/\s+/g, ' ').trim()).filter(Boolean);
 };
 
+const REV_HEADER_RE = /^REV(?:ISION)?(?:\s+DATE)?$/;
+const REV_VALUE_RE = /^\s*(\d{1,2})(?=$|[\s/-])/;
 
-// ponytail: the "Rev" column is read from the customer-info band's right column; the
-// x-offset window and the FACTORY INFORMATION lower bound are tuned to this form
-// template. Revisit if the right column is redrawn; the preview modal lets the PM
-// override the value so a miss is recoverable.
-const REV_HEADER_RE = /^REV(\s+DATE)?$/;
+const parseRevisionValue = (text) => {
+  const raw = String(text || '').trim();
+
+  // Sel revisi berisi angka saja, misalnya "0 ", "1 "
+  if (/^\d{1,2}$/.test(raw)) return Number(raw);
+
+  // Jika parser menggabungkan kolom Rev dan Date ke satu sel: "2 24-SEP"
+  const combined = raw.match(/^(\d{1,2})\s+\d{1,2}-[A-Z]{3}$/i);
+  if (combined) return Number(combined[1]);
+
+  // Jangan menganggap tanggal seperti "20-JUL" sebagai revisi.
+  return null;
+};
 
 const extractRevision = (lines) => {
-  const headerLine = lines.find(
-    (line) => line.cells && line.cells.some((cell) => REV_HEADER_RE.test(normalize(cell.text)))
+  const headerLine = lines.find((line) =>
+    (line.cells || []).some((cell) =>
+      REV_HEADER_RE.test(normalize(cell.text))
+    )
   );
-  if (!headerLine) return null;
-  const headerCell = headerLine.cells.find((cell) => REV_HEADER_RE.test(normalize(cell.text)));
-  const minX = headerCell.x - 0.5;
-  const maxX = headerCell.x + 1.8;
 
-  const revisions = [];
+  if (!headerLine) {
+    console.warn('[rev] header REV tidak ketemu');
+    return null;
+  }
+
+  const revCell = headerLine.cells.find((cell) =>
+    REV_HEADER_RE.test(normalize(cell.text))
+  );
+
+  // decide col REV
+  const minX = revCell.x - 0.5;
+  const maxX = revCell.x + 3;
+  const candidates = [];
+
   for (const line of lines) {
-    if (line.page !== headerLine.page) continue;
-    if (line.y <= headerLine.y) continue;
-    if (/FACTORY\s+INFORMATION/.test(normalize(line.text))) break;
+    if (line.page !== headerLine.page || line.y <= headerLine.y) continue;
+    if (/FACTORY\s+INFORMATION/i.test(line.text || '')) break;
+
     for (const cell of line.cells || []) {
       if (cell.x < minX || cell.x > maxX) continue;
-      const match = normalize(cell.text).match(/^(\d+)/);
-      if (match) revisions.push(parseInt(match[1], 10));
+      //extratc rev
+    const revision = parseRevisionValue(cell.text);
+      if (revision !== null) {
+        candidates.push({
+          revision, y: line.y, x: cell.x, text: cell.text,
+        });
+      }
     }
   }
-  return revisions.length ? Math.max(...revisions) : null;
+
+  console.log('[rev] candidates', candidates);
+
+  if (!candidates.length) return null;
+
+  // Jika kolom berisi riwayat revisi, ambil baris terbawah.
+  candidates.sort((a, b) => b.y - a.y);
+  return candidates[0].revision;
 };
 
 // EXTRACT EACH FIELDS
@@ -275,14 +301,10 @@ const extractTextFromHtml = (html) => {
     .trim();
 };
 
-// ponytail: a docx has no glyph coordinates, so column position is rebuilt from the
-// table grid (cell index x 10) to land on the same scale the PDF's x-windows expect
-// (label ~2, value column ~9, right column ~19). Revisit if the form gains columns.
+// rebuilt column position for docx format
 const DOCX_COLUMN_WIDTH = 10;
 
-// Some docx arrive converted from a PDF (no <table> at all): every cell is a paragraph and
-// the columns survive only as literal tabs. Best-effort rebuild of the same row shape so the
-// extractors above run unchanged; the preview modal is the safety net for what this misses.
+// Some docx arrive converted from a PDF (no <table> at all): every cell is a paragraph
 const FLAT_FIELD_LABEL_RE = /^(NAME|COUNTRY|PO NUMBER|ESCO PF NUMBER|MODEL CODE|WORK ORDER NUMBER|SERIAL NUMBER S?|REV|DATE)$/;
 const FLAT_WO_NUMBER_RE = /(^|[^\d])(\d{5,8})(?!\d)/;
 const FLAT_SERIAL_RE = /^[A-Z0-9][A-Z0-9,\- ]*$/i;
@@ -448,4 +470,19 @@ const parseWorkOrderDocx = async (buffer) => {
   }
 };
 
-module.exports = { parseWorkOrderPdf, parseWorkOrderDocx, extractFields, extractRevision, reconstructLines, reconstructLinesFromDocx };
+const toCreatePayload = (fields) => ({
+  wo_number: fields.wo_number,
+  revision: fields.revision,
+  customer: fields.customer || null,
+  groups: fields.model_code
+    ? (fields.serial_numbers.length
+      ? fields.serial_numbers.map((sn) => ({ machine_model_id: fields.model_code, serial_number: sn }))
+      : [{ machine_model_id: fields.model_code }])
+    : [],
+  items: fields.customize_with.map((item) => ({
+    title: item.title,
+    quantity: Number.isInteger(item.quantity) && item.quantity >= 1 ? item.quantity : 1,
+  })),
+});
+
+module.exports = { parseWorkOrderPdf, parseWorkOrderDocx, extractFields, extractRevision, reconstructLines, reconstructLinesFromDocx, toCreatePayload };

@@ -171,7 +171,7 @@ export default function WorkOrderList() {
             <span className="wo-count-pill">{total} entries</span>
           </h1>
         </div>
-        {hasRole('PM') && (
+        {hasRole('PM', 'ADMIN') && (
           <div className='wo-btn-group'>
             <input
               type="file"

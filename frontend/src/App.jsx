@@ -25,6 +25,7 @@ import HistoricalReport from './pages/HistoricalReport';
 import UserManagement from './pages/UserManagement';
 import ChangePassword from './pages/ChangePassword';
 import { ToastProvider } from './components/Toast';
+import EmailImport from './pages/EmailImport';
 
 
 export default function App() {
@@ -54,7 +55,7 @@ export default function App() {
         <Route element={<RoleRoute roles={['PM', 'CODER', 'ADMIN']} />}>
           <Route path="/work-orders" element={<WorkOrderList />} />
         </Route>
-        <Route element={<RoleRoute roles={['PM']} />}>
+        <Route element={<RoleRoute roles={['PM', 'ADMIN']} />}>
           <Route path="/work-orders/new" element={<WorkOrderCreate />} />
           <Route path="/work-orders/:id/edit" element={<WorkOrderCreate />} />
           <Route path="/pending-review" element={<PendingReview />} />
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/reports/historical" element={<HistoricalReport />} />
         </Route>
         <Route element={<RoleRoute roles={['ADMIN']} />}>
+          <Route path='/email-import' element={<EmailImport/>}/>
           <Route path="/machine-models" element={<MachineModels />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/classification-rules" element={<PlaceholderPage title="Classification Rules" />} />

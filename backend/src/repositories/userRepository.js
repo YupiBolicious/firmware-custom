@@ -53,8 +53,19 @@ const findAllByRole = async (roleCode) => {
 
 const findByEmailId = async (email) => {
   const result = await pool.query(
-    `SELECT id FROM users WHERE email = $1`,
-    [email]
+   `SELECT u.id, u.username, u.email, u.is_active,
+            COALESCE(
+              array_agg(r.code ORDER BY r.code)
+                FILTER (WHERE r.code IS NOT NULL),
+              '{}'
+            ) AS roles
+     FROM users u
+     LEFT JOIN user_roles ur ON ur.user_id = u.id
+     LEFT JOIN roles r ON r.id = ur.role_id
+     WHERE LOWER(u.email) = LOWER($1)
+       AND u.is_active = TRUE
+     GROUP BY u.id`,
+    [String(email).trim()]
   );
   return result.rows[0] || null;
 };
