@@ -1,5 +1,8 @@
+require('dotenv').config();
 const app = require('./app');
 const semanticStore = require('./services/semanticStore');
+
+// require('./cronjob/emailImportWorker');
 
 const PORT = process.env.PORT || 5000;
 

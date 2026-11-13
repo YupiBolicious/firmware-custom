@@ -69,9 +69,7 @@ const findConfigurationCounts = async () => {
       (SELECT COUNT(*)::int FROM complexity_levels) AS complexity_levels,
       (SELECT COUNT(*)::int FROM classification_rules) AS classification_rules,
       (SELECT COUNT(*)::int FROM confidence_thresholds) AS confidence_thresholds,
-      (SELECT COUNT(*)::int FROM fw_modules) AS fw_modules,
-      (SELECT COUNT(*)::int FROM machine_model) AS machine_models,
-      (SELECT COUNT(*)::int FROM machine_model_ver) AS machine_model_versions
+      (SELECT COUNT(*)::int FROM machine_model) AS machine_models
   `);
   return result.rows[0];
 };

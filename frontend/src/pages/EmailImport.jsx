@@ -12,7 +12,7 @@ export default function EmailImport() {
     setResult(null);
 
     try {
-      const response = await api.post('/gmail/import', { max: 20 });
+      const response = await api.post('/email/import', { max: 20 });
       setResult(response.data.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Gmail import gagal');

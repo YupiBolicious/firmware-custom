@@ -58,9 +58,7 @@ const getAdminDashboard = async ({ from, to } = {}) => {
       complexity_levels: Number(config.complexity_levels) || 0,
       classification_rules: Number(config.classification_rules) || 0,
       confidence_thresholds: Number(config.confidence_thresholds) || 0,
-      fw_modules: Number(config.fw_modules) || 0,
       machine_models: Number(config.machine_models) || 0,
-      machine_model_versions: Number(config.machine_model_versions) || 0,
     },
     // Workload covers every work order, not the trend date window.
     workload: {

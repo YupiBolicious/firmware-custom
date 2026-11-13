@@ -15,7 +15,7 @@ const adminDashboardRoutes = require('./routes/adminDashboardRoutes');
 const userRoutes = require('./routes/userRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const reportRoutes = require('./routes/reportRoutes');
-const gmailRoutes = require('./routes/gmailRoutes')
+const emailRoutes = require('./routes/emailRoutes')
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 const app = express();
@@ -49,7 +49,7 @@ app.use('/api/audit-log', auditLogRoutes);
 app.use('/api/admin-dashboard', adminDashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
-app.use('/api/gmail', gmailRoutes);
+app.use('/api/email', emailRoutes);
 
 // 404 + centralized error handling
 app.use(notFound);

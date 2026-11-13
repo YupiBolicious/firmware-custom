@@ -70,12 +70,13 @@ const collectBody = (part, out = {}) => {
 const headersOf = (message) =>
   Object.fromEntries((message.payload.headers || []).map((h) => [h.name.toLowerCase(), h.value]));
 
-const listEmails = async ({ q = '', maxResults = 10 } = {}) => {
+//gate ambil 5 terbaru
+const listEmails = async ({ q = '', maxResults = 5 } = {}) => {
   const gmail = client();
   const { data } = await gmail.users.messages.list({
     userId: 'me',
     q,
-    maxResults: Math.min(Number(maxResults) || 10, 50),
+    maxResults: Math.min(Number(maxResults) || 5, 10),
   });
   const ids = (data.messages || []).map((m) => m.id);
   return Promise.all(ids.map((id) => getEmail(id)));

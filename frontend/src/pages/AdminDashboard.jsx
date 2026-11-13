@@ -187,7 +187,6 @@ export default function AdminDashboard() {
             setShowAdvanced={workOrders.setShowAdvanced}
             clearFilters={workOrders.clearFilters}
             hasActiveFilters={workOrders.hasActiveFilters}
-            // uniqueModels={workOrders.uniqueModels}
             uniqueComplexities={workOrders.uniqueComplexities}
             modelValueField='id'
           />

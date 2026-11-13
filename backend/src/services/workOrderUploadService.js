@@ -179,15 +179,12 @@ const REV_VALUE_RE = /^\s*(\d{1,2})(?=$|[\s/-])/;
 const parseRevisionValue = (text) => {
   const raw = String(text || '').trim();
 
-  // Sel revisi berisi angka saja, misalnya "0 ", "1 "
-  if (/^\d{1,2}$/.test(raw)) return Number(raw);
+  // Tanggal bukan nomor revisi: 20-JUL
+  if (/^\d{1,2}-[A-Z]{3}\b/i.test(raw)) return null;
 
-  // Jika parser menggabungkan kolom Rev dan Date ke satu sel: "2 24-SEP"
-  const combined = raw.match(/^(\d{1,2})\s+\d{1,2}-[A-Z]{3}$/i);
-  if (combined) return Number(combined[1]);
-
-  // Jangan menganggap tanggal seperti "20-JUL" sebagai revisi.
-  return null;
+  // Ambil awalan angka: "0", "0 HOOD", atau "2 24-SEP"
+  const match = raw.match(/^(\d{1,2})(?=$|\s)/);
+  return match ? Number(match[1]) : null;
 };
 
 const extractRevision = (lines) => {
@@ -205,6 +202,34 @@ const extractRevision = (lines) => {
   const revCell = headerLine.cells.find((cell) =>
     REV_HEADER_RE.test(normalize(cell.text))
   );
+
+  const headerCellIndex = headerLine.cells.indexOf(revCell);
+
+console.log('[rev] header', {
+  y: headerLine.y,
+  x: revCell.x,
+  headerCellIndex,
+  cells: headerLine.cells.map(({ x, text }) => ({ x, text })),
+});
+
+console.log(
+  '[rev] following rows',
+  JSON.stringify(
+    lines
+      .filter((line) => line.page === headerLine.page && line.y > headerLine.y)
+      .slice(0, 8)
+      .map((line) => ({
+        y: line.y,
+        cells: (line.cells || []).map(({ x, text }, index) => ({
+          index,
+          x,
+          text,
+        })),
+      })),
+    null,
+    2
+  )
+);
 
   // decide col REV
   const minX = revCell.x - 0.5;
@@ -232,7 +257,7 @@ const extractRevision = (lines) => {
   if (!candidates.length) return null;
 
   // Jika kolom berisi riwayat revisi, ambil baris terbawah.
-  candidates.sort((a, b) => b.y - a.y);
+  candidates.sort((a, b) => a.y - b.y);
   return candidates[0].revision;
 };
 
@@ -427,9 +452,6 @@ const reconstructLinesFromDocx = (html) => {
     const rowCells = rowHtml.match(/<td[^>]*>[\s\S]*?<\/td>/g) || [];
     rowCells.forEach((cellHtml, index) => {
       const x = index * DOCX_COLUMN_WIDTH;
-      // The docx keeps a cell's bullet list inside that cell; the PDF lays each item on
-      // its own line between the label and the next field, which the custom-item extractor
-      // relies on. Split them back out, numbered the way the PDF numbers them.
       const items = [];
       const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/g;
       let liMatch;
@@ -469,6 +491,7 @@ const parseWorkOrderDocx = async (buffer) => {
     throw new ApiError(400, 'Could not read Word file');
   }
 };
+
 
 const toCreatePayload = (fields) => ({
   wo_number: fields.wo_number,

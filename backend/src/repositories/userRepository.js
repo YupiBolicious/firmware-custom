@@ -54,7 +54,7 @@ const findAllByRole = async (roleCode) => {
 const findByEmailId = async (email) => {
   const result = await pool.query(
    `SELECT u.id, u.username, u.email, u.is_active,
-            COALESCE(
+              COALESCE(
               array_agg(r.code ORDER BY r.code)
                 FILTER (WHERE r.code IS NOT NULL),
               '{}'
@@ -66,6 +66,20 @@ const findByEmailId = async (email) => {
        AND u.is_active = TRUE
      GROUP BY u.id`,
     [String(email).trim()]
+  );
+  return result.rows[0] || null;
+};
+
+const findUserActiveWithEmailId = async (email) => {
+  const result = await pool.query(
+    `select u.id, u.username, u.email, u.is_active, coalesce(
+    array_agg(r.code order by r.code) filter (where r.code is not null), '{}') as roles
+    from users u
+    left join user_roles ur on ur.user_id = u.id
+    left join roles r on r.id = ur.role_id
+    where lower(u.email) = lower($1) and u.is_active = true
+    group by u.id`, 
+  [String(email).trim()]
   );
   return result.rows[0] || null;
 };
@@ -208,6 +222,7 @@ module.exports = {
   findAll,
   findAllByRole,
   findByEmailId,
+  findUserActiveWithEmailId,
   findByUsernameId,
   findRolesByUserId,
   countActiveAdmins,

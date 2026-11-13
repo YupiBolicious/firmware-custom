@@ -53,15 +53,6 @@ CREATE TABLE IF NOT EXISTS complexity_level_reference (
     CONSTRAINT uq_complexity_level_reference_code UNIQUE (reference_code)
 );
 
-CREATE TABLE IF NOT EXISTS fw_modules (
-    id          SERIAL PRIMARY KEY,
-    code        VARCHAR(50) NOT NULL UNIQUE,
-    name        VARCHAR(200) NOT NULL,
-    description TEXT,
-    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS classification_rules (
     id                    SERIAL PRIMARY KEY,
     rule_code             VARCHAR(50) NOT NULL UNIQUE,
