@@ -1,14 +1,18 @@
 const workOrderRepository = require('../../repositories/workOrderRepository');
+const woItemRepository = require('../../repositories/woItemRepository');
 const classificationRepository = require('../../repositories/classificationRepository');
 const notificationRepository = require('../../repositories/notificationRepository');
+const productionRepository = require('../../repositories/productionRepository');
+const { findProductionTasksByWorkOrderId } = require('../../repositories/productionRepository');
+
 const auditService = require('../auditService');
 const { ApiError } = require('../../middleware/errorHandler');
 const { capitalizeWords } = require('../../utils/textUtils');
 const { assertCanEditWorkOrder, assertNotFinalized } = require('./guards');
 
 // ponytail: numbering is WO-scoped; a WO holds one model and its SNs, items are not per-SN.
-// ponytail: legacy rows carry non-numeric numbers (i1, i3), so digits anywhere in the string
-// count toward max; otherwise every new item on such a WO is numbered 01.
+// ponytail: legacy rows carry an i-prefix (i1, i3), so digits anywhere in the string count
+// toward max. New items use plain numbers (1, 2, ... 10); sorting is lexicographic.
 const generateItemNumber = async (work_order_id) => {
   const numbers = await workOrderRepository.findItemNumbersByWorkOrderId(work_order_id);
   let max = 0;
@@ -21,7 +25,7 @@ const generateItemNumber = async (work_order_id) => {
     }
   }
   const next = max + 1;
-  return next > 99 ? String(next) : String(next).padStart(2, '0');
+  return String(next);
 };
 
 const addItem = async (work_order_id, { work_order_group_id, item_number, title, description, quantity, documentation_readiness, user_id, roles, ip_address }) => {
@@ -39,7 +43,7 @@ const addItem = async (work_order_id, { work_order_group_id, item_number, title,
       throw new ApiError(404, 'Work order group not found');
     }
   }
-  const item = await workOrderRepository.createItem({
+  const item = await woItemRepository.createItem({
     work_order_id,
     work_order_group_id: work_order_group_id ?? null,
     item_number: await generateItemNumber(work_order_id),
@@ -64,7 +68,7 @@ const addItem = async (work_order_id, { work_order_group_id, item_number, title,
 };
 
 const updateItem = async (id, { title, description, quantity, documentation_readiness, user_id, roles, ip_address }) => {
-  const existing = await workOrderRepository.findItemById(id);
+  const existing = await woItemRepository.findItemById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order item not found');
   }
@@ -75,7 +79,7 @@ const updateItem = async (id, { title, description, quantity, documentation_read
   const textChanged = (title !== undefined && title !== existing.title)
     || (documentation_readiness !== undefined && documentation_readiness !== null
         && documentation_readiness !== existing.documentation_readiness);
-  const item = await workOrderRepository.updateItem(id, {
+  const item = await woItemRepository.updateItem(id, {
     title: title !== undefined ? capitalizeWords(title) : title,
     quantity,
     documentation_readiness,
@@ -98,19 +102,19 @@ const updateItem = async (id, { title, description, quantity, documentation_read
 };
 
 const deleteItem = async (id, { user_id, roles, ip_address }) => {
-  const existing = await workOrderRepository.findItemById(id);
+  const existing = await woItemRepository.findItemById(id);
   if (!existing) {
     throw new ApiError(404, 'Work order item not found');
   }
   const parent = await workOrderRepository.findById(existing.work_order_id);
   await assertCanEditWorkOrder(parent || { id: existing.work_order_id, created_by: null }, user_id, roles);
   assertNotFinalized(parent, 'items');
-  await workOrderRepository.deleteItem(id);
-  const remainingItems = await workOrderRepository.countItemsByWorkOrderId(existing.work_order_id);
+  await woItemRepository.deleteItem(id);
+  const remainingItems = await woItemRepository.countItemsByWorkOrderId(existing.work_order_id);
   if (remainingItems === 0) {
     if (parent && parent.status !== 'FINALIZED' && parent.status !== 'DRAFT') {
       await workOrderRepository.update(existing.work_order_id, { status: 'DRAFT' });
-      await workOrderRepository.deleteProductionTasksByWorkOrderId(existing.work_order_id);
+      await productionRepository.deleteProductionTasksByWorkOrderId(existing.work_order_id);
       await auditService.log({
         user_id,
         action: 'WORK_ORDER_RESET_TO_DRAFT',

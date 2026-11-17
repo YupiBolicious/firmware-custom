@@ -63,11 +63,11 @@ const importFromGmail = async ({
 
       sender = await userRepository.findUserActiveWithEmailId(senderEmail);
       if (!sender) {
-        result.skipped.push({ message_id: messageId, from: senderEmail, reason: 'Pengirim tidak terdaftar atau user tidak aktif' });
+        result.skipped.push({ message_id: messageId, from: senderEmail, reason: 'User is not registered/inactive' });
         continue;
       }
       if (!sender.roles.includes('PM')) {
-        result.skipped.push({ message_id: messageId, from: senderEmail, reason: 'Pengirim terdaftar, tetapi tidak memiliki role PM' });
+        result.skipped.push({ message_id: messageId, from: senderEmail, reason: 'User is not on the customer list' });
         continue;
       }
     } catch (err) {
@@ -128,7 +128,7 @@ const importFromGmail = async ({
           wo_number: woNumber,
           revision: highest,
           ambiguous: true,
-          reason: `Ada beberapa file berbeda pada revisi tertinggi ${highest}`,
+          reason: `another file has higher version${highest}`,
         }));
         continue;
       }
@@ -140,14 +140,13 @@ const importFromGmail = async ({
           filename: duplicate.attachment.filename,
           wo_number: woNumber,
           revision: highest,
-          reason: 'Lampiran identik dengan file lain; duplikat dilewati',
+          reason: 'duplicate file detected',
         });
       }
 
       const { attachment, parsed } = winners[0];
       const payload = uploadService.toCreatePayload(parsed.fields);
 
-      // 3) Satu WO: create atau revise sesuai data yang tersimpan.
       try {
         let wo;
         let action;
@@ -173,7 +172,7 @@ const importFromGmail = async ({
               filename: attachment.filename,
               wo_number: payload.wo_number,
               revision: payload.revision,
-              reason: `WO sudah ada pada revisi ${oldRevision}; revisi masuk harus lebih baru`,
+              reason: `Work order existed on version ${oldRevision}; higher version will be recorded`,
             });
             continue; // lanjut ke WO berikutnya
           }
@@ -221,7 +220,6 @@ const importFromGmail = async ({
           });
         }
       } catch (err) {
-        // Gagal create/revise WO ini saja; WO lain di email yang sama tetap diproses.
         result.failed.push({
           message_id: messageId,
           filename: attachment.filename,

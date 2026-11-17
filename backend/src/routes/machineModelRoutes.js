@@ -19,9 +19,4 @@ router.get('/:id', authorize('ADMIN'), requireIntegerParams('id'), machineModelC
 router.put('/:id', authorize('ADMIN'), requireIntegerParams('id'), validateModelUpdate, machineModelController.updateModel);
 router.delete('/:id', authorize('ADMIN'), requireIntegerParams('id'), machineModelController.removeModel);
 
-router.get('/:id/versions', authorize('ADMIN'), requireIntegerParams('id'), machineModelController.listVersions);
-router.post('/:id/versions', authorize('ADMIN'), requireIntegerParams('id'), validateVersionCreate, machineModelController.createVersion);
-router.put('/versions/:versionId', authorize('ADMIN'), requireIntegerParams('versionId'), validateVersionUpdate, machineModelController.updateVersion);
-router.delete('/versions/:versionId', authorize('ADMIN'), requireIntegerParams('versionId'), machineModelController.removeVersion);
-
 module.exports = router;

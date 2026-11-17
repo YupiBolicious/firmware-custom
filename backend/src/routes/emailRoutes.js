@@ -1,9 +1,11 @@
 const express = require('express');
 const emailController = require('../controllers/emailController');
+const emailActionController = require('../controllers/emailActionController');
 const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+router.post('/request-wo', emailActionController.requestWorkOrder);
 router.get('/oauth/start', authenticate, authorize('ADMIN'), emailController.start);
 router.get('/oauth/callback', emailController.callback);
 router.get('/messages', authenticate, authorize('ADMIN'), emailController.list);

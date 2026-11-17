@@ -26,6 +26,7 @@ import UserManagement from './pages/UserManagement';
 import ChangePassword from './pages/ChangePassword';
 import { ToastProvider } from './components/Toast';
 import EmailImport from './pages/EmailImport';
+import EmailRequestWorkOrder from './pages/EmailRequestWorkOrder';
 
 
 export default function App() {
@@ -39,6 +40,7 @@ export default function App() {
   return (
     <ToastProvider>
     <Routes>
+      <Route path="/email/request-wo" element={<EmailRequestWorkOrder />} />
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/forgot-password" element={user ? <Navigate to="/" replace /> : <ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />

@@ -1,5 +1,5 @@
 const estimationRepository = require('../repositories/estimationRepository');
-const workOrderRepository = require('../repositories/workOrderRepository');
+const woItemRepository = require('../repositories/woItemRepository');
 
 const READINESS_MISSING = 'MISSING';
 
@@ -23,7 +23,7 @@ const createOrUpdateEstimation = async ({ work_order_item_id, complexity_level_i
   if (!level) {
     throw new Error(`Complexity level ${complexity_level_id} not found or inactive`);
   }
-  const item = await workOrderRepository.findItemById(work_order_item_id);
+  const item = await woItemRepository.findItemById(work_order_item_id);
   const verification = await resolveVerification(level.id, item ? item.documentation_readiness : null, level.code);
 
   const verificationMh = verification ? Number(verification.verification_mh) : 0;

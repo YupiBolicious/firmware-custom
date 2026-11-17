@@ -205,31 +205,31 @@ const extractRevision = (lines) => {
 
   const headerCellIndex = headerLine.cells.indexOf(revCell);
 
-console.log('[rev] header', {
-  y: headerLine.y,
-  x: revCell.x,
-  headerCellIndex,
-  cells: headerLine.cells.map(({ x, text }) => ({ x, text })),
-});
+// console.log('[rev] header', {
+//   y: headerLine.y,
+//   x: revCell.x,
+//   headerCellIndex,
+//   cells: headerLine.cells.map(({ x, text }) => ({ x, text })),
+// });
 
-console.log(
-  '[rev] following rows',
-  JSON.stringify(
-    lines
-      .filter((line) => line.page === headerLine.page && line.y > headerLine.y)
-      .slice(0, 8)
-      .map((line) => ({
-        y: line.y,
-        cells: (line.cells || []).map(({ x, text }, index) => ({
-          index,
-          x,
-          text,
-        })),
-      })),
-    null,
-    2
-  )
-);
+// console.log(
+//   '[rev] following rows',
+//   JSON.stringify(
+//     lines
+//       .filter((line) => line.page === headerLine.page && line.y > headerLine.y)
+//       .slice(0, 8)
+//       .map((line) => ({
+//         y: line.y,
+//         cells: (line.cells || []).map(({ x, text }, index) => ({
+//           index,
+//           x,
+//           text,
+//         })),
+//       })),
+//     null,
+//     2
+//   )
+// );
 
   // decide col REV
   const minX = revCell.x - 0.5;
@@ -252,12 +252,12 @@ console.log(
     }
   }
 
-  console.log('[rev] candidates', candidates);
+  // console.log('[rev] candidates', candidates);
 
   if (!candidates.length) return null;
 
   // Jika kolom berisi riwayat revisi, ambil baris terbawah.
-  candidates.sort((a, b) => a.y - b.y);
+  candidates.sort((a, b) => b.y - a.y);
   return candidates[0].revision;
 };
 
@@ -422,8 +422,7 @@ const reconstructLinesFromFlatDocx = (html) => {
       push(pairCells(pair.label, pair.value, pair.valueX));
     };
 
-    // Model Code comes first, then the custom items (they live in the Model Code cell, so
-    // the custom-item window needs them before the Work Order Number row), then the rest.
+    // Model Code comes first, then the custom items (they live in the Model Code cell
     for (const pair of pairs.filter((pair) => !deferred(pair))) emitPair(pair);
     for (const k of candidates) {
       if (consumed.has(k) || !FLAT_CUSTOMIZE_RE.test(lineText(paragraphs[k].cells))) continue;
@@ -440,7 +439,6 @@ const reconstructLinesFromFlatDocx = (html) => {
 };
 
 const reconstructLinesFromDocx = (html) => {
-  // A PDF->Word conversion keeps no table: rebuild the grid from tab-separated paragraphs.
   if (!/<tr[\s>]/i.test(html)) return reconstructLinesFromFlatDocx(html);
 
   const lines = [];

@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { google } = require('googleapis');
 const { ApiError } = require('../middleware/errorHandler');
 
-const SCOPES = (process.env.GMAIL_OAUTH_SCOPES || 'https://www.googleapis.com/auth/gmail.readonly')
+const SCOPES = (process.env.GMAIL_OAUTH_SCOPES || 'https://www.googleapis.com/auth/gmail.send')
   .split(/\s+/).filter(Boolean);
 
 const isConfigured = () => Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -19,10 +19,51 @@ const getAuthUrl = () => {
   if (!isConfigured()) throw new ApiError(503, 'Google OAuth is not configured');
   return newAuth().generateAuthUrl({
     access_type: 'offline',
-    prompt: 'consent', // forces refresh_token even on re-consent
+    prompt: 'consent', // forces refresh token
     scope: SCOPES,
     state: jwt.sign({ purpose: 'gmail-oauth' }, process.env.JWT_SECRET, { expiresIn: '10m' }),
   });
+};
+
+const toBase64Url = (str) => Buffer.from(str).toString('base64url');
+const crypto = require('crypto');
+
+const wrapBase64 = (value) =>
+  Buffer.from(String(value || ''), 'utf8')
+    .toString('base64')
+    .match(/.{1,76}/g)
+    ?.join('\r\n') || '';
+
+const sendMail = async ({ to, subject, text = '', html = '' }) => {
+  const gmail = client(); // requires GOOGLE_CLIENT_ID/SECRET + GMAIL_REFRESH_TOKEN
+  const boundary = `fc_${crypto.randomBytes(12).toString('hex')}`;
+  const safeTo = String(to).replace(/[\r\n]/g, '');
+  const safeSubject = `=?UTF-8?B?${Buffer.from(String(subject), 'utf8').toString('base64')}?=`;
+  const message = [
+    `To: ${safeTo}`,
+    `Subject: ${safeSubject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    wrapBase64(text),
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    wrapBase64(html),
+    `--${boundary}--`,
+    '',
+  ].join('\r\n');
+
+  const { data } = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: toBase64Url(message) },
+  });
+  return data;
 };
 
 const saveRefreshToken = (token) => {
@@ -71,12 +112,12 @@ const headersOf = (message) =>
   Object.fromEntries((message.payload.headers || []).map((h) => [h.name.toLowerCase(), h.value]));
 
 //gate ambil 5 terbaru
-const listEmails = async ({ q = '', maxResults = 5 } = {}) => {
+const listEmails = async ({ q = '', maxResults = 10 } = {}) => {
   const gmail = client();
   const { data } = await gmail.users.messages.list({
     userId: 'me',
     q,
-    maxResults: Math.min(Number(maxResults) || 5, 10),
+    maxResults: Math.min(Number(maxResults) || 10, 20),
   });
   const ids = (data.messages || []).map((m) => m.id);
   return Promise.all(ids.map((id) => getEmail(id)));
@@ -113,4 +154,4 @@ const getAttachment = async (messageId, attachmentId) => {
   return Buffer.from(data.data, 'base64url');
 };
 
-module.exports = { getAuthUrl, handleCallback, listEmails, getEmail, isConfigured, attachmentsOf, getAttachment };
+module.exports = { getAuthUrl, handleCallback, listEmails, getEmail, isConfigured, attachmentsOf, getAttachment, toBase64Url, sendMail};

@@ -2,6 +2,13 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const workOrderController = require('../controllers/workOrderController');
+const itemController = require('../controllers/itemController');
+const commentController = require('../controllers/commentController');
+const productionController = require('../controllers/productionController');
+const woAccessController = require('../controllers/woAccessController');
+const uploadController = require('../controllers/uploadController');
+const grantStatusController = require('../controllers/grantStatusController');
+
 const { authenticate, authorize } = require('../middleware/auth');
 const { ApiError } = require('../middleware/errorHandler');
 const { requireIntegerParams } = require('../middleware/validateParams');
@@ -53,45 +60,45 @@ const uploadPdf = multer({
 
 router.use(authenticate);
 
-router.put('/items/:itemId', authorize('PM'), requireIntegerParams('itemId'), validateItemUpdate, workOrderController.updateItem);
-router.delete('/items/:itemId', authorize('PM'), requireIntegerParams('itemId'), workOrderController.deleteItem);
-router.post('/items/:itemId/review', authorize('CODER'), requireIntegerParams('itemId'), validateReview, workOrderController.reviewItem);
-router.put('/items/:itemId/review-correction', authorize('CODER'), requireIntegerParams('itemId'), validateReviewCorrection, workOrderController.correctReviewedItem);
+router.put('/items/:itemId', authorize('PM'), requireIntegerParams('itemId'), validateItemUpdate, itemController.updateItem);
+router.delete('/items/:itemId', authorize('PM'), requireIntegerParams('itemId'), itemController.deleteItem);
+router.post('/items/:itemId/review', authorize('CODER'), requireIntegerParams('itemId'), validateReview, itemController.reviewItem);
+router.put('/items/:itemId/review-correction', authorize('CODER'), requireIntegerParams('itemId'), validateReviewCorrection, itemController.correctReviewedItem);
 
 router.get('/', authorize('PM', 'CODER'), workOrderController.list);
 router.get('/review-queue', authorize('CODER'), workOrderController.reviewQueue);
 router.get('/pending-review', authorize('PM'), workOrderController.pendingReview);
 router.post('/', authorize('PM', 'ADMIN'), validateWorkOrderCreate, workOrderController.create);
-router.post('/upload', authorize('PM'), uploadPdf.single('file'), workOrderController.previewWorkOrder);
-router.post('/upload/confirm', authorize('PM'), workOrderController.confirmUploadWorkOrder);
+router.post('/upload', authorize('PM'), uploadPdf.single('file'), uploadController.previewWorkOrder);
+router.post('/upload/confirm', authorize('PM'), uploadController.confirmUploadWorkOrder);
 router.get('/:id', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.getById);
 router.put('/:id', authorize('PM'), requireIntegerParams('id'), validateWorkOrderUpdate, workOrderController.update);
-router.put('/:id/assign', authorize('ADMIN'), requireIntegerParams('id'), workOrderController.assignCoder);
+router.put('/:id/assign', authorize('ADMIN'), requireIntegerParams('id'), grantStatusController.assignCoder);
 
 router.post('/:id/groups', authorize('PM'), requireIntegerParams('id'), validateGroupCreate, workOrderController.addGroup);
 router.put('/:id/groups/:groupId', authorize('PM'), requireIntegerParams('id', 'groupId'), validateGroupUpdate, workOrderController.updateGroup);
 router.delete('/:id/groups/:groupId', authorize('PM'), requireIntegerParams('id', 'groupId'), workOrderController.deleteGroup);
 
-router.post('/:id/items', authorize('PM'), requireIntegerParams('id'), validateItemCreate, workOrderController.addItem);
+router.post('/:id/items', authorize('PM'), requireIntegerParams('id'), validateItemCreate, itemController.addItem);
 
 router.post('/:id/analyze', authorize('PM'), requireIntegerParams('id'), workOrderController.analyze);
 router.post('/:id/finalize', authorize('PM', 'ADMIN'), requireIntegerParams('id'), workOrderController.finalize);
-router.get('/:id/access', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.listAccess);
-router.post('/:id/access', authorize('PM'), requireIntegerParams('id'), validateAccessGrant, workOrderController.grantAccess);
-router.delete('/:id/access/:userId', authorize('PM'), requireIntegerParams('id', 'userId'), workOrderController.revokeAccess);
-router.post('/:id/production', authorize('CODER'), requireIntegerParams('id'), workOrderController.startProduction);
-router.put('/:id/production/tasks/:taskId', authorize('CODER'), requireIntegerParams('id', 'taskId'), validateProductionTaskUpdate, workOrderController.completeProductionTask);
-router.post('/:id/production/complete', authorize('CODER'), requireIntegerParams('id'), workOrderController.completeProduction);
+router.get('/:id/access', authorize('PM', 'CODER'), requireIntegerParams('id'), woAccessController.listAccess);
+router.post('/:id/access', authorize('PM'), requireIntegerParams('id'), validateAccessGrant, woAccessController.grantAccess);
+router.delete('/:id/access/:userId', authorize('PM'), requireIntegerParams('id', 'userId'), woAccessController.revokeAccess);
+router.post('/:id/production', authorize('CODER'), requireIntegerParams('id'), productionController.startProduction);
+router.put('/:id/production/tasks/:taskId', authorize('CODER'), requireIntegerParams('id', 'taskId'), validateProductionTaskUpdate, productionController.completeProductionTask);
+router.post('/:id/production/complete', authorize('CODER'), requireIntegerParams('id'), productionController.completeProduction);
 
-router.post('/:id/close', authorize('ADMIN'), requireIntegerParams('id'), workOrderController.closeWO);
-router.post('/:id/reopen', authorize('ADMIN'), requireIntegerParams('id'), workOrderController.reopenWO);
+router.post('/:id/close', authorize('ADMIN'), requireIntegerParams('id'), productionController.closeWO);
+router.post('/:id/reopen', authorize('ADMIN'), requireIntegerParams('id'), productionController.reopenWO);
 
-router.put('/:id/admin-status', authorize('ADMIN'), requireIntegerParams('id'), workOrderController.adminChangeStatus);
+router.put('/:id/admin-status', authorize('ADMIN'), requireIntegerParams('id'), grantStatusController.adminChangeStatus);
 router.put('/:id/notes', authorize('CODER'), requireIntegerParams('id'), validateWorkOrderNotes, workOrderController.updateNotes);
 
-router.get('/:id/comments', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.listComments);
-router.post('/:id/comments', authorize('PM', 'CODER'), requireIntegerParams('id'), workOrderController.createComment);
-router.delete('/:id/comments/:commentId', authorize('PM', 'CODER', 'ADMIN'), requireIntegerParams('id', 'commentId'), workOrderController.deleteComment);
+router.get('/:id/comments', authorize('PM', 'CODER'), requireIntegerParams('id'), commentController.listComments);
+router.post('/:id/comments', authorize('PM', 'CODER'), requireIntegerParams('id'), commentController.createComment);
+router.delete('/:id/comments/:commentId', authorize('PM', 'CODER', 'ADMIN'), requireIntegerParams('id', 'commentId'), commentController.deleteComment);
 
 
 module.exports = router;

@@ -45,41 +45,7 @@ const removeModel = async (req, res, next) => {
   }
 };
 
-const listVersions = async (req, res, next) => {
-  try {
-    const data = await machineModelService.listVersions(req.params.id);
-    res.json({ success: true, message: 'Versions retrieved', data });
-  } catch (err) {
-    next(err);
-  }
-};
 
-const createVersion = async (req, res, next) => {
-  try {
-    const data = await machineModelService.createVersion(req.params.id, req.body);
-    res.status(201).json({ success: true, message: 'Version created', data });
-  } catch (err) {
-    next(err);
-  }
-};
-
-const updateVersion = async (req, res, next) => {
-  try {
-    const data = await machineModelService.updateVersion(req.params.versionId, req.body);
-    res.json({ success: true, message: 'Version updated', data });
-  } catch (err) {
-    next(err);
-  }
-};
-
-const removeVersion = async (req, res, next) => {
-  try {
-    const data = await machineModelService.removeVersion(req.params.versionId);
-    res.json({ success: true, message: 'Version deactivated', data });
-  } catch (err) {
-    next(err);
-  }
-};
 
 module.exports = {
   listModels,
@@ -87,8 +53,4 @@ module.exports = {
   createModel,
   updateModel,
   removeModel,
-  listVersions,
-  createVersion,
-  updateVersion,
-  removeVersion,
 };

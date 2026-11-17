@@ -3,15 +3,22 @@ const workOrderAccessRepository = require('../../repositories/workOrderAccessRep
 const userRepository = require('../../repositories/userRepository');
 const classificationRepository = require('../../repositories/classificationRepository');
 const complexityRepository = require('../../repositories/complexityRepository');
+const estimationRepository = require('../../repositories/estimationRepository');
+const productionRepository = require('../../repositories/productionRepository');
+const woItemRepository = require('../../repositories/woItemRepository');
+const grantStatusRepository = require('../../repositories/grantStatusRepository');
+
+const estimationService = require('../estimationService');
+const auditService = require('../auditService');
+const notificationService = require('../notificationService');
 const classificationService = require('../classificationService');
+const classificationEmailService = require('../classificationEmailService');
+
 const classifyFlow = require('../classifyFlow');
 const telemetry = require('../classifyTelemetry');
 const kbCache = require('../kbCache');
 const kbRepository = require('../../repositories/kbRepository');
-const estimationRepository = require('../../repositories/estimationRepository');
-const estimationService = require('../estimationService');
-const auditService = require('../auditService');
-const notificationService = require('../notificationService');
+
 const { ApiError } = require('../../middleware/errorHandler');
 const { deriveReviewReason, pickPrimaryBlockedReason } = require('../semanticAssist');
 const { assertCanEditWorkOrder, verifyAssignedCoder } = require('./guards');
@@ -82,7 +89,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
   await assertCanEditWorkOrder(wo, user_id, roles);
 
   const tItemsQuery = Date.now();
-  const items = await workOrderRepository.findItemsByWorkOrderId(work_order_id);
+  const items = await woItemRepository.findItemsByWorkOrderId(work_order_id);
   const itemsQueryMs = Date.now() - tItemsQuery;
   if (items.length === 0) {
     throw new ApiError(400, 'Work order has no items to analyze');
@@ -297,10 +304,6 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
       confidence_score: classification.confidence_score,
       classification_reason: classification.classification_reason,
       status: classification.status,
-      // ponytail: official hours = item_estimations.total_hours, i.e. Complexity Level hours
-      // PLUS verification_mh (the 8/24/40 tier, including the documentation_readiness MISSING
-      // tier). Never multiplied by quantity or SN count. Matches the estimated_hours the item
-      // query returns, so analyze and GET agree.
       estimated_hours: estimation && estimation.breakdown
         ? Number(estimation.breakdown.total_hours)
         : null,
@@ -336,7 +339,6 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     entity_type: 'WORK_ORDER',
     entity_id: work_order_id,
     work_order_id,
-    // Slim payload: per-item statuses already live in per-item rows + classifications table
     details: { item_count: items.length, newly_in_review: newlyInReview.length },
     ip_address,
   });
@@ -344,11 +346,17 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
   const summary = buildSummary(results);
 
   if (newlyInReview.length > 0) {
-    await notifyCodersOfReview({
-      work_order_id,
-      message: `${newlyInReview.length} item in ${wo.wo_number} need coder review`,
-    });
+    await notifyCodersOfReview({ work_order_id, message: `${newlyInReview.length} item in ${wo.wo_number} need coder review` });
   }
+ console.log('[classification email] analyze gate', {
+  workOrderId: work_order_id,
+  waitingReview: summary.waiting_review,
+});
+
+if (summary.waiting_review === 0) {
+  console.log('[classification email] invoking sender', { workOrderId: work_order_id });
+  await classificationEmailService.sendClassificationComplete(work_order_id);
+}
 
   return { work_order: { ...wo, status: 'ANALYZED' }, results, summary, perf: { ...perf, totalMs: Date.now() - tAnalyze } };
 };
@@ -366,7 +374,7 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
   if (wo.status === 'FINALIZED') {
     return {
       work_order: wo,
-      production_tasks: await workOrderRepository.findProductionTasksByWorkOrderId(work_order_id),
+      production_tasks: await productionRepository.findProductionTasksByWorkOrderId(work_order_id),
       completion_path: 'PRODUCTION',
     };
   }
@@ -374,7 +382,7 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
     throw new ApiError(400, 'Only analyzed work orders can be finalized');
   }
 
-  const items = await workOrderRepository.findItemsByWorkOrderId(work_order_id);
+  const items = await woItemRepository.findItemsByWorkOrderId(work_order_id);
   if (items.length === 0) {
     throw new ApiError(400, 'Work order has no items to finalize');
   }
@@ -396,7 +404,7 @@ const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) 
       productionTasks,
       completionPath,
       itemCount,
-    } = await workOrderRepository.finalizeWithProductionTasks(work_order_id));
+    } = await productionRepository.finalizeWithProductionTasks(work_order_id));
   } catch (err) {
     if (err.message === 'Work order is no longer in ANALYZED state') {
       throw new ApiError(409, 'Work order state changed; reload and try again');
@@ -466,7 +474,7 @@ const startProduction = async (id, { user_id, roles, ip_address }) => {
   if (!wo) throw new ApiError(404, 'Work order not found');
   await verifyAssignedCoder(wo, user_id, roles || []);
   if (wo.status !== 'FINALIZED') throw new ApiError(400, 'Work order must be FINALIZED to start production');
-  const updated = await workOrderRepository.updateStatus(id, 'PRODUCTION', 'FINALIZED');
+  const updated = await grantStatusRepository.updateStatus(id, 'PRODUCTION', 'FINALIZED');
   if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
   await auditService.log({
     user_id,
@@ -490,7 +498,7 @@ const closeWorkOrder = async (id, { user_id, roles, ip_address }) => {
   if (wo.status !== 'READY_TO_CLOSE') {
     throw new ApiError(400, 'Work order must be READY_TO_CLOSE to close');
   }
-  const updated = await workOrderRepository.updateStatus(id, 'COMPLETED', 'READY_TO_CLOSE');
+  const updated = await grantStatusRepository.updateStatus(id, 'COMPLETED', 'READY_TO_CLOSE');
   if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
   await auditService.log({
     user_id,
@@ -520,7 +528,7 @@ const reopenWorkOrder = async (id, { user_id, roles, ip_address }) => {
   if (wo.status !== 'READY_TO_CLOSE') {
     throw new ApiError(400, 'Work order must be READY_TO_CLOSE to close has reopen');
   }
-  const updated = await workOrderRepository.updateStatus(id, 'PRODUCTION', 'READY_TO_CLOSE');
+  const updated = await grantStatusRepository.updateStatus(id, 'PRODUCTION', 'READY_TO_CLOSE');
   if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
   await auditService.log({
     user_id,
@@ -562,13 +570,13 @@ const adminChangeWorkOrderStatus = async (id, newStatus, { user_id, roles, ip_ad
   }
 
   if (newStatus === 'FINALIZED' || newStatus === 'PRODUCTION') {
-    const { total } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
+    const { total } = await productionRepository.countProductionTasksByWorkOrderId(id);
     if (total === 0) {
       throw new ApiError(400, `Cannot move this work order to ${newStatus}: it has no production tasks`);
     }
   }
 
-  const updated = await workOrderRepository.transitionAdminStatus({
+  const updated = await grantStatusRepository.transitionAdminStatus({
     id,
     fromStatus: wo.status,
     toStatus: newStatus,
@@ -604,7 +612,7 @@ const adminChangeWorkOrderStatus = async (id, newStatus, { user_id, roles, ip_ad
 };
 
 const completeProductionTask = async (taskId, { completed, user_id, roles, ip_address }) => {
-  const task = await workOrderRepository.findProductionTaskById(taskId);
+  const task = await productionRepository.findProductionTaskById(taskId);
   if (!task) throw new ApiError(404, 'Production task not found');
   const wo = await workOrderRepository.findById(task.work_order_id);
   if (!wo) throw new ApiError(404, 'Work order not found');
@@ -612,7 +620,7 @@ const completeProductionTask = async (taskId, { completed, user_id, roles, ip_ad
   if (wo.status !== 'PRODUCTION') {
     throw new ApiError(400, 'Work order must be in production to update tasks');
   }
-  const saved = await workOrderRepository.completeProductionTask(taskId, completed);
+  const saved = await productionRepository.completeProductionTask(taskId, completed);
   if (!saved) {
     throw new ApiError(409, 'Work order is no longer in production');
   }
@@ -637,11 +645,11 @@ const completeProduction = async (id, { user_id, roles, ip_address }) => {
   if (!wo) throw new ApiError(404, 'Work order not found');
   await verifyAssignedCoder(wo, user_id, roles || []);
   if (wo.status !== 'PRODUCTION') throw new ApiError(400, 'Work order must be in PRODUCTION to complete');
-  const { total, open } = await workOrderRepository.countProductionTasksByWorkOrderId(id);
+  const { total, open } = await productionRepository.countProductionTasksByWorkOrderId(id);
   if (open > 0) {
     throw new ApiError(400, `All production items must be completed first (${open} of ${total} still open)`);
   }
-  const updated = await workOrderRepository.updateStatus(id, 'READY_TO_CLOSE', 'PRODUCTION');
+  const updated = await grantStatusRepository.updateStatus(id, 'READY_TO_CLOSE', 'PRODUCTION');
   if (!updated) throw new ApiError(409, 'Work order state changed; reload and try again');
   await auditService.log({
     user_id,

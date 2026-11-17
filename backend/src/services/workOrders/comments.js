@@ -1,3 +1,4 @@
+const commentRepository = require('../../repositories/commentRepository');
 const workOrderRepository = require('../../repositories/workOrderRepository');
 const workOrderAccessRepository = require('../../repositories/workOrderAccessRepository');
 const auditService = require('../auditService');
@@ -39,7 +40,7 @@ const listWorkOrderComments = async (workOrderId, { user_id, roles }) => {
   if (!canReadComments(wo, user_id, roles, accessList)) {
     throw new ApiError(403, 'Forbidden');
   }
-  return workOrderRepository.findCommentsByWorkOrderId(workOrderId);
+  return commentRepository.findCommentsByWorkOrderId(workOrderId);
 };
 
 const addWorkOrderComment = async (workOrderId, { content, user_id, roles, ip_address }) => {
@@ -52,7 +53,7 @@ const addWorkOrderComment = async (workOrderId, { content, user_id, roles, ip_ad
   if (!canAddComment(wo, user_id, roles, accessList)) {
     throw new ApiError(403, 'Forbidden');
   }
-  const created = await workOrderRepository.createComment({ work_order_id: workOrderId, user_id, content: trimmed });
+  const created = await commentRepository.createComment({ work_order_id: workOrderId, user_id, content: trimmed });
   await auditService.log({
     user_id,
     action: 'WORK_ORDER_COMMENT_ADDED',
@@ -66,7 +67,7 @@ const addWorkOrderComment = async (workOrderId, { content, user_id, roles, ip_ad
   try {
     const [latestAccessList, comments] = await Promise.all([
       workOrderAccessRepository.findGrantedByWorkOrderId(workOrderId),
-      workOrderRepository.findCommentsByWorkOrderId(workOrderId),
+      commentRepository.findCommentsByWorkOrderId(workOrderId),
     ]);
     const recipients = new Set();
     if (wo.created_by != null) recipients.add(Number(wo.created_by));
@@ -92,10 +93,10 @@ const addWorkOrderComment = async (workOrderId, { content, user_id, roles, ip_ad
 const deleteWorkOrderComment = async (workOrderId, commentId, { user_id, roles, ip_address }) => {
   const wo = await workOrderRepository.findById(workOrderId);
   if (!wo) throw new ApiError(404, 'Work order not found');
-  const comment = await workOrderRepository.findCommentById(commentId);
+  const comment = await commentRepository.findCommentById(commentId);
   if (!comment || Number(comment.work_order_id) !== Number(workOrderId)) throw new ApiError(404, 'Comment not found');
   if (!canDeleteComment(wo, comment, user_id, roles)) throw new ApiError(403, 'Forbidden');
-  const deleted = await workOrderRepository.deleteComment(commentId);
+  const deleted = await commentRepository.deleteComment(commentId);
   await auditService.log({
     user_id,
     action: 'WORK_ORDER_COMMENT_DELETED',

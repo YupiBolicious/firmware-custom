@@ -183,144 +183,6 @@ const findPendingReviewQueue = async ({ page = 1, limit = 15 } = {}) => {
   return { items: result.rows, total: result.rows[0] ? result.rows[0].total : 0 };
 };
 
-const findProductionTasksByWorkOrderId = async (workOrderId) => {
-  const result = await pool.query(
-    `SELECT id, task_code, work_order_id, work_order_item_id, title, completed,
-            created_at, updated_at
-     FROM production_tasks
-     WHERE work_order_id = $1
-     ORDER BY id`,
-    [workOrderId]
-  );
-  return result.rows;
-};
-
-const findProductionTaskById = async (taskId) => {
-  const result = await pool.query(
-    `SELECT id, task_code, work_order_id, work_order_item_id, title, completed,
-            created_at, updated_at
-     FROM production_tasks
-     WHERE id = $1`,
-    [taskId]
-  );
-  return result.rows[0] || null;
-};
-
-const completeProductionTask = async (taskId, completed) => {
-  const result = await pool.query(
-    `UPDATE production_tasks
-     SET completed = $2, updated_at = NOW()
-     WHERE id = $1
-       AND EXISTS (SELECT 1 FROM work_orders
-                   WHERE id = production_tasks.work_order_id AND status = 'PRODUCTION')
-     RETURNING id, task_code, work_order_id, work_order_item_id, title, completed,
-               created_at, updated_at`,
-    [taskId, completed]
-  );
-  return result.rows[0] || null;
-};
-
-const countProductionTasksByWorkOrderId = async (workOrderId) => {
-  const result = await pool.query(
-    `SELECT COUNT(*)::int AS total,
-            COUNT(*) FILTER (WHERE completed = FALSE)::int AS open
-     FROM production_tasks
-     WHERE work_order_id = $1`,
-    [workOrderId]
-  );
-  return { total: result.rows[0].total, open: result.rows[0].open };
-};
-
-const deleteProductionTasksByWorkOrderId = async (workOrderId) => {
-  const result = await pool.query('DELETE FROM production_tasks WHERE work_order_id = $1 RETURNING id', [workOrderId]);
-  return result.rows.length;
-};
-
-const finalizeWithProductionTasks = async (workOrderId) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    const currentResult = await client.query(
-      `SELECT * FROM work_orders WHERE id = $1 FOR UPDATE`,
-      [workOrderId]
-    );
-    const current = currentResult.rows[0];
-    if (!current || current.status !== 'ANALYZED') {
-      throw new Error('Work order is no longer in ANALYZED state');
-    }
-
-    const summaryResult = await client.query(
-      `SELECT COUNT(woi.id)::int AS item_count,
-              COUNT(*) FILTER (
-                WHERE c.id IS NULL OR c.status = 'CODER_REVIEW' OR c.fw_related IS NULL
-              )::int AS unresolved_count,
-              COALESCE(BOOL_OR(c.fw_related IS TRUE), FALSE) AS has_firmware
-       FROM work_order_items woi
-       LEFT JOIN classifications c ON c.work_order_item_id = woi.id
-       WHERE woi.work_order_id = $1`,
-      [workOrderId]
-    );
-    const summary = summaryResult.rows[0];
-    if (summary.item_count === 0) throw new Error('Work order has no items to finalize');
-    if (summary.unresolved_count > 0) throw new Error('Work order has items awaiting coder review');
-
-    const nextStatus = summary.has_firmware ? 'FINALIZED' : 'COMPLETED';
-    const workOrderResult = await client.query(
-      `UPDATE work_orders SET status = $2, updated_at = NOW()
-       WHERE id = $1 AND status = 'ANALYZED' RETURNING *`,
-      [workOrderId, nextStatus]
-    );
-    if (workOrderResult.rows.length === 0) {
-      throw new Error('Work order is no longer in ANALYZED state');
-    }
-
-    let productionTasks = [];
-    if (summary.has_firmware) {
-      const taskResult = await client.query(
-        `INSERT INTO production_tasks
-           (task_code, work_order_id, work_order_item_id, title, description)
-         SELECT wo.wo_number || '-' || woi.id AS task_code,
-                wo.id,
-                woi.id,
-                woi.title,
-                woi.description
-         FROM work_orders wo
-         JOIN work_order_items woi ON woi.work_order_id = wo.id
-         JOIN classifications c ON c.work_order_item_id = woi.id
-         WHERE wo.id = $1 AND c.fw_related = TRUE
-         ON CONFLICT (work_order_item_id)
-         DO UPDATE SET
-           title = EXCLUDED.title,
-           description = EXCLUDED.description,
-           updated_at = NOW()
-         RETURNING id, task_code, work_order_id, work_order_item_id, title, description, completed,
-                   created_at, updated_at`,
-        [workOrderId]
-      );
-      productionTasks = taskResult.rows;
-    } else {
-      await client.query(
-        'DELETE FROM production_tasks WHERE work_order_id = $1 RETURNING id',
-        [workOrderId]
-      );
-    }
-
-    await client.query('COMMIT');
-    return {
-      workOrder: workOrderResult.rows[0],
-      productionTasks,
-      completionPath: summary.has_firmware ? 'PRODUCTION' : 'NO_FIRMWARE',
-      itemCount: summary.item_count,
-    };
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
-};
-
 const createWithGroups = async ({ wo_number, customer, created_by, groups, items, revision = 0 }) => {
   const client = await pool.connect();
   try {
@@ -352,7 +214,7 @@ const createWithGroups = async ({ wo_number, customer, created_by, groups, items
       if (!item_number) {
         let idx = 1;
         do {
-          item_number = `i${idx}`;
+          item_number = `${idx}`;
           idx += 1;
         } while (usedNumbers.includes(item_number));
       }
@@ -452,7 +314,7 @@ const reviseWithGroups = async ({ id, customer, groups, items, revision }) => {
       if (!item_number) {
         let idx = 1;
         do {
-          item_number = `i${idx}`;
+          item_number = `${idx}`;
           idx += 1;
         } while (usedNumbers.includes(item_number));
       }
@@ -581,112 +443,6 @@ const findItemNumbersByWorkOrderId = async (workOrderId) => {
   return result.rows.map((r) => r.item_number);
 };
 
-// ---------- Work Order Items ----------
-const findItemsByWorkOrderId = async (workOrderId) => {
-  const result = await pool.query(
-    `SELECT woi.id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title, 
-            woi.quantity, woi.documentation_readiness, woi.created_at, woi.updated_at,
-c.id AS classification_id, c.fw_related, c.complexity_level_id,
-             c.classification_method, c.confidence_score, c.classification_reason, c.status AS classification_status,
-             c.reviewed_by, c.input_hash, c.kb_version,
-             c.assist_kb_id, c.assist_kb_code, c.assist_match_score, c.assist_semantic_margin,
-             c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
-             c.review_reason, c.assist_blocked_reason,
-             cl.code AS complexity_code, cl.name AS complexity_name,
-             g.serial_number, wm.model_code AS machine_model_code,
-             wm.machine_model_id, wm.machine_model_version_id,
-             COALESCE(ie.total_hours, 0) AS estimated_hours,
-             ie.verification_mh, ie.total_hours AS estimation_total_hours,
-             kbs.title AS assist_kb_title,
-             clp.code AS assist_complexity_code,
-             CASE
-               WHEN c.status = 'CODER_REVIEW' AND c.assist_complexity_level_id IS NOT NULL AND ie.id IS NULL
-               THEN COALESCE(clp.total_hours, 0)
-               ELSE NULL
-             END AS provisional_hours
-     FROM work_order_items woi
-     LEFT JOIN work_order_groups g ON g.id = woi.work_order_group_id
-     LEFT JOIN LATERAL (
-       SELECT wg.machine_model_id, wg.machine_model_version_id, wmm.model_code
-       FROM work_order_groups wg
-       LEFT JOIN machine_model wmm ON wmm.id = wg.machine_model_id
-       WHERE wg.id = woi.work_order_group_id
-          OR (woi.work_order_group_id IS NULL AND wg.work_order_id = woi.work_order_id)
-       ORDER BY CASE WHEN wg.id = woi.work_order_group_id THEN 0 ELSE 1 END, wg.id
-       LIMIT 1
-     ) wm ON TRUE
-     LEFT JOIN classifications c ON c.work_order_item_id = woi.id
-     LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
-     LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-     LEFT JOIN kb_items kbs ON kbs.id = c.assist_kb_id
-     LEFT JOIN complexity_levels clp ON clp.id = c.assist_complexity_level_id
-     WHERE woi.work_order_id = $1
-     ORDER BY woi.item_number`,
-    [workOrderId]
-  );
-  return result.rows;
-};
-
-const findItemById = async (id) => {
-  const result = await pool.query(
-    `SELECT * FROM work_order_items WHERE id = $1`,
-    [id]
-  );
-  return result.rows[0] || null;
-};
-
-const findItemWithWorkOrder = async (id) => {
-  const result = await pool.query(
-    `SELECT woi.*, wo.wo_number, wo.status AS work_order_status, wo.created_by AS wo_created_by
-     FROM work_order_items woi
-     JOIN work_orders wo ON wo.id = woi.work_order_id
-     WHERE woi.id = $1`,
-    [id]
-  );
-  return result.rows[0] || null;
-};
-
-const createItem = async ({ work_order_id, work_order_group_id, item_number, title, quantity, documentation_readiness }) => {
-  const result = await pool.query(
-    `INSERT INTO work_order_items (work_order_id, work_order_group_id, item_number, title, quantity, documentation_readiness)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING *`,
-    [work_order_id, work_order_group_id, item_number, title, quantity || 1, documentation_readiness || null]
-  );
-  return result.rows[0];
-};
-
-const updateItem = async (id, { title, description, quantity, documentation_readiness }) => {
-  const result = await pool.query(
-    `UPDATE work_order_items
-     SET title = COALESCE($2, title),
-         description = COALESCE($3, description),
-         quantity = COALESCE($4, quantity),
-         documentation_readiness = COALESCE($5, documentation_readiness),
-         updated_at = NOW()
-     WHERE id = $1
-     RETURNING *`,
-    [id, title, description, quantity, documentation_readiness]
-  );
-  return result.rows[0] || null;
-};
-
-const deleteItem = async (id) => {
-  const result = await pool.query(
-    `DELETE FROM work_order_items WHERE id = $1 RETURNING id`,
-    [id]
-  );
-  return result.rows[0] || null;
-};
-
-const countItemsByWorkOrderId = async (workOrderId) => {
-  const result = await pool.query(
-    `SELECT COUNT(*)::int AS count FROM work_order_items WHERE work_order_id = $1`,
-    [workOrderId]
-  );
-  return result.rows[0].count;
-};
-
 const countCoderReviewRemainingByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
     `SELECT COUNT(*)::int AS cnt
@@ -699,122 +455,26 @@ const countCoderReviewRemainingByWorkOrderId = async (workOrderId) => {
   return result.rows[0]?.cnt || 0;
 };
 
-const assignCoder = async (workOrderId, coderId) => {
-  const result = await pool.query(
-    `UPDATE work_orders
-     SET assigned_coder_id = $2, updated_at = NOW()
-     WHERE id = $1
-     RETURNING *`,
-    [workOrderId, coderId]
-  );
-  return result.rows[0] || null;
-};
-
-const updateStatus = async (id, status, fromStatus) => {
-  const result = await pool.query(
-    `UPDATE work_orders SET status = $2, updated_at = NOW()
-     WHERE id = $1 AND ($3::text IS NULL OR status = $3)
-     RETURNING id`,
-    [id, status, fromStatus || null]
-  );
-  if (result.rowCount === 0) return null;
-  return findById(id);
-};
-
-const updateStatusDirect = async (id, newStatus, expectedOldStatus = null) => {
-  const params = [newStatus, id];
-  let where = 'WHERE id = $2';
-  if (expectedOldStatus) {
-    params.push(expectedOldStatus);
-    where += ` AND status = $${params.length}`;
-  }
-  const result = await pool.query(
-    `UPDATE work_orders SET status = $1, updated_at = NOW() ${where} RETURNING id`,
-    params
-  );
-  if (result.rowCount === 0) return null;
-  return findById(id);
-};
-
-const transitionAdminStatus = async ({ id, fromStatus, toStatus, clearProductionTasks = false }) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const currentResult = await client.query(
-      'SELECT id, status FROM work_orders WHERE id = $1 FOR UPDATE',
-      [id]
-    );
-    const current = currentResult.rows[0];
-    if (!current || current.status !== fromStatus) {
-      await client.query('ROLLBACK');
-      return null;
-    }
-
-    if (clearProductionTasks) {
-      await client.query('DELETE FROM production_tasks WHERE work_order_id = $1', [id]);
-    }
-
-    const result = await client.query(
-      `UPDATE work_orders SET status = $2, updated_at = NOW()
-       WHERE id = $1 AND status = $3 RETURNING id`,
-      [id, toStatus, fromStatus]
-    );
-    if (result.rowCount === 0) {
-      await client.query('ROLLBACK');
-      return null;
-    }
-    await client.query('COMMIT');
-    return findById(id);
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
-};
-
-// ---------- Work Order Comments ----------
-const findCommentsByWorkOrderId = async (workOrderId) => {
-  const result = await pool.query(
-    `SELECT c.id, c.work_order_id, c.user_id, c.content, c.created_at, c.updated_at,
-            u.full_name, u.username,
-            (SELECT string_agg(r.code, ',') FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = u.id) AS roles
-     FROM work_order_comments c
-     JOIN users u ON u.id = c.user_id
-     WHERE c.work_order_id = $1
-     ORDER BY c.created_at ASC, c.id ASC`,
+const findClassificationEmailDataByWorkOrderId = async (workOrderId) => {
+  const wo = await pool.query(
+    `SELECT wo.id, wo.wo_number, wo.created_by, u.email AS created_by_email, u.full_name AS created_by_name
+     FROM work_orders wo
+     LEFT JOIN users u ON u.id = wo.created_by
+     WHERE wo.id = $1`,
     [workOrderId]
   );
-  return result.rows;
-};
-
-const createComment = async ({ work_order_id, user_id, content }) => {
-  const result = await pool.query(
-    `INSERT INTO work_order_comments (work_order_id, user_id, content)
-     VALUES ($1, $2, $3)
-     RETURNING id, work_order_id, user_id, content, created_at, updated_at`,
-    [work_order_id, user_id, content]
+  const items = await pool.query(
+    `SELECT woi.item_number, woi.title,
+            c.fw_related, c.complexity_level_id,
+            cl.code AS complexity_code, cl.name AS complexity_name, cl.firmware_name
+     FROM work_order_items woi
+     JOIN classifications c ON c.work_order_item_id = woi.id
+     LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
+     WHERE woi.work_order_id = $1
+     ORDER BY woi.item_number`,
+    [workOrderId]
   );
-  return result.rows[0];
-};
-
-const deleteComment = async (commentId) => {
-  const result = await pool.query(
-    `DELETE FROM work_order_comments WHERE id = $1 RETURNING id`,
-    [commentId]
-  );
-  return result.rows[0] || null;
-};
-
-const findCommentById = async (commentId) => {
-  const result = await pool.query(
-    `SELECT c.*, u.full_name, u.username
-     FROM work_order_comments c
-     JOIN users u ON u.id = c.user_id
-     WHERE c.id = $1`,
-    [commentId]
-  );
-  return result.rows[0] || null;
+  return { workOrder: wo.rows[0] || null, items: items.rows };
 };
 
 module.exports = {
@@ -823,12 +483,6 @@ module.exports = {
   findByWoNumber,
   findCoderReviewQueue,
   findPendingReviewQueue,
-  findProductionTasksByWorkOrderId,
-  findProductionTaskById,
-  completeProductionTask,
-  countProductionTasksByWorkOrderId,
-  deleteProductionTasksByWorkOrderId,
-  finalizeWithProductionTasks,
   createWithGroups,
   reviseWithGroups,
   update,
@@ -840,20 +494,6 @@ module.exports = {
   countItemsByGroupId,
   findItemNumbersByGroupId,
   findItemNumbersByWorkOrderId,
-  findItemsByWorkOrderId,
-  findItemById,
-  findItemWithWorkOrder,
-  createItem,
-  updateItem,
-  deleteItem,
-  countItemsByWorkOrderId,
   countCoderReviewRemainingByWorkOrderId,
-  assignCoder,
-  updateStatus,
-  updateStatusDirect,
-  transitionAdminStatus,
-  findCommentsByWorkOrderId,
-  createComment,
-  deleteComment,
-  findCommentById
+  findClassificationEmailDataByWorkOrderId,
 };

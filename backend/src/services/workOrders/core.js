@@ -5,6 +5,10 @@ const auditService = require('../auditService');
 const notificationRepository = require('../../repositories/notificationRepository');
 const classificationService = require('../classificationService');
 const kbRepository = require('../../repositories/kbRepository');
+const productionRepository = require('../../repositories/productionRepository');
+const woItemRepository = require('../../repositories/woItemRepository');
+const grantStatusRepository = require('../../repositories/grantStatusRepository');
+
 const { ApiError } = require('../../middleware/errorHandler');
 const { validatePagination, paginatedPayload } = require('../../utils/pagination');
 const { assertOptionalDate } = require('../../utils/validation');
@@ -45,9 +49,9 @@ const getWorkOrder = async (id) => {
   if (!wo) {
     throw new ApiError(404, 'Work order not found');
   }
-  const productionTasks = await workOrderRepository.findProductionTasksByWorkOrderId(id);
+  const productionTasks = await productionRepository.findProductionTasksByWorkOrderId(id);
   const groups = await workOrderRepository.findGroupsByWorkOrderId(id);
-  const items = await workOrderRepository.findItemsByWorkOrderId(id);
+  const items = await woItemRepository.findItemsByWorkOrderId(id);
   const kbVersion = await kbRepository.getCorpusVersion();
   const stamped = items.map((item) => ({
     ...item,
@@ -173,7 +177,7 @@ const updateWorkOrder = async (id, { title, customer, status, user_id, roles, ip
 
   if (status === 'DRAFT' && existing.status === 'ANALYZED') {
     await workOrderResetRepository.clearAnalysisByWorkOrderId(id);
-    await workOrderRepository.deleteProductionTasksByWorkOrderId(id);
+    await productionRepository.deleteProductionTasksByWorkOrderId(id);
     await notificationRepository.deleteByEntityAndStatus(id, 'CODER_REVIEW');
     await auditService.log({
       user_id,
@@ -232,7 +236,7 @@ const assignWorkOrderCoder = async (id, { coder_id, user_id, ip_address }) => {
     if (!coder.is_active) throw new ApiError(400, 'User is deactivated');
     if (!(coder.roles || []).includes('CODER')) throw new ApiError(400, 'User does not have the CODER role');
   }
-  const wo = await workOrderRepository.assignCoder(id, coderId);
+  const wo = await grantStatusRepository.assignCoder(id, coderId);
   await auditService.log({
     user_id,
     action: coderId == null ? 'WORK_ORDER_UNASSIGNED' : 'WORK_ORDER_ASSIGNED',

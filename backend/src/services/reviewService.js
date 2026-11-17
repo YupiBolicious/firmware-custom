@@ -1,4 +1,5 @@
 const workOrderRepository = require('../repositories/workOrderRepository');
+const woItemRepository = require('../repositories/woItemRepository');
 const classificationRepository = require('../repositories/classificationRepository');
 const estimationRepository = require('../repositories/estimationRepository');
 const estimationService = require('../services/estimationService');
@@ -11,9 +12,10 @@ const workOrderAccessRepository = require('../repositories/workOrderAccessReposi
 const { ApiError } = require('../middleware/errorHandler');
 const { buildKeywords } = require('../utils/tokenPolicy');
 const { verifyAssignedCoder } = require('./workOrders/guards');
+const classificationEmailService = require('./classificationEmailService');
 
 const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semantic_assist_response, user_id, roles, ip_address }) => {
-  const item = await workOrderRepository.findItemWithWorkOrder(itemId);
+  const item = await woItemRepository.findItemWithWorkOrder(itemId);
   if (!item) {
     throw new ApiError(404, 'Work order item not found');
   }
@@ -111,18 +113,14 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
   });
 
   const remaining = await workOrderRepository.countCoderReviewRemainingByWorkOrderId(item.work_order_id);
-  if (remaining === 0) {
-    const granteeIds = await workOrderAccessRepository.findUserIdsByWorkOrderId(item.work_order_id);
-    const recipientIds = new Set([item.wo_created_by, ...granteeIds].filter((x) => x != null));
-    for (const uid of recipientIds) {
-      notificationService.notify({
-        user_id: uid,
-        status: 'ITEM_REVIEWED',
-        message: `All items in ${item.wo_number} have been reviewed by a FW engineer`,
-        entity_id: item.work_order_id,
-      });
-    }
+if (remaining === 0) {
+  const granteeIds = await workOrderAccessRepository.findUserIdsByWorkOrderId(item.work_order_id);
+  const recipientIds = new Set([item.wo_created_by, ...granteeIds].filter((x) => x != null));
+  for (const uid of recipientIds) {
+    notificationService.notify({ user_id: uid, status: 'ITEM_REVIEWED', message: `All items in ${item.wo_number} have been reviewed by a FW engineer`, entity_id: item.work_order_id });
   }
+  await classificationEmailService.sendClassificationComplete(item.work_order_id); // plain email to created_by
+}
 
   return {
     ...saved,
@@ -136,7 +134,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
 };
 
 const correctReviewedItem = async (itemId, { complexity_level_id, reason, user_id, roles, ip_address }) => {
-  const item = await workOrderRepository.findItemWithWorkOrder(itemId);
+  const item = await woItemRepository.findItemWithWorkOrder(itemId);
   if (item) {
     const wo = await workOrderRepository.findById(item.work_order_id);
     await verifyAssignedCoder(wo, user_id, roles || []);
@@ -194,4 +192,6 @@ const correctReviewedItem = async (itemId, { complexity_level_id, reason, user_i
   };
 };
 
-module.exports = { reviewItem, correctReviewedItem };
+
+
+module.exports = { reviewItem, correctReviewedItem};

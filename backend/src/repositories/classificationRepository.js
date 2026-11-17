@@ -41,10 +41,6 @@ const ASSIST_COLS = [
   'assist_fw_related',
 ];
 
-// Upsert a classification for an item. `preserveAssist` keeps any existing
-// assist snapshot on input-hash-reuse (no new analysis happened), so a pending
-// review suggestion — and its structured why-review reason — is never wiped by
-// an idempotent re-run.
 const upsertClassification = async ({
   work_order_item_id,
   fw_related,
@@ -97,8 +93,6 @@ const upsertClassification = async ({
     kb_version = EXCLUDED.kb_version,
     updated_at = NOW()`;
   const assistSet = ASSIST_COLS.map((c) => `${c} = EXCLUDED.${c}`).join(', ');
-  // Like ASSIST_COLS, review_reason/assist_blocked_reason are only rewritten on
-  // a fresh analysis; the preserve branch keeps the previous snapshot intact.
   const reasonSet = 'review_reason = EXCLUDED.review_reason, assist_blocked_reason = EXCLUDED.assist_blocked_reason';
   const updates = [baseSet];
   if (assist) updates.push(assistSet);

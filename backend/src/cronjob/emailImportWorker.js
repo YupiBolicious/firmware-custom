@@ -5,6 +5,7 @@ const { importFromGmail } = require('../services/emailImportService');
 let running = false;
 
 cron.schedule('*/10 * * * *', async () => {
+  console.log(`[EMAIL CRON] run at ${new Date().toLocaleString('id-ID', {timeZone: 'Asia/Jakarta'})}`)
   if (running) {
     console.warn('[Gmail import] Skip: previous run is still in progress');
     return;
