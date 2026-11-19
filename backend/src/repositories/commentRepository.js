@@ -1,6 +1,5 @@
 const pool = require('../config/db');
 
-// ---------- Work Order Comments ----------
 const findCommentsByWorkOrderId = async (workOrderId) => {
   const result = await pool.query(
     `SELECT c.id, c.work_order_id, c.user_id, c.content, c.created_at, c.updated_at,

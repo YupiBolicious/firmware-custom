@@ -9,6 +9,11 @@ export default function useReviewQueue() {
   const [selections, setSelections] = useState({});
   const [assistResponses, setAssistResponses] = useState({});
   const [keywordInputs, setKeywordInputs] = useState({});
+  const [firmwareNames, setFirmwareNames] = useState({});
+  const firmwareNamesFor = (item) => {
+    const raw = firmwareNames[item.item_id] ?? (item.firmware_names || []).join(', ');
+    return raw.split(',').map((value) => value.trim()).filter(Boolean);
+  };
   const [reviewing, setReviewing] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -43,6 +48,7 @@ export default function useReviewQueue() {
         complexity_level_id,
         keywords: keywordInputs[item.item_id]?.trim() || undefined,
         semantic_assist_response: item.assist_kb_code ? (assistResponses[item.item_id] || item.assist_response || undefined) : undefined,
+        firmware_names: firmwareNamesFor(item),
       });
       setItems((current) => {
         const remaining = current.filter((currentItem) => currentItem.item_id !== item.item_id);
@@ -82,7 +88,11 @@ export default function useReviewQueue() {
 
   const assistPending = (item) => !!(item.assist_kb_code && !(assistResponses[item.item_id] || item.assist_response));
 
-  const canConfirm = (item) => !!(selections[item.item_id] && !assistPending(item));
+const canConfirm = (item) => {
+  const selected = levels.find((level) => String(level.id) === String(selections[item.item_id]));
+  const needsName = selected && selected.code !== 'L0';
+  return !!(selections[item.item_id] && !assistPending(item) && (!needsName || firmwareNamesFor(item).length > 0));
+};
 
   return {
     items,
@@ -98,6 +108,8 @@ export default function useReviewQueue() {
     canConfirm,
     keywordInputs,
     setKeywordInputs,
+    firmwareNames,
+    setFirmwareNames,
     reviewing,
     review,
     setError,

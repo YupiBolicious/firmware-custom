@@ -2,11 +2,17 @@ const pool = require('../config/db');
 
 const findAll = async () => {
   const result = await pool.query(
-    `SELECT id, code, name, description,
-            requirement_review_h, code_development_h, peer_review_fixing_h,
-            bench_testing_h, unit_testing_h, total_hours, is_active
-     FROM complexity_levels
-     ORDER BY id`
+    `SELECT cl.id, cl.code, cl.name, cl.description,
+            cl.requirement_review_h, cl.code_development_h, cl.peer_review_fixing_h,
+            cl.bench_testing_h, cl.unit_testing_h, cl.total_hours, cl.is_active,
+            COALESCE(fn.firmware_names, '{}') AS firmware_names
+     FROM complexity_levels cl
+     LEFT JOIN LATERAL (
+       SELECT array_agg(name ORDER BY lower(name)) AS firmware_names
+       FROM complexity_level_firmware_names
+       WHERE complexity_level_id = cl.id AND is_active
+     ) fn ON TRUE
+     ORDER BY cl.id`
   );
   return result.rows;
 };

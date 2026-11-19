@@ -1,13 +1,14 @@
 ﻿const workOrderRepository = require('../../repositories/workOrderRepository');
-const workOrderResetRepository = require('../../repositories/workOrderResetRepository');
 const userRepository = require('../../repositories/userRepository');
 const auditService = require('../auditService');
-const notificationRepository = require('../../repositories/notificationRepository');
 const classificationService = require('../classificationService');
+const lifecycle = require('./lifecycle');
 const kbRepository = require('../../repositories/kbRepository');
 const productionRepository = require('../../repositories/productionRepository');
 const woItemRepository = require('../../repositories/woItemRepository');
 const grantStatusRepository = require('../../repositories/grantStatusRepository');
+const { calculateEta } = require('../../utils/workingDays');
+const classificationEmailService = require('../classificationEmailService');
 
 const { ApiError } = require('../../middleware/errorHandler');
 const { validatePagination, paginatedPayload } = require('../../utils/pagination');
@@ -136,7 +137,8 @@ const createWorkOrder = async ({ wo_number, customer, created_by, groups, items,
       },
       ip_address,
     });
-    return { ...wo, revised: true };
+    const analysis = await lifecycle.analyzeQuietly(wo.id, { user_id: created_by, roles, ip_address });
+    return { ...wo, revised: true, analysis: analysis?.summary || null };
   }
 
   const wo = await workOrderRepository.createWithGroups({
@@ -156,7 +158,8 @@ const createWorkOrder = async ({ wo_number, customer, created_by, groups, items,
     details: { wo_number: wo.wo_number, revision: wo.revision, group_count: wo.groups.length, item_count: (wo.items||[]).length },
     ip_address,
   });
-  return { ...wo, revised: false };
+  const analysis = await lifecycle.analyzeQuietly(wo.id, { user_id: created_by, roles, ip_address });
+  return { ...wo, revised: false, analysis: analysis?.summary || null };
 };
 
 const updateWorkOrder = async (id, { title, customer, status, user_id, roles, ip_address }) => {
@@ -167,28 +170,10 @@ const updateWorkOrder = async (id, { title, customer, status, user_id, roles, ip
   await assertCanEditWorkOrder(existing, user_id, roles);
 
   if (status !== undefined && status !== existing.status) {
-    const isRollback = status === 'DRAFT' && existing.status === 'ANALYZED';
-    if (!isRollback) {
-      throw new ApiError(400, 'Status can only be rolled back from ANALYZED to DRAFT via update; use analyze/finalize for other transitions');
-    }
+    throw new ApiError(400, 'Status changes are handled by the analyze/finalize/production actions');
   }
 
   const wo = await workOrderRepository.update(id, { title, customer, status });
-
-  if (status === 'DRAFT' && existing.status === 'ANALYZED') {
-    await workOrderResetRepository.clearAnalysisByWorkOrderId(id);
-    await productionRepository.deleteProductionTasksByWorkOrderId(id);
-    await notificationRepository.deleteByEntityAndStatus(id, 'CODER_REVIEW');
-    await auditService.log({
-      user_id,
-      action: 'WORK_ORDER_STATUS_ROLLED_BACK',
-      entity_type: 'WORK_ORDER',
-      entity_id: id,
-      work_order_id: id,
-      details: { wo_number: existing.wo_number, from: 'ANALYZED', to: 'DRAFT' },
-      ip_address,
-    });
-  }
 
   await auditService.log({
     user_id,
@@ -246,7 +231,20 @@ const assignWorkOrderCoder = async (id, { coder_id, user_id, ip_address }) => {
     details: { wo_number: wo.wo_number, from: existing.assigned_coder_id, to: coderId },
     ip_address,
   });
-  return wo;
+
+  if (coderId == null) {
+    await grantStatusRepository.setEstimatedCompletion(id, null);
+    return { ...wo, assigned_at: null, estimated_completion_date: null };
+  }
+
+  const { total_work_hours: totalWorkHours } =
+    await grantStatusRepository.getCoderQueueHours(coderId, wo.assigned_at, id);
+  const estimatedCompletionDate = calculateEta(wo.assigned_at, totalWorkHours);
+  await grantStatusRepository.setEstimatedCompletion(id, estimatedCompletionDate);
+  if (existing.assigned_coder_id == null) {
+    await classificationEmailService.sendClassificationComplete(id);
+  }
+  return { ...wo, estimated_completion_date: estimatedCompletionDate };
 };
 
 module.exports = {

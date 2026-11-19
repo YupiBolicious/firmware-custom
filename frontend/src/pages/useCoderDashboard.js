@@ -168,9 +168,12 @@ export default function useCoderDashboard() {
   ), [data]);
 
   const filteredWorkload = useMemo(() => {
-    const queued = filteredWorkQueue.filter((r) => r.work_order_status === 'DRAFT').reduce((s, r) => s + r.estimated_hours, 0);
-    const inProgress = filteredWorkQueue.filter((r) => r.work_order_status === 'ANALYZED').reduce((s, r) => s + r.estimated_hours, 0);
-    const completed = filteredWorkQueue.filter((r) => ['FINALIZED', 'PRODUCTION', 'COMPLETED'].includes(r.work_order_status)).reduce((s, r) => s + r.estimated_hours, 0);
+    // Hours are per work order (highest item estimate), not per item — same rule as ETA and WO list.
+    const byWorkOrder = new Map(filteredWorkQueue.map((r) => [r.work_order_id, r]));
+    const rows = [...byWorkOrder.values()];
+    const queued = 0;
+    const inProgress = rows.filter((r) => r.work_order_status === 'ANALYZED').reduce((s, r) => s + r.work_hours, 0);
+    const completed = rows.filter((r) => ['FINALIZED', 'PRODUCTION', 'COMPLETED'].includes(r.work_order_status)).reduce((s, r) => s + r.work_hours, 0);
     return { queued_hours: queued, in_progress_hours: inProgress, completed_hours: completed };
   }, [filteredWorkQueue]);
 

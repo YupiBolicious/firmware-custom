@@ -25,7 +25,7 @@ export default function WOModelSerial({
         <h3>Model Code &amp; Serial Numbers</h3>
         {canEdit && (
           <div className="item-actions">
-            <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || (wo.status !== 'DRAFT' && wo.status !== 'ANALYZED')}>
+            <button className="btn" onClick={handleAnalyze} disabled={analyzing || finalizing || items.length === 0 || wo.status !== 'ANALYZED'}>
               {analyzing ? 'Analyzing...' : 'Estimate'}
             </button>
             {groupsEditable && groups.length > 0 && (

@@ -122,7 +122,7 @@ export default function WorkOrderCreate() {
               <strong>{form.wo_number.trim().toUpperCase()}</strong> already exists at revision{' '}
               <strong>{duplicate.existing_revision}</strong> (status {duplicate.existing_status}).
             </p>
-            <p> Overwriting will reset its status to DRAFT.</p>
+            <p> Overwriting will re-analyze the work order.</p>
             <div className="flex gap-8 mt-8">
               <button className=" btn btn-danger" type="button" onClick={handleConfirmOverwrite} disabled={saving}>
                 {saving ? 'Overwriting...' : 'Overwrite and reset'}

@@ -17,9 +17,7 @@ const evaluateAssistRule = async ({ itemText, lexicalStatus, matches, margin, sc
   const top = matches && matches[0];
   if (!top) return none(['NO_SEMANTIC_CANDIDATE']);
   // Gate is an ABSOLUTE top-candidate score floor, not top-vs-second margin:
-  // a low margin blocks auto-claim (decider's SEMANTIC_MARGIN) but must not
-  // bury a sufficiently relevant candidate from the coder. Margin is carried
-  // through to the suggestion/telemetry as information only.
+  // a low margin blocks auto-claim (decider's SEMANTIC_MARGIN) 
   const floor = scoreFloor == null ? ASSIST_MIN_SCORE : scoreFloor;
   if (!(top.score >= floor)) {
     return none(['SCORE_BELOW_FLOOR'], { kbCode: top.kbCode, score: top.score, margin });
@@ -59,11 +57,7 @@ const evaluateAssistRule = async ({ itemText, lexicalStatus, matches, margin, sc
 // Block reasons reported by the assist rule's code-agreement gate (tokenPolicy).
 const CODE_GATE_REASONS = ['MODEL_CODE_MISMATCH', 'VERSION_MISMATCH', 'SERIAL_MISMATCH', 'MEASUREMENT_MISMATCH'];
 
-// Priority for choosing WHICH block reason is the primary one. Code/model
-// mismatch outranks a low score on purpose: if a candidate's codes disagree
-// with the item, regardless of how low its score is, the mismatch is the
-// more important fact for the human reviewer. Low score only wins when no
-// mismatch exists.
+// Priority for choosing WHICH block reason is the primary one. low code only win when no mismatch exist
 const blockReasonPriority = [
   (r) => CODE_GATE_REASONS.includes(r),
   (r) => r === 'SCORE_BELOW_FLOOR',
@@ -79,12 +73,9 @@ const pickPrimaryBlockedReason = (reasons) => {
   return null;
 };
 
-// Structured why-review code, persisted on the classification row.
-// Priority per policy: CODE_MODEL_MISMATCH -> SEMANTIC_CANDIDATE_LOW_QUALITY
+// Priority: CODE_MODEL_MISMATCH -> SEMANTIC_CANDIDATE_LOW_QUALITY
 // (SCORE_BELOW_FLOOR) -> NO_USABLE_SEMANTIC_CANDIDATE
 // (NO_SEMANTIC_CANDIDATE/ROW_UNRESOLVED) -> NO_EXACT_OR_RULE_MATCH fallback.
-// An assist suggestion means a candidate passed the floor, so the reason the
-// item still needs a human is simply that no exact/rule match decided it.
 const deriveReviewReason = ({ assist, assistBlockedReasons }) => {
   if (assist) return 'NO_EXACT_OR_RULE_MATCH';
   const primary = pickPrimaryBlockedReason(assistBlockedReasons);

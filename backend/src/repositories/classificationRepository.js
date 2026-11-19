@@ -166,6 +166,7 @@ const reviewClassification = async ({
   input_hash,
   kb_version,
   assist_response,
+  firmware_names,
 }) => {
   const result = await pool.query(
     `UPDATE classifications
@@ -180,10 +181,11 @@ const reviewClassification = async ({
          input_hash = $6,
          kb_version = $7,
          assist_response = $8,
+         firmware_names = $9,
          updated_at = NOW()
      WHERE work_order_item_id = $1 AND status = 'CODER_REVIEW'
      RETURNING *`,
-    [work_order_item_id, fw_related, complexity_level_id, classification_reason, reviewed_by, input_hash || null, kb_version == null ? null : kb_version, assist_response == null ? null : assist_response]
+    [work_order_item_id, fw_related, complexity_level_id, classification_reason, reviewed_by, input_hash || null, kb_version == null ? null : kb_version, assist_response == null ? null : assist_response, firmware_names]
   );
   return result.rows[0] || null;
 };

@@ -1,13 +1,44 @@
 const pool = require('../config/db');
 const workOrderRepository = require('./workOrderRepository');
+const { findById } = require('./workOrderRepository');
 
 const assignCoder = async (workOrderId, coderId) => {
   const result = await pool.query(
     `UPDATE work_orders
-     SET assigned_coder_id = $2, updated_at = NOW()
+     SET assigned_coder_id = $2,
+     assigned_at = CASE WHEN $2::int IS NULL THEN NULL ELSE NOW() END,
+     updated_at = NOW()
      WHERE id = $1
      RETURNING *`,
     [workOrderId, coderId]
+  );
+  return result.rows[0] || null;
+};
+
+const getCoderQueueHours = async (coderId, assigned_at, workOrderId) => {
+  const result = await pool.query(
+  // each WO contributes only its highest item estimate; the ETA is not a sum of all items
+  `SELECT COALESCE(SUM(q.work_hours), 0) AS total_work_hours
+    FROM (
+      SELECT wo.id, COALESCE(MAX(ie.total_hours), 0) AS work_hours
+      FROM work_orders wo
+      LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id
+      LEFT JOIN item_estimations ie  ON ie.work_order_item_id = woi.id
+      WHERE wo.assigned_coder_id = $1
+      AND (wo.status IN ('FINALIZED','PRODUCTION','READY_TO_CLOSE') OR wo.id = $3)
+      AND (wo.assigned_at <= $2::timestamptz + INTERVAL '1 second' OR wo.assigned_at IS NULL)
+      GROUP BY wo.id
+    ) q`,
+    [coderId, assigned_at, workOrderId]
+  );
+  return result.rows[0] || null;
+};
+
+const setEstimatedCompletion = async (workOrderId, eta) => {
+  const result = await pool.query(
+    `UPDATE work_orders SET estimated_completion_date = $2::date
+     WHERE id = $1 RETURNING id, estimated_completion_date`,
+    [workOrderId, eta]
   );
   return result.rows[0] || null;
 };
@@ -76,5 +107,5 @@ const transitionAdminStatus = async ({ id, fromStatus, toStatus, clearProduction
 };
 
 module.exports = {
-    assignCoder, updateStatus, updateStatusDirect, transitionAdminStatus,
+    assignCoder, getCoderQueueHours, setEstimatedCompletion, updateStatus, updateStatusDirect, transitionAdminStatus,
 };

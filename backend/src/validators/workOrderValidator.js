@@ -61,8 +61,8 @@ const validateWorkOrderUpdate = (req, res, next) => {
   if (title !== undefined && (typeof title !== 'string' || !title.trim())) {
     errors.push('title must be a non-empty string');
   }
-  if (status !== undefined && !['DRAFT', 'ANALYZED', 'FINALIZED'].includes(status)) {
-    errors.push('status must be one of DRAFT, ANALYZED, FINALIZED');
+  if (status !== undefined && !['ANALYZED', 'FINALIZED'].includes(status)) {
+    errors.push('status must be one of ANALYZED, FINALIZED');
   }
   if (customer !== undefined && typeof customer !== 'string') {
     errors.push('customer must be a string');
@@ -140,7 +140,7 @@ const validateItemUpdate = (req, res, next) => {
 };
 
 const validateReview = (req, res, next) => {
-  const { complexity_level_id, keywords, notes, semantic_assist_response } = req.body || {};
+  const { complexity_level_id, keywords, notes, semantic_assist_response, firmware_names } = req.body || {};
   const errors = [];
 
   if (!Number.isInteger(complexity_level_id)) {
@@ -154,6 +154,17 @@ const validateReview = (req, res, next) => {
   }
   if (semantic_assist_response !== undefined && !['ACCEPTED', 'IGNORED'].includes(semantic_assist_response)) {
     errors.push('semantic_assist_response must be ACCEPTED or IGNORED');
+  }
+
+  if (firmware_names !== undefined && !Array.isArray(firmware_names)) {
+  errors.push('firmware_names must be an array of strings');
+  } else if (Array.isArray(firmware_names)) {
+    if (firmware_names.length > 10) {
+      errors.push('firmware_names must contain at most 10 names');
+    }
+    if (firmware_names.some((name) => typeof name !== 'string' || name.length > 200)) {
+      errors.push('each firmware name must be a string of max 200 characters');
+    }
   }
 
   if (errors.length > 0) {

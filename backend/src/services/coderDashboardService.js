@@ -68,6 +68,7 @@ const getCoderDashboard = async (userId, { workOrderPage = 1, workOrderSearch = 
       classification_status: r.classification_status,
       machine_model_code: r.machine_model_code || null,
       serial_number: r.serial_number || null,
+      work_hours: Number(r.work_hours) || 0,
       // confidence_score: r.confidence_score != null ? Number(r.confidence_score) : null,
       estimated_hours: Number(r.estimated_hours) || 0,
       created_at: r.classification_created_at,

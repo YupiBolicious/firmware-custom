@@ -60,9 +60,9 @@ export default function WorkOrderDetail() {
     : 'Finalize';
 
   const groups = wo.groups || [];
-  const groupsEditable = wo.status === 'DRAFT' || wo.status === 'ANALYZED';
+  const groupsEditable = wo.status === 'ANALYZED';
   const itemsEditable = groupsEditable;
-  const staleVerdicts = wo.status === 'DRAFT' && items.some((i) => i.verdict_stale === true);
+  const staleVerdicts = items.some((i) => i.verdict_stale === true);
   const isOwner = Number(wo.created_by) === Number(user?.id);
   const isGranted = access.some((a) => Number(a.user_id) === Number((useAuth().user?.id)));
   const canComment = hasRole('ADMIN') || hasRole('CODER') || (hasRole('PM') && (isOwner || isGranted));

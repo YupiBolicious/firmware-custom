@@ -11,6 +11,7 @@ export default function ReviewQueue() {
     selections, setSelections,
     assistResponses, acceptAssist, ignoreAssist, assistPending, canConfirm,
     keywordInputs, setKeywordInputs,
+    firmwareNames, setFirmwareNames,
     reviewing, review,
     page, setPage, totalPages,
   } = useReviewQueue();
@@ -35,6 +36,7 @@ export default function ReviewQueue() {
               <th>Suggestion</th>
               <th>Complexity</th>
               <th>Action</th>
+              <th>Firmware Name</th>
             </tr>
           </thead>
           <tbody>
@@ -70,30 +72,22 @@ export default function ReviewQueue() {
                       >
                         {/* Suggested KB */}
                         <div style={{ fontSize: 12, fontWeight: 600 }}>
-                          <span className="badge badge-info">Suggestion</span>
+                          <span className="badge badge-muted">Suggestion</span>
                         {item.assist_fw_related != null && (
-                            <span className="badge badge-muted">
+                            <span className="badge badge-info">
                               {item.assist_fw_related ? 'FW' : 'Non-FW'}
                             </span>
                           )}
                         </div>
 
-                        <div
-                          className="text-muted"
-                          style={{ fontSize: 12, lineHeight: 1.4 }}
-                          title={item.assist_kb_title || ''}
-                        >
-                          {item.assist_kb_title || 'Unknown KB item'}
-                        </div>
-
                         {/* Suggested classification */}
                         <div className="flex gap-8 align-center" style={{ fontSize: 10 }}>
                           {suggestedLevel && (
-                            <span className="badge badge-muted">
-                              Suggested {suggestedLevel.code}
+                            <span className="badge badge-info">
+                               {suggestedLevel.code}
                             </span>
                           )}
-                          <span className='badge badge-info'>{score}% match</span>
+                          <span className='badge badge-muted'>{score}% match</span>
                         </div>
 
                         {/* Decision */}
@@ -124,7 +118,7 @@ export default function ReviewQueue() {
                     value={selections[item.item_id] || ''}
                     onChange={(event) => setSelections({ ...selections, [item.item_id]: event.target.value })}
                   >
-                    <option value="">Select L0-L5</option>
+                    <option value="">L0-L5</option>
                     {levels.map((level) => <option key={level.id} value={level.id}>{level.code} - {level.name}</option>)}
                   </select>
                 </td>
@@ -132,6 +126,20 @@ export default function ReviewQueue() {
                   <button className="btn btn-sm" onClick={() => review(item)} disabled={!canConfirm(item) || reviewing === item.item_id}>
                     {reviewing === item.item_id ? 'Saving...' : '✔'}
                   </button>
+                </td>
+                <td>
+                  <input
+                    className="filter-input"
+                    placeholder='firmware name'
+                    maxLength={1000}
+                    list={`firmware-options-${item.item_id}`}
+                    value={firmwareNames[item.item_id] ?? (item.firmware_names || []).join(', ')}
+                    onChange={(event) => setFirmwareNames({ ...firmwareNames, [item.item_id]: event.target.value })}
+                  />
+                  <datalist id={`firmware-options-${item.item_id}`}>
+                    {(levels.find((level) => String(level.id) === String(selections[item.item_id]))?.firmware_names || [])
+                      .map((name) => <option key={name} value={name} />)}
+                  </datalist>
                 </td>
               </tr>
               );

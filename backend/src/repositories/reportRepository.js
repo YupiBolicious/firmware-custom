@@ -4,9 +4,6 @@ const pool = require('../config/db');
 // quantity/model count never factor in; verification is part of the official figure, not informational.
 const HOURS_EXPR = 'COALESCE(ie.total_hours, 0)';
 
-// Quarter buckets over [from, to] inclusive (to semantics: created_at < to + 1 day).
-// Buckets that have no work orders still appear, zero-filled. Statuses are the
-// CURRENT stored values — historical status is never reconstructed from updated_at.
 const findQuarterlyReport = async (from, to) => {
   const result = await pool.query(`
     WITH bounds AS (
@@ -54,10 +51,10 @@ const findQuarterlyReport = async (from, to) => {
         bucket_ts,
         COUNT(DISTINCT wo_id)::int AS cnt_wo,
         COUNT(item_id)::int AS cnt_items,
-        COALESCE(SUM(est_h) FILTER (WHERE status = 'DRAFT'), 0)::numeric AS hours_queued,
+        0::numeric AS hours_queued,
         COALESCE(SUM(est_h) FILTER (WHERE status IN ('ANALYZED', 'FINALIZED', 'PRODUCTION')), 0)::numeric AS hours_in_progress,
-        COALESCE(SUM(est_h) FILTER (WHERE status = 'COMPLETED'), 0)::numeric AS hours_completed,
-        COALESCE(SUM(est_h), 0)::numeric AS hours_total
+        COALESCE(MAX(est_h) FILTER (WHERE status = 'COMPLETED'), 0)::numeric AS hours_completed,
+        COALESCE(MAX(est_h), 0)::numeric AS hours_total
       FROM data
       GROUP BY bucket_ts
     ) d ON d.bucket_ts = b.bucket_ts

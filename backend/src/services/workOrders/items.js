@@ -2,8 +2,7 @@ const workOrderRepository = require('../../repositories/workOrderRepository');
 const woItemRepository = require('../../repositories/woItemRepository');
 const classificationRepository = require('../../repositories/classificationRepository');
 const notificationRepository = require('../../repositories/notificationRepository');
-const productionRepository = require('../../repositories/productionRepository');
-const { findProductionTasksByWorkOrderId } = require('../../repositories/productionRepository');
+const lifecycle = require('./lifecycle');
 
 const auditService = require('../auditService');
 const { ApiError } = require('../../middleware/errorHandler');
@@ -52,9 +51,6 @@ const addItem = async (work_order_id, { work_order_group_id, item_number, title,
     documentation_readiness,
   });
 
-  if (wo.status === 'ANALYZED') {
-    await workOrderRepository.update(work_order_id, { status: 'DRAFT' });
-  }
   await auditService.log({
     user_id,
     action: 'ITEM_ADDED',
@@ -64,6 +60,7 @@ const addItem = async (work_order_id, { work_order_group_id, item_number, title,
     details: { work_order_group_id, item_number: item.item_number, title: item.title },
     ip_address,
   });
+  await lifecycle.analyzeQuietly(work_order_id, { user_id, roles, ip_address });
   return item;
 };
 
@@ -84,11 +81,7 @@ const updateItem = async (id, { title, description, quantity, documentation_read
     quantity,
     documentation_readiness,
   });
-  let workOrderStatus = parent ? parent.status : null;
-  if (textChanged && parent && parent.status === 'ANALYZED') {
-    await workOrderRepository.update(existing.work_order_id, { status: 'DRAFT' });
-    workOrderStatus = 'DRAFT';
-  }
+  const workOrderStatus = parent ? parent.status : null;
   await auditService.log({
     user_id,
     action: 'ITEM_UPDATED',
@@ -98,6 +91,7 @@ const updateItem = async (id, { title, description, quantity, documentation_read
     details: { item_number: item.item_number, changes: { title, quantity, documentation_readiness } },
     ip_address,
   });
+  await lifecycle.analyzeQuietly(existing.work_order_id, { user_id, roles, ip_address });
   return { ...item, work_order_status: workOrderStatus, text_changed: textChanged };
 };
 
@@ -111,21 +105,6 @@ const deleteItem = async (id, { user_id, roles, ip_address }) => {
   assertNotFinalized(parent, 'items');
   await woItemRepository.deleteItem(id);
   const remainingItems = await woItemRepository.countItemsByWorkOrderId(existing.work_order_id);
-  if (remainingItems === 0) {
-    if (parent && parent.status !== 'FINALIZED' && parent.status !== 'DRAFT') {
-      await workOrderRepository.update(existing.work_order_id, { status: 'DRAFT' });
-      await productionRepository.deleteProductionTasksByWorkOrderId(existing.work_order_id);
-      await auditService.log({
-        user_id,
-        action: 'WORK_ORDER_RESET_TO_DRAFT',
-        entity_type: 'WORK_ORDER',
-        entity_id: existing.work_order_id,
-        work_order_id: existing.work_order_id,
-        details: { reason: 'Last custom item deleted' },
-        ip_address,
-      });
-    }
-  }
   const remainingReview = await classificationRepository.countReviewItemsByWorkOrderId(existing.work_order_id);
   if (remainingReview === 0) {
     await notificationRepository.deleteByEntityAndStatus(existing.work_order_id, 'CODER_REVIEW');
@@ -139,6 +118,9 @@ const deleteItem = async (id, { user_id, roles, ip_address }) => {
     details: { item_number: existing.item_number },
     ip_address,
   });
+  if (remainingItems > 0) {
+    await lifecycle.analyzeQuietly(existing.work_order_id, { user_id, roles, ip_address });
+  }
   return { id };
 };
 

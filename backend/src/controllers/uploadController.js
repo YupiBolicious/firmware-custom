@@ -94,7 +94,7 @@ const confirmUploadWorkOrder = async (req, res, next) => {
     return res.status(revised ? 200 : 201).json({
       success: true,
       message: revised
-        ? `Work order ${wo.wo_number} rewritten to draft`
+        ? (warnings.length ? 'Work order revised with warnings' : 'Successfully revised work order')
         : (warnings.length ? 'Work order imported with warnings' : 'Successfully uploaded work order'),
       data: wo,
       warnings,

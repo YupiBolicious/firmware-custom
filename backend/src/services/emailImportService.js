@@ -187,38 +187,17 @@ const importFromGmail = async ({
           action = 'revised';
         }
 
-        // 4) Analyze terpisah: gagal analyze tidak menggagalkan import.
-        try {
-          const analysis = await workOrderService.analyzeWorkOrder(wo.id, {
-            user_id: sender.id,
-            roles: sender.roles,
-            ip_address,
-          });
-
-          result.imported.push({
-            message_id: messageId,
-            filename: attachment.filename,
-            file_sha256: parsed.hash,
-            action,
-            work_order_id: wo.id,
-            wo_number: wo.wo_number,
-            revision: wo.revision,
-            status: 'ANALYZED',
-            analysis: analysis.summary,
-          });
-        } catch (err) {
-          result.imported.push({
-            message_id: messageId,
-            filename: attachment.filename,
-            file_sha256: parsed.hash,
-            action,
-            work_order_id: wo.id,
-            wo_number: wo.wo_number,
-            revision: wo.revision,
-            status: 'ANALYZE_FAILED',
-            reason: err.message,
-          });
-        }
+        result.imported.push({
+          message_id: messageId,
+          filename: attachment.filename,
+          file_sha256: parsed.hash,
+          action,
+          work_order_id: wo.id,
+          wo_number: wo.wo_number,
+          revision: wo.revision,
+          status: 'ANALYZED',
+          analysis: wo.analysis || null,
+        });
       } catch (err) {
         result.failed.push({
           message_id: messageId,

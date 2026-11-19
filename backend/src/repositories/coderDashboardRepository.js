@@ -9,26 +9,31 @@ const findKpis = async () => {
         JOIN work_orders wo ON wo.id = woi.work_order_id
         WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
        ) AS pending_count,
+
        (SELECT COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0)::numeric
         FROM classifications c
         JOIN work_order_items woi ON woi.id = c.work_order_item_id
         JOIN work_orders wo ON wo.id = woi.work_order_id
         JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-        WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED'
-          
+        WHERE c.status = 'CODER_REVIEW' AND wo.status != 'FINALIZED' 
        ) AS pending_hours,
+
        (SELECT COUNT(*)::int
         FROM work_orders wo
         WHERE wo.status = 'COMPLETED'
+         ) AS completed_count,
           
-       ) AS completed_count,
-       (SELECT COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0)::numeric
-        FROM work_orders wo
-        JOIN work_order_items woi ON woi.work_order_id = wo.id
-        LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
-        WHERE wo.status = 'COMPLETED'
-        
+       (SELECT COALESCE(SUM(q.work_hours), 0)::numeric
+        FROM (
+          SELECT wo.id, COALESCE(MAX(ie.total_hours), 0) AS work_hours
+          FROM work_orders wo
+          JOIN work_order_items woi ON woi.work_order_id = wo.id
+          LEFT JOIN item_estimations ie ON ie.work_order_item_id = woi.id
+          WHERE wo.status = 'COMPLETED'
+          GROUP BY wo.id
+        ) q
        ) AS completed_hours,
+
        (SELECT COUNT(*)::int
         FROM classifications c
         JOIN work_order_items woi ON woi.id = c.work_order_item_id
@@ -70,7 +75,7 @@ const findReviewQueue = async () => {
 const findWorkQueue = async () => {
   const result = await pool.query(
     `SELECT woi.id AS item_id, woi.work_order_id, woi.work_order_group_id, woi.item_number, woi.title, woi.description,
-            woi.quantity,             wo.wo_number, wo.title AS work_order_title,
+            woi.quantity, wo.wo_number, wo.title AS work_order_title,
             wo.status AS work_order_status, wo.created_at AS work_order_created_at,
             (SELECT string_agg(DISTINCT mm2.model_code, '; ')
                FROM work_order_groups g2
@@ -80,7 +85,8 @@ const findWorkQueue = async () => {
             cl.code AS complexity_code, cl.name AS complexity_name,
             c.status AS classification_status, c.confidence_score,
             c.reviewed_by, c.created_at AS classification_created_at,
-            COALESCE(COALESCE(ie.total_hours, 0), 0)::numeric AS estimated_hours
+            COALESCE(COALESCE(ie.total_hours, 0), 0)::numeric AS estimated_hours,
+            MAX(COALESCE(ie.total_hours, 0)) OVER (PARTITION BY wo.id)::numeric AS work_hours
      FROM work_order_items woi
      JOIN work_orders wo ON wo.id = woi.work_order_id
      JOIN classifications c ON c.work_order_item_id = woi.id
@@ -169,7 +175,7 @@ const findWoQueue = async ({ page = 1, limit = 10, ...filters } = {}) => {
             COUNT(woi.id)::int AS item_count,
             COUNT(*) FILTER (WHERE c.status = 'CODER_REVIEW')::int AS open_count,
             COUNT(*) FILTER (WHERE c.status IN ('CLASSIFIED', 'NON_FIRMWARE'))::int AS done_count,
-            COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0)::numeric AS total_hours,
+            COALESCE(MAX(COALESCE(ie.total_hours, 0)), 0)::numeric AS total_hours,
             MAX(c.updated_at) AS last_activity
      FROM work_orders wo
      LEFT JOIN work_order_items woi ON woi.work_order_id = wo.id

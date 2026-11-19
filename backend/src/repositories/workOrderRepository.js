@@ -65,9 +65,10 @@ const findAll = async ({ page = 1, limit = 15, search = '', status = '', machine
      added new relation: to groupWO to get and store ids*/
     `SELECT wo.id, wo.wo_number, wo.title, wo.customer, wo.status,
             wo.revision, wo.created_by, wo.assigned_coder_id, wo.created_at, wo.updated_at,
+             wo.assigned_at, wo.estimated_completion_date,
             u.full_name AS created_by_name,
             COUNT(woi.id)::int AS item_count,
-            COALESCE(SUM(COALESCE(ie.total_hours, 0)), 0) AS total_estimated_hours,
+            COALESCE(MAX(COALESCE(ie.total_hours, 0)), 0) AS total_estimated_hours,
             (SELECT COUNT(*)::int
              FROM work_order_items woi2
              JOIN classifications c2 ON c2.work_order_item_id = woi2.id
@@ -113,8 +114,9 @@ const findById = async (id) => {
   const result = await pool.query(
     `SELECT wo.id, wo.wo_number, wo.title, wo.customer, wo.status, wo.notes,
             wo.revision, wo.created_by, wo.assigned_coder_id, wo.created_at, wo.updated_at,
+             wo.assigned_at, wo.estimated_completion_date,
             u.full_name AS created_by_name, assigned.full_name as assigned_coder_name,
-COALESCE((SELECT SUM(COALESCE(ie.total_hours, 0))
+             COALESCE((SELECT MAX(COALESCE(ie.total_hours, 0))
                        FROM work_order_items woi
                        JOIN item_estimations ie ON ie.work_order_item_id = woi.id
                        WHERE woi.work_order_id = wo.id), 0) AS total_estimated_hours
@@ -144,7 +146,7 @@ const REVIEW_QUEUE_SQL = `
                LEFT JOIN machine_model mm2 ON mm2.id = g2.machine_model_id
               WHERE g2.work_order_id = woi.work_order_id) AS machine_model_code,
             
-            c.classification_reason, c.status, c.created_at, c.reviewed_at, c.reviewed_by,
+            c.classification_reason, c.status, c.firmware_names, c.created_at, c.reviewed_at, c.reviewed_by,
             c.assist_kb_id, c.assist_kb_code, c.assist_match_score, c.assist_semantic_margin,
             c.assist_complexity_level_id, c.assist_fw_related, c.assist_response,
             c.review_reason, c.assist_blocked_reason,
@@ -189,8 +191,8 @@ const createWithGroups = async ({ wo_number, customer, created_by, groups, items
     await client.query('BEGIN');
 
     const woResult = await client.query(
-      `INSERT INTO work_orders (wo_number, customer, created_by, revision)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO work_orders (wo_number, customer, created_by, revision, status)
+       VALUES ($1, $2, $3, $4, 'ANALYZED')
        RETURNING *`,
       [wo_number, customer, created_by, revision]
     );
@@ -283,7 +285,7 @@ const reviseWithGroups = async ({ id, customer, groups, items, revision }) => {
 
     const woResult = await client.query(
       `UPDATE work_orders
-       SET customer = $2, revision = $3, status = 'DRAFT', updated_at = NOW()
+       SET customer = $2, revision = $3, status = 'ANALYZED', updated_at = NOW()
        WHERE id = $1
        RETURNING *`,
       [id, customer, revision]
@@ -291,7 +293,7 @@ const reviseWithGroups = async ({ id, customer, groups, items, revision }) => {
     const wo = woResult.rows[0];
 
     // ponytail: deleting items cascades their classifications/estimations/matches;
-    // production tasks are cleared explicitly so the revised WO re-enters at DRAFT clean.
+    // production tasks are cleared explicitly so the revised WO re-enters at ANALYZED clean.
     await client.query('DELETE FROM production_tasks WHERE work_order_id = $1', [id]);
     await client.query('DELETE FROM work_order_items WHERE work_order_id = $1', [id]);
     await client.query('DELETE FROM work_order_groups WHERE work_order_id = $1', [id]);
@@ -455,9 +457,50 @@ const countCoderReviewRemainingByWorkOrderId = async (workOrderId) => {
   return result.rows[0]?.cnt || 0;
 };
 
+const canSendClassificationEmail = async (workOrderId) => {
+  const result = await pool.query(
+    `SELECT 1
+     FROM work_orders wo
+     WHERE wo.id = $1
+       AND wo.completion_email_sent_at IS NULL
+       AND wo.assigned_coder_id IS NOT NULL
+       AND wo.estimated_completion_date IS NOT NULL
+       AND wo.status = 'ANALYZED'
+       AND NOT EXISTS (
+         SELECT 1 FROM work_order_items woi
+         JOIN classifications c ON c.work_order_item_id = woi.id
+         WHERE woi.work_order_id = wo.id AND c.status = 'CODER_REVIEW'
+       )`,
+    [workOrderId]
+  );
+  return result.rowCount > 0;
+};
+
+const claimClassificationEmail = async (workOrderId) => {
+  const result = await pool.query(
+    `UPDATE work_orders
+     SET completion_email_sent_at = NOW()
+     WHERE id = $1 AND completion_email_sent_at IS NULL
+     RETURNING completion_email_sent_at::text AS claimed_at`,
+    [workOrderId]
+  );
+  return result.rows[0]?.claimed_at || null;
+};
+
+const releaseClassificationEmailClaim = async (workOrderId, claimedAt) => {
+  await pool.query(
+    `UPDATE work_orders
+     SET completion_email_sent_at = NULL
+     WHERE id = $1 AND completion_email_sent_at::text = $2`,
+    [workOrderId, claimedAt]
+  );
+};
+
 const findClassificationEmailDataByWorkOrderId = async (workOrderId) => {
   const wo = await pool.query(
-    `SELECT wo.id, wo.wo_number, wo.created_by, u.email AS created_by_email, u.full_name AS created_by_name
+    `SELECT wo.id, wo.wo_number, wo.customer,
+     wo.created_by, wo.estimated_completion_date::text AS estimated_completion_date,
+            u.email AS created_by_email, u.full_name AS created_by_name
      FROM work_orders wo
      LEFT JOIN users u ON u.id = wo.created_by
      WHERE wo.id = $1`,
@@ -465,8 +508,8 @@ const findClassificationEmailDataByWorkOrderId = async (workOrderId) => {
   );
   const items = await pool.query(
     `SELECT woi.item_number, woi.title,
-            c.fw_related, c.complexity_level_id,
-            cl.code AS complexity_code, cl.name AS complexity_name, cl.firmware_name
+            c.fw_related, c.complexity_level_id, c.firmware_names,
+            cl.code AS complexity_code, cl.name AS complexity_name
      FROM work_order_items woi
      JOIN classifications c ON c.work_order_item_id = woi.id
      LEFT JOIN complexity_levels cl ON cl.id = c.complexity_level_id
@@ -495,5 +538,8 @@ module.exports = {
   findItemNumbersByGroupId,
   findItemNumbersByWorkOrderId,
   countCoderReviewRemainingByWorkOrderId,
+  canSendClassificationEmail,
+  claimClassificationEmail,
+  releaseClassificationEmailClaim,
   findClassificationEmailDataByWorkOrderId,
 };

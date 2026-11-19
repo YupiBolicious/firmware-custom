@@ -4,7 +4,6 @@ const MAP = {
   NON_FIRMWARE: { label: 'Non-Firmware', cls: 'badge-muted' },
   CODER_REVIEW: { label: 'Pending Review', cls: 'badge-warning' },
   PENDING: { label: 'Pending', cls: 'badge-info' },
-  DRAFT: { label: 'Draft', cls: 'badge-muted' },
   ANALYZED: { label: 'Open - Analyze', cls: 'badge-danger' },
   FINALIZED: { label: 'Open - Ready', cls: 'badge-danger' },
   PRODUCTION: { label: 'On-Going', cls: 'badge-warning' },

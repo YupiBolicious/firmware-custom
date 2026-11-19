@@ -65,11 +65,6 @@ const getQuarterlyReport = async (query = {}) => {
   };
 };
 
-// Historical / Quarter report: select a calendar year (and optionally a
-// quarter) and get the selected-quarter metrics plus the Q1-Q4 comparison
-// for the year. Reuses the same quarter buckets / hour definitions as
-// getQuarterlyReport; coder_reviews = classifications reviewed by a coder
-// (reviewed_by set, status CLASSIFIED/NON_FIRMWARE) bucketed by reviewed_at.
 const getHistoricalReport = async (query = {}) => {
   const year = (query.year || '').trim();
   const quarter = (query.quarter || '').trim();

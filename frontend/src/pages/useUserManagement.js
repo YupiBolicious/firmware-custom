@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '../api/client';
 
-export const RESET_PASSWORD = 'CustomRequest123';
+export const RESET_PASSWORD = 'password123';
 
 const emptyForm = {
   username: '',

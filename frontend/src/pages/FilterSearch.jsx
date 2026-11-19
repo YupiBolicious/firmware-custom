@@ -1,6 +1,5 @@
 import StatusBadge, {statusBadgeMeta} from "../components/StatusBadge";
 const WORK_ORDER_STATUS_LABELS = {
-  DRAFT: 'Draft',
   ANALYZED: 'Analyzed',
   FINALIZED: 'Finalized',
   PRODUCTION: 'Production',

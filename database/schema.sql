@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS work_orders (
     title           VARCHAR(300),
     customer        VARCHAR(200),
     revision        INT NOT NULL DEFAULT 0 CHECK (revision >= 0),
-    status          VARCHAR(30) NOT NULL DEFAULT 'DRAFT',  -- DRAFT | ANALYZED | FINALIZED | PRODUCTION | READY_TO_CLOSE | COMPLETED
+    status          VARCHAR(30) NOT NULL DEFAULT 'ANALYZED',  -- ANALYZED | FINALIZED | PRODUCTION | READY_TO_CLOSE | COMPLETED
     notes           TEXT,
     created_by      INT REFERENCES users(id),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -158,6 +158,22 @@ CREATE TABLE IF NOT EXISTS classifications (
     assist_blocked_reason VARCHAR(100),
     UNIQUE (work_order_item_id)
 );
+
+CREATE TABLE IF NOT EXISTS complexity_level_firmware_names (
+  id                  SERIAL PRIMARY KEY,
+  complexity_level_id INT NOT NULL REFERENCES complexity_levels(id) ON DELETE CASCADE,
+  name                VARCHAR(200) NOT NULL,
+  is_active           BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS complexity_level_firmware_names_ci
+  ON complexity_level_firmware_names (complexity_level_id, lower(name));
+
+ALTER TABLE classifications
+  ADD COLUMN IF NOT EXISTS firmware_names TEXT[] NOT NULL DEFAULT '{}';
+
+
 -- ESTIMATION FOR ANLYZING
 CREATE TABLE IF NOT EXISTS item_estimations (
     id                    SERIAL PRIMARY KEY,
@@ -297,6 +313,28 @@ CREATE TABLE IF NOT EXISTS work_order_comments (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ;
+ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS estimated_completion_date DATE;
+ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS completion_email_sent_at TIMESTAMPTZ;
+
+-- backfill from the durable assignment audit row (guarded: never overwrites a real value)
+UPDATE work_orders wo
+SET assigned_at = a.first_assigned_at
+FROM (
+  SELECT work_order_id, MIN(created_at) AS first_assigned_at
+  FROM audit_trail
+  WHERE action = 'WORK_ORDER_ASSIGNED' AND work_order_id IS NOT NULL
+  GROUP BY work_order_id
+) a
+WHERE a.work_order_id = wo.id
+  AND wo.assigned_coder_id IS NOT NULL
+  AND wo.assigned_at IS NULL;
+
+-- fallback for assigned WOs with no audit row
+UPDATE work_orders
+SET assigned_at = created_at
+WHERE assigned_coder_id IS NOT NULL AND assigned_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_work_order_comments_wo_created ON work_order_comments(work_order_id, created_at ASC);
 CREATE INDEX IF NOT EXISTS idx_work_order_comments_user ON work_order_comments(user_id);

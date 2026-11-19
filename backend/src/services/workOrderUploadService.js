@@ -96,9 +96,6 @@ const findLabelLine = (lines, labelRe) => lines.find(
   (line) => line.cells && line.cells.some((cell) => labelRe.test(normalize(cell.text)))
 );
 
-// ponytail: the real form wraps a cell's value onto the rows directly above/below its
-// label, so the Name value straddles the "Name" row; pull the 3-row band's left-column
-// cells (value column, x<CUSTOMER_VALUE_MAX_X) and skip headings/right-hand Rev Date.
 const grabCustomer = (lines) => {
   const idx = lines.findIndex(
     (line) => line.cells && line.cells.some((cell) => /^(NAME|COMPANY)$/i.test(normalize(cell.text)))
@@ -205,32 +202,6 @@ const extractRevision = (lines) => {
 
   const headerCellIndex = headerLine.cells.indexOf(revCell);
 
-// console.log('[rev] header', {
-//   y: headerLine.y,
-//   x: revCell.x,
-//   headerCellIndex,
-//   cells: headerLine.cells.map(({ x, text }) => ({ x, text })),
-// });
-
-// console.log(
-//   '[rev] following rows',
-//   JSON.stringify(
-//     lines
-//       .filter((line) => line.page === headerLine.page && line.y > headerLine.y)
-//       .slice(0, 8)
-//       .map((line) => ({
-//         y: line.y,
-//         cells: (line.cells || []).map(({ x, text }, index) => ({
-//           index,
-//           x,
-//           text,
-//         })),
-//       })),
-//     null,
-//     2
-//   )
-// );
-
   // decide col REV
   const minX = revCell.x - 0.5;
   const maxX = revCell.x + 3;
@@ -251,8 +222,6 @@ const extractRevision = (lines) => {
       }
     }
   }
-
-  // console.log('[rev] candidates', candidates);
 
   if (!candidates.length) return null;
 

@@ -42,7 +42,6 @@ const notifyWorkOrderRecipients = async ({ work_order_id, owner_id, status, mess
 };
 
 const WORK_ORDER_STATUS_LABELS = {
-  DRAFT: 'Draft',
   ANALYZED: 'Open - Analyze',
   FINALIZED: 'Open - Ready',
   PRODUCTION: 'On-Going',
@@ -70,7 +69,7 @@ const buildSummary = (results) => {
   const nonFirmwareItems = results.filter((r) => r.fw_related === false).length;
   const waitingReview = results.filter((r) => r.status === 'CODER_REVIEW').length;
   // ponytail: sum every item's official hours. The callback must add to the accumulator;
-  const totalEstimatedHours = results.reduce((sum, r) => sum + (r.estimated_hours || 0), 0);
+  const totalEstimatedHours = results.reduce((max, r) => Math.max(max, r.estimated_hours || 0), 0);
 
   return {
     total_items: totalItems,
@@ -95,7 +94,7 @@ const analyzeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) =
     throw new ApiError(400, 'Work order has no items to analyze');
   }
   if (['FINALIZED', 'PRODUCTION', 'COMPLETED'].includes(wo.status)) {
-    throw new ApiError(400, 'Only draft or analyzed work orders can be analyzed');
+    throw new ApiError(400, 'This work order can no longer be analyzed');
   }
 
   const results = [];
@@ -359,6 +358,16 @@ if (summary.waiting_review === 0) {
 }
 
   return { work_order: { ...wo, status: 'ANALYZED' }, results, summary, perf: { ...perf, totalMs: Date.now() - tAnalyze } };
+};
+
+// shortcut: a failed auto-analysis leaves the work order ANALYZED without classifications.
+const analyzeQuietly = async (work_order_id, actor) => {
+  try {
+    return await analyzeWorkOrder(work_order_id, actor);
+  } catch (err) {
+    console.error('[analysis] auto analysis failed', { workOrderId: work_order_id, message: err.message });
+    return null;
+  }
 };
 
 const finalizeWorkOrder = async (work_order_id, { user_id, roles, ip_address }) => {
@@ -671,6 +680,7 @@ const completeProduction = async (id, { user_id, roles, ip_address }) => {
 
 module.exports = {
   analyzeWorkOrder,
+  analyzeQuietly,
   finalizeWorkOrder,
   startProduction,
   completeProduction,

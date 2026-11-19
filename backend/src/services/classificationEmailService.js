@@ -24,6 +24,13 @@ const sendClassificationComplete = async (workOrderId) => {
     return;
   }
 
+  let claimedAt = null;
+  const releaseClaim = async () => {
+    if (!claimedAt) return;
+    await workOrderRepository.releaseClassificationEmailClaim(workOrderId, claimedAt);
+    claimedAt = null;
+  };
+
   try {
     const { workOrder, items } =
       await workOrderRepository.findClassificationEmailDataByWorkOrderId(workOrderId);
@@ -41,6 +48,11 @@ const sendClassificationComplete = async (workOrderId) => {
       return;
     }
 
+    if (!(await workOrderRepository.canSendClassificationEmail(workOrderId))) return;
+
+    claimedAt = await workOrderRepository.claimClassificationEmail(workOrderId);
+    if (!claimedAt) return;
+
     const actionUrl = await emailActionService.createRequestWorkOrderUrl({
       work_order_id: workOrder.id,
       user_id: workOrder.created_by,
@@ -49,20 +61,24 @@ const sendClassificationComplete = async (workOrderId) => {
       console.warn('[classification email] skipped: work order is not analyzed or creator is not the owner', {
         workOrderId,
       });
+      await releaseClaim();
       return;
     }
 
     console.log('[classification email] sending', {
       workOrderId,
       woNumber: workOrder.wo_number,
+      customer: workOrder.customer,
       recipient: workOrder.created_by_email,
       itemCount: items.length,
     });
 
     const templateData = {
       wo_number: workOrder.wo_number,
+      customer: workOrder.customer,
       work_order_id: workOrder.id,
       action_url: actionUrl,
+      estimated_completion_date: workOrder.estimated_completion_date,
       items,
     };
 
@@ -78,6 +94,7 @@ const sendClassificationComplete = async (workOrderId) => {
       gmailMessageId: sent?.id || null,
     });
   } catch (err) {
+    await releaseClaim().catch(() => {});
     console.error('[classification email] failed', {
       workOrderId,
       message: err.message,
@@ -88,4 +105,5 @@ const sendClassificationComplete = async (workOrderId) => {
   }
 };
 
-module.exports = {sendClassificationComplete};
+
+module.exports = { sendClassificationComplete};

@@ -14,7 +14,7 @@ const { buildKeywords } = require('../utils/tokenPolicy');
 const { verifyAssignedCoder } = require('./workOrders/guards');
 const classificationEmailService = require('./classificationEmailService');
 
-const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semantic_assist_response, user_id, roles, ip_address }) => {
+const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semantic_assist_response, user_id, roles, ip_address, firmware_names }) => {
   const item = await woItemRepository.findItemWithWorkOrder(itemId);
   if (!item) {
     throw new ApiError(404, 'Work order item not found');
@@ -40,8 +40,20 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
   }
 
   const isFirmware = level.code !== 'L0';
+  const firmwareNames = [];
+  const seenFirmwareNames = new Set();
+  for (const rawName of Array.isArray(firmware_names) ? firmware_names : []) {
+    const name = typeof rawName === 'string' ? rawName.trim() : '';
+    const key = name.toLowerCase();
+    if (!name || seenFirmwareNames.has(key)) continue;
+    seenFirmwareNames.add(key);
+    firmwareNames.push(name);
+  }
+  if (isFirmware && !firmwareNames.length) {
+    throw new ApiError(400, 'firmware_names is required for firmware items (L1-L5)');
+  }
   const reason = notes?.trim()
-    ? `Coder review: ${notes.trim()}`
+    ? `Coder review: ${notes?.trim()}`
     : `Coder review confirmed ${level.code} (${level.name})`;
   const wo = await workOrderRepository.findById(item.work_order_id);
 
@@ -58,6 +70,7 @@ const reviewItem = async (itemId, { complexity_level_id, notes, keywords, semant
     }),
     kb_version: await kbRepository.getCorpusVersion(),
     assist_response: assistResponse,
+    firmware_names: isFirmware ? firmwareNames : [],
   });
   if (!saved) {
     throw new ApiError(409, 'Item review was already completed; reload the queue');

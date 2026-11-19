@@ -8,7 +8,6 @@ import WoDashboardList, { DASHBOARD_WO_COLUMNS } from './WoDashboardList';
 import useDashboardWoList from './useDashboardWoList';
 
 const STATUS_COLORS = {
-  DRAFT: 'var(--text-muted)',
   ANALYZED: 'var(--danger)',
   FINALIZED: 'var(--danger)',
   PRODUCTION: 'var(--warning)',

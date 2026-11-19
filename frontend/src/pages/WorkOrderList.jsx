@@ -7,7 +7,7 @@ import StatusBadge, {statusBadgeMeta} from '../components/StatusBadge';
 import UploadPreviewModal from '../components/work-order/UploadPreviewModal';
 import ConfirmModal from '../components/ConfirmModal';
 
-const STATUS_OPTIONS = ['DRAFT', 'ANALYZED', 'FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'];
+const STATUS_OPTIONS = ['ANALYZED', 'FINALIZED', 'PRODUCTION', 'READY_TO_CLOSE', 'COMPLETED'];
 
 export default function WorkOrderList() {
   const { hasRole } = useAuth();
@@ -266,7 +266,7 @@ export default function WorkOrderList() {
       <ConfirmModal
         isOpen={!!uploadDuplicate}
         title="Work order already exists"
-        message={`Work order ${uploadDuplicate?.existing_wo_number || pendingUpload?.wo_number || ''} is at revision ${uploadDuplicate?.existing_revision ?? '?'}; uploaded revision is ${pendingUpload?.revision ?? 'not detected'}. Only a newer revision can overwrite it, and overwriting resets status to DRAFT.`}
+        message={`Work order ${uploadDuplicate?.existing_wo_number || pendingUpload?.wo_number || ''} is at revision ${uploadDuplicate?.existing_revision ?? '?'}; uploaded revision is ${pendingUpload?.revision ?? 'not detected'}. Only a newer revision can overwrite it, and overwriting re-analyzes the work order.`}
         confirmLabel="Overwrite and reset"
         confirmVariant="danger"
         cancelLabel="Keep existing"
